@@ -3,8 +3,10 @@
 /**
  * /cashier/login — formulaire de connexion caisse (thème clair).
  *
- * Reçoit la liste du staff pré-chargée côté serveur + le tenantId + slug.
- * Connexion par sélection du nom puis mot de passe (`loginCashierByName`).
+ * Reçoit la liste du staff pré-chargée côté serveur + le tenantId stable
+ * (= SALON.slug). Connexion par sélection du nom puis mot de passe
+ * (`loginCashierByName`). Single-tenant : redirige toujours vers `/cashier`
+ * après succès.
  */
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -60,24 +62,14 @@ function StaffAvatar({
 interface CashierLoginFormProps {
   /** Liste du staff pré-chargée par le Server Component. */
   staffList: CashierStaffItem[];
-  /** UUID du tenant résolu par le middleware (x-tenant-id). */
+  /** Identifiant stable du salon (= SALON.slug) — passé aux actions pour
+   *  servir de clé de rate-limit et de marqueur d'origine. */
   tenantId: string;
-  /** Slug du tenant (ex: "aboodhairsalon"). Vide si accès direct à /cashier/login. */
-  slug: string;
-  /** Source de la résolution tenant — détermine si on préfixe les URLs.
-   *  Sur custom_domain/subdomain le slug est implicite (host) → pas de préfixe. */
-  tenantSource?: 'custom_domain' | 'subdomain' | 'path' | null;
-  /** Logo du salon (tenant_branding.logo_url) — null si non configuré. */
+  /** Logo du salon (`salon_settings.logo_url`) — null si non configuré. */
   logoUrl: string | null;
 }
 
-export function CashierLoginForm({
-  staffList,
-  tenantId,
-  slug,
-  tenantSource,
-  logoUrl,
-}: CashierLoginFormProps) {
+export function CashierLoginForm({ staffList, tenantId, logoUrl }: CashierLoginFormProps) {
   const t = useTranslations('auth.cashier');
   const tCommon = useTranslations('auth.common');
   const [selectedId, setSelectedId] = useState('');
@@ -108,20 +100,14 @@ export function CashierLoginForm({
         setStatus({ kind: 'error', errorKey: result.errorKey });
         return;
       }
-      // Redirection complète pour hydrater la session depuis les cookies.
-      // Skip slug prefix sur custom_domain/subdomain (slug implicite dans le host).
-      const useSlugPrefix =
-        Boolean(slug) && tenantSource !== 'custom_domain' && tenantSource !== 'subdomain';
-      window.location.href = useSlugPrefix ? `/${slug}/cashier` : '/cashier';
+      // Single-tenant : pas de préfixe slug — toujours /cashier.
+      window.location.href = '/cashier';
     });
   };
 
   const errorMsg = status.kind === 'error' ? t(`errors.${status.errorKey}`) : undefined;
   const canSubmit = !!selectedId && !!password && !submitting;
   const selectedMember = staffList.find((m) => m.id === selectedId);
-  const useSlugPrefix =
-    Boolean(slug) && tenantSource !== 'custom_domain' && tenantSource !== 'subdomain';
-  const loginHref = useSlugPrefix ? `/${slug}/login` : '/login';
 
   const gridCols =
     staffList.length <= 2
@@ -141,7 +127,7 @@ export function CashierLoginForm({
         <div className="flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1 text-center text-xs">
           <span style={{ color: AUTH_C.subtitle }}>{t('switchToManagerQuestion')}</span>
           <Link
-            href={loginHref}
+            href="/login"
             className="font-semibold transition-opacity hover:opacity-70"
             style={{ color: AUTH_C.title }}
           >

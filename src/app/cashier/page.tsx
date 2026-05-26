@@ -6,8 +6,6 @@
  *
  * Auth : requireCashier() — redirection automatique si pas de session caissier.
  */
-import { headers } from 'next/headers';
-import { redirect } from 'next/navigation';
 import { createAdminClient } from '@/db';
 import { requireCashier } from '../_data/auth-server';
 import type {
@@ -128,17 +126,6 @@ function mapSale(row: any): Sale {
 
 export default async function CashierPage() {
   const { tenantId, staffId, slug } = await requireCashier();
-
-  // Canonicalisation URL : si la session caissier appartient à un tenant identifié
-  // mais que l'URL ne contient pas le slug (header injecté par le middleware sur
-  // les routes path-based `/{slug}/cashier`), on redirige vers la forme canonique.
-  // Évite les états où l'utilisateur se retrouve sur `app.system-aone.com/cashier`
-  // sans contexte tenant visible dans la barre d'URL.
-  const headersList = await headers();
-  const headerSlug = headersList.get('x-tenant-slug') ?? '';
-  if (slug && !headerSlug) {
-    redirect(`/${slug}/cashier`);
-  }
 
   const admin = createAdminClient();
 

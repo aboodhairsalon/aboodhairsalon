@@ -9,18 +9,11 @@ import { getBrowserClient } from '../_data/supabase';
 type Status = { kind: 'idle' } | { kind: 'submitting' } | { kind: 'error'; message: string };
 
 interface LoginFormProps {
-  /** Slug du tenant résolu depuis l'URL (ex: "aboodhairsalon"). Vide si accès direct à /login. */
-  slug: string;
-  /** Source de la résolution tenant (cf. middleware x-tenant-source).
-   *  Quand 'custom_domain' ou 'subdomain', le slug est implicite dans le host —
-   *  on ne préfixe PAS l'URL avec /{slug}/ après login (sinon le browser navigue
-   *  vers `www.aboodhairsalon.com/aboodhairsalon/manager` qui est laid). */
-  tenantSource?: 'custom_domain' | 'subdomain' | 'path' | null;
-  /** Logo du salon (tenant_branding.logo_url) — null si non configuré. */
+  /** Logo du salon (`salon_settings.logo_url`) — null si non configuré. */
   logoUrl: string | null;
 }
 
-export function LoginForm({ slug, tenantSource, logoUrl }: LoginFormProps) {
+export function LoginForm({ logoUrl }: LoginFormProps) {
   const t = useTranslations('auth.direction');
   const tCommon = useTranslations('auth.common');
   const [email, setEmail] = useState('');
@@ -28,10 +21,6 @@ export function LoginForm({ slug, tenantSource, logoUrl }: LoginFormProps) {
   const [status, setStatus] = useState<Status>({ kind: 'idle' });
 
   const submitting = status.kind === 'submitting';
-  // Préfixe slug UNIQUEMENT en path-based mode (app.system-aone.com/{slug}/...).
-  // Sur custom_domain/subdomain le slug est implicite — utilise un path nu.
-  const useSlugPrefix =
-    Boolean(slug) && tenantSource !== 'custom_domain' && tenantSource !== 'subdomain';
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,7 +34,8 @@ export function LoginForm({ slug, tenantSource, logoUrl }: LoginFormProps) {
       setStatus({ kind: 'error', message: t('errorInvalidCredentials') });
       return;
     }
-    window.location.href = useSlugPrefix ? `/${slug}/manager` : '/manager';
+    // Single-tenant : pas de préfixe slug — toujours /manager.
+    window.location.href = '/manager';
   };
 
   return (
