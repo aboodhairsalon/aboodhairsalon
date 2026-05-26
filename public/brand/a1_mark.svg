@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 440" fill="none">
+  <title>System A One — Mark</title>
+  <g fill="#FAFAFA">
+    <path d="M 0 400 L 60 400 L 175 60 L 115 60 Z"/>
+    <rect x="50" y="240" width="125" height="36"/>
+    <rect x="175" y="0" width="48" height="400"/>
+    <rect x="140" y="400" width="120" height="36"/>
+  </g>
+  <path d="M 120 80 L 175 0 L 175 60 L 145 100 Z" fill="#A3E635"/>
+</svg>

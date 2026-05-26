@@ -1,0 +1,429 @@
+/**
+ * Aboodhairsalon — tokens + base + utilities globales.
+ *
+ * Consolidé en un seul fichier (pas de @import depuis un package) pour le
+ * fork mono-app. Hérité directement de System A's packages/ui/styles/.
+ *
+ * Couleurs de marque hardcodées (Aboodhairsalon) — surchargeables au moment
+ * d'un nouveau fork. Pour le runtime, on ne change PAS via JS : la marque est
+ * fixe pour cette installation. Voir `src/config/salon.ts` pour les autres
+ * valeurs de marque (nom, Instagram, etc.).
+ */
+@import 'tailwindcss';
+
+@theme {
+  /* ── Surfaces ─────────────────────────────────────────────────────────── */
+  --color-bg: #0d0b08;
+  --color-bg-soft: #14110d;
+  --color-surface: #1b1813;
+  --color-surface-elev: #25201a;
+  --color-surface-hi: #322b22;
+
+  /* ── Ink (texte sur fond sombre) ──────────────────────────────────────── */
+  --color-ink: #f2ead8;
+  --color-ink-mute: #a89a7e;
+  --color-ink-soft: #6e6450;
+
+  /* ── Marque Aboodhairsalon — copper barbershop ───────────────────────── */
+  /* Ces 3 couleurs DÉFINISSENT l'identité visuelle. Pour personnaliser un
+     fork, changer UNIQUEMENT ces lignes (et `src/config/salon.ts`). */
+  --color-brand-primary: #d08c4f;
+  --color-brand-glow: #e8a867;
+  --color-brand-deep: #9b5f26;
+
+  /* ── Status colors (cohérence inter-installations) ────────────────────── */
+  --color-green: #8bae6e;
+  --color-red: #c75d45;
+
+  /* ── Lines (hairlines sur fond sombre) ────────────────────────────────── */
+  --color-line: rgba(242, 234, 216, 0.08);
+  --color-line-hi: rgba(242, 234, 216, 0.14);
+
+  /* ── Fonts (next/font CSS variables, posées par root layout) ──────────── */
+  --font-sans: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, monospace;
+
+  /* ── Radii ────────────────────────────────────────────────────────────── */
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 8px;
+
+  /* ── Easing ───────────────────────────────────────────────────────────── */
+  --ease-fast: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-soft: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+ * BASE LAYER
+ * ════════════════════════════════════════════════════════════════════════ */
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    background: var(--color-bg);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  /* Grain noise overlay — barbershop atmosphere papier */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0.6;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.06 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  body > * {
+    position: relative;
+    z-index: 2;
+  }
+
+  input,
+  textarea,
+  select,
+  button {
+    font-family: inherit;
+  }
+
+  input:focus,
+  textarea:focus,
+  select:focus,
+  button:focus {
+    outline: none;
+  }
+
+  /* FAQ accordion native */
+  details[open] summary svg {
+    transform: rotate(180deg);
+  }
+  summary {
+    list-style: none;
+    cursor: pointer;
+  }
+  summary::-webkit-details-marker {
+    display: none;
+  }
+
+  /* Selection color = brand */
+  ::selection {
+    background: var(--color-brand-primary);
+    color: var(--color-bg);
+  }
+
+  /* Accessibilité : respecter la préférence OS "réduire les animations" */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+ * COMPONENTS LAYER
+ * ════════════════════════════════════════════════════════════════════════ */
+@layer components {
+  .display {
+    font-family: var(--font-display);
+    letter-spacing: -0.03em;
+    font-optical-sizing: auto;
+    font-weight: 700;
+  }
+
+  .display-i {
+    font-family: var(--font-display);
+    font-style: italic;
+    letter-spacing: -0.02em;
+    font-optical-sizing: auto;
+  }
+
+  .mono {
+    font-family: var(--font-mono);
+  }
+
+  .stripes {
+    background-image: repeating-linear-gradient(
+      -45deg,
+      var(--color-brand-primary) 0 6px,
+      transparent 6px 12px,
+      var(--color-ink) 12px 18px,
+      transparent 18px 24px
+    );
+  }
+
+  .stripes-fine {
+    background-image: repeating-linear-gradient(
+      -45deg,
+      rgba(208, 140, 79, 0.7) 0 3px,
+      transparent 3px 6px,
+      rgba(242, 234, 216, 0.5) 6px 9px,
+      transparent 9px 12px
+    );
+  }
+
+  .copper-glow {
+    box-shadow:
+      0 0 0 1px rgba(208, 140, 79, 0.4),
+      0 8px 32px -8px rgba(208, 140, 79, 0.5),
+      inset 0 1px 0 rgba(232, 168, 103, 0.2);
+  }
+
+  .gradient-mask {
+    background: radial-gradient(ellipse at top, rgba(208, 140, 79, 0.15), transparent 60%);
+  }
+
+  .vignette-copper {
+    background:
+      radial-gradient(ellipse at center, transparent 40%, rgba(13, 11, 8, 0.4) 100%),
+      linear-gradient(180deg, transparent, rgba(208, 140, 79, 0.04));
+  }
+
+  .hairline {
+    border: 1px solid var(--color-line);
+  }
+  .hairline-hi {
+    border: 1px solid var(--color-line-hi);
+  }
+
+  /* Scrollbar premium */
+  .scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .scrollbar::-webkit-scrollbar-thumb {
+    background: var(--color-line-hi);
+    border-radius: 3px;
+  }
+  .scrollbar::-webkit-scrollbar-thumb:hover {
+    background: var(--color-brand-primary);
+  }
+  .scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+ * UTILITIES LAYER
+ * ════════════════════════════════════════════════════════════════════════ */
+@layer utilities {
+  /* Tap target accessibilité (iOS HIG / Android Material) : 44×44 sur touch */
+  @media (pointer: coarse) {
+    .tap-target,
+    button.tap-target,
+    a.tap-target {
+      min-width: 44px;
+      min-height: 44px;
+    }
+  }
+
+  /* Fade-up : entrée subtile, staggerable */
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  .animate-fade-up,
+  .fade-up {
+    animation: fade-up 0.7s var(--ease-soft) both;
+  }
+
+  /* Stagger delays */
+  .delay-1 { animation-delay: 0.08s; }
+  .delay-2 { animation-delay: 0.16s; }
+  .delay-3 { animation-delay: 0.24s; }
+  .delay-4 { animation-delay: 0.32s; }
+  .delay-5 { animation-delay: 0.4s; }
+  .delay-6 { animation-delay: 0.48s; }
+  .delay-7 { animation-delay: 0.56s; }
+  .delay-8 { animation-delay: 0.64s; }
+
+  /* Pulse subtle */
+  @keyframes pulse-soft {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.55; }
+  }
+  .animate-pulse-soft {
+    animation: pulse-soft 2s ease-in-out infinite;
+  }
+
+  /* Glow pulse — mockup hero */
+  @keyframes glow-pulse {
+    0%, 100% {
+      box-shadow:
+        0 0 0 1px rgba(208, 140, 79, 0.3),
+        0 0 60px -20px rgba(208, 140, 79, 0.45);
+    }
+    50% {
+      box-shadow:
+        0 0 0 1px rgba(208, 140, 79, 0.55),
+        0 0 90px -20px rgba(208, 140, 79, 0.75);
+    }
+  }
+  .glow-pulse {
+    animation: glow-pulse 4s ease-in-out infinite;
+  }
+
+  /* Marquee horizontal */
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+  .marquee-track {
+    animation: marquee 38s linear infinite;
+  }
+
+  /* Marquee vertical */
+  @keyframes marquee-y {
+    from { transform: translateY(0); }
+    to { transform: translateY(-50%); }
+  }
+  .marquee-track-y {
+    animation: marquee-y 60s linear infinite;
+  }
+
+  /* Slow rise éditorial */
+  @keyframes rise-in {
+    from {
+      opacity: 0;
+      transform: translateY(40px);
+      filter: blur(6px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+      filter: blur(0);
+    }
+  }
+  .rise-in {
+    animation: rise-in 1s var(--ease-soft) both;
+  }
+
+  /* Press utilities */
+  .btn-press {
+    transition: all 0.15s var(--ease-fast);
+  }
+  .btn-press:active {
+    transform: scale(0.97);
+  }
+
+  .tile-hover {
+    transition: all 0.25s var(--ease-fast);
+  }
+  .tile-hover:hover {
+    transform: translateY(-3px);
+    border-color: var(--color-line-hi);
+  }
+
+  /* Underline animé éditorial */
+  .editorial-link {
+    position: relative;
+    transition: color 0.2s ease;
+  }
+  .editorial-link::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: -2px;
+    width: 100%;
+    height: 1px;
+    background: currentColor;
+    transform: scaleX(0);
+    transform-origin: right;
+    transition: transform 0.4s var(--ease-soft);
+  }
+  .editorial-link:hover::after {
+    transform: scaleX(1);
+    transform-origin: left;
+  }
+
+  /* Vertical text */
+  .text-vertical {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+  }
+
+  /* Mask gradient pour fade au bord d'un marquee */
+  .marquee-mask {
+    mask-image: linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%);
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent 0%,
+      black 8%,
+      black 92%,
+      transparent 100%
+    );
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+ * SYSTEM A ONE — Pages d'entrée (signup, login)
+ * Hérité du fork System A — DA noir + vert pomme + Inter Tight.
+ * ════════════════════════════════════════════════════════════════════════ */
+
+/* Grille "plan d'architecte" — fond du panneau de marque */
+.aone-grid {
+  background-image:
+    linear-gradient(rgba(250, 250, 250, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(250, 250, 250, 0.045) 1px, transparent 1px);
+  background-size: 72px 72px;
+}
+
+/* Halo vert pomme */
+.aone-glow {
+  box-shadow:
+    0 0 0 1px rgba(163, 230, 53, 0.16),
+    0 30px 90px -42px rgba(163, 230, 53, 0.3);
+}
+
+@keyframes aone-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.aone-fade {
+  animation: aone-fade-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Autofill dark theme */
+.aone-input:-webkit-autofill,
+.aone-input:-webkit-autofill:hover,
+.aone-input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #fafafa;
+  -webkit-box-shadow: 0 0 0 100px #141414 inset;
+  caret-color: #fafafa;
+  transition: background-color 9999s ease-in-out 0s;
+}

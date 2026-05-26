@@ -1,0 +1,13 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "next build",
+  "framework": "nextjs",
+  "installCommand": "pnpm install",
+  "regions": ["fra1"],
+  "crons": [
+    {
+      "path": "/api/cron/reminders",
+      "schedule": "0 18 * * *"
+    }
+  ]
+}

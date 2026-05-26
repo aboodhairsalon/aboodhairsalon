@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <title>System A One</title>
+  <rect width="32" height="32" rx="6" fill="#0A0A0A"/>
+  <g transform="translate(8, 6)">
+    <g fill="#FAFAFA">
+      <path d="M 0 18 L 3 18 L 8.5 3 L 5.5 3 Z"/>
+      <rect x="2.5" y="11" width="6.5" height="2"/>
+      <rect x="8.5" y="0" width="2.5" height="18"/>
+      <rect x="7" y="18" width="6" height="2"/>
+    </g>
+    <path d="M 6 3.5 L 8.5 0 L 8.5 3 L 7.2 4.5 Z" fill="#A3E635"/>
+  </g>
+</svg>
