@@ -59,11 +59,9 @@ export async function resolveFromAddress(): Promise<string> {
 
   let fromAddress = process.env['RESEND_FROM_EMAIL'] || DEFAULT_FROM;
   try {
-    // NOTE(découplage) : salon_settings pas dans types.ts → cast any.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const admin = createAdminClient() as any;
+    const admin = createAdminClient();
     const res = await admin.from('salon_settings').select('email_from_address').maybeSingle();
-    const dbFrom = (res.data as { email_from_address: string | null } | null)?.email_from_address;
+    const dbFrom = res.data?.email_from_address;
     if (dbFrom && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(dbFrom)) {
       fromAddress = dbFrom;
     }

@@ -38,11 +38,9 @@ export async function fetchSalonFavicon(): Promise<string> {
 
   let iconUrl = FALLBACK_FAVICON;
   try {
-    // NOTE(découplage) : salon_settings pas dans types.ts → cast any.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const admin = createAdminClient() as any;
+    const admin = createAdminClient();
     const { data } = await admin.from('salon_settings').select('logo_url').maybeSingle();
-    const logo = (data as { logo_url: string | null } | null)?.logo_url ?? null;
+    const logo = data?.logo_url ?? null;
 
     // Accepte data URL bitmap (PNG/JPEG/WebP/SVG) OU HTTPS URL bitmap.
     const isDataBitmap =
