@@ -25,10 +25,9 @@ export type GetReservationsResult =
 export async function getManagerReservations(tenantId: string): Promise<GetReservationsResult> {
   if (!tenantId) return { ok: false, errorKey: 'tenantMissing' };
 
-  const ctx = await requireTenant();
-  if (ctx.tenant.id !== tenantId) {
-    return { ok: false, errorKey: 'tenantNotAuthorized' };
-  }
+  // Single-tenant : pas de guard cross-tenant. `requireTenant()` suffit pour
+  // vérifier l'auth manager.
+  await requireTenant();
 
   const admin = createAdminClient();
 

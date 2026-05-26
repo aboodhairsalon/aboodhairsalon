@@ -46,10 +46,9 @@ export async function getProductStats(
   periodDays = 30,
 ): Promise<GetProductStatsResult> {
   if (!tenantId) return { ok: false, errorKey: 'tenantMissing' };
+  // Single-tenant : pas de guard cross-tenant. `requireTenant()` suffit pour
+  // vérifier l'auth manager.
   const ctx = await requireTenant();
-  if (ctx.tenant.id !== tenantId) {
-    return { ok: false, errorKey: 'tenantNotAuthorized' };
-  }
   // Rate-limit lecture manager (audit T4.2).
   if (!(await rlManagerRead(ctx.user.id))) {
     return { ok: false, errorKey: 'dbError', errorValues: { message: 'rate_limited' } };

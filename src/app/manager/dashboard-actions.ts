@@ -84,11 +84,9 @@ function mapSale(row: any): Sale {
 export async function getDashboardSeries(tenantId: string): Promise<GetDashboardSeriesResult> {
   if (!tenantId) return { ok: false, errorKey: 'tenantMissing' };
 
-  // Re-garde : on rejette tout tenantId qui n'est pas celui de la session.
+  // Single-tenant : pas de guard cross-tenant (il n'y a qu'une instance).
+  // `requireTenant()` suffit pour vérifier l'auth manager.
   const ctx = await requireTenant();
-  if (ctx.tenant.id !== tenantId) {
-    return { ok: false, errorKey: 'tenantNotAuthorized' };
-  }
 
   // Rate-limit lecture manager : 120/min/userId. Bloque les boucles UI
   // buggées + scraping (audit T4.2).

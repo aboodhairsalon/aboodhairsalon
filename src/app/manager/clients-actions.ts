@@ -51,13 +51,10 @@ export type GetClientsResult = { ok: true; clients: ManagerClient[] } | ErrResul
 export async function getManagerClients(tenantId: string): Promise<GetClientsResult> {
   if (!tenantId) return { ok: false, errorKey: 'tenantMissing' };
 
-  // Re-garde : on rejette tout tenantId qui n'est pas celui de la session.
-  // Sans ce check, un appelant authentifié sur tenant A pouvait passer le
-  // tenantId de B dans l'input et énumérer les clients de B (audit T3.2).
+  // Single-tenant : pas de guard cross-tenant. `requireTenant()` suffit pour
+  // vérifier l'auth manager. Le paramètre `tenantId` est conservé pour ne pas
+  // casser les call-sites mais sa valeur est inerte (== SALON.slug).
   const ctx = await requireTenant();
-  if (ctx.tenant.id !== tenantId) {
-    return { ok: false, errorKey: 'tenantNotAuthorized' };
-  }
 
   // Rate-limit lecture manager (audit T4.2).
   if (!(await rlManagerRead(ctx.user.id))) {
@@ -329,11 +326,10 @@ export async function getClientHistory(
   tenantId: string,
   phone: string,
 ): Promise<GetClientHistoryResult> {
-  // Re-garde : on rejette tout tenantId qui n'est pas celui de la session.
+  if (!tenantId) return { ok: false, errorKey: 'tenantMissing' };
+  // Single-tenant : pas de guard cross-tenant. `requireTenant()` suffit pour
+  // vérifier l'auth manager.
   const ctx = await requireTenant();
-  if (ctx.tenant.id !== tenantId) {
-    return { ok: false, errorKey: 'tenantNotAuthorized' };
-  }
   // Rate-limit lecture manager (audit T4.2).
   if (!(await rlManagerRead(ctx.user.id))) {
     return { ok: false, errorKey: 'dbError', errorValues: { message: 'rate_limited' } };

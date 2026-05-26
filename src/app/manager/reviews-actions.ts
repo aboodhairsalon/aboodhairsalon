@@ -37,11 +37,9 @@ export type GetTenantReviewsResult =
 export async function getTenantReviews(tenantId: string): Promise<GetTenantReviewsResult> {
   if (!tenantId) return { ok: false, errorKey: 'tenantMissing' };
 
-  // Re-garde : on rejette tout tenantId qui n'est pas celui de la session.
-  const ctx = await requireTenant();
-  if (ctx.tenant.id !== tenantId) {
-    return { ok: false, errorKey: 'tenantNotAuthorized' };
-  }
+  // Single-tenant : pas de guard cross-tenant. `requireTenant()` suffit pour
+  // vérifier l'auth manager.
+  await requireTenant();
 
   const admin = createAdminClient();
 
