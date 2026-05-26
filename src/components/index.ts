@@ -5,7 +5,7 @@
  * sur les imports lors du découplage. Le helper `cn` est ré-exporté depuis
  * `@/lib/utils/cn` (rangé en lib/ pour rester technologiquement neutre).
  */
-export { cn } from '@/lib/utils/cn';
+export { cn } from '../utils/cn';
 export { Tag } from './Tag';
 export { Btn, BtnLink } from './Btn';
 export { Card } from './Card';

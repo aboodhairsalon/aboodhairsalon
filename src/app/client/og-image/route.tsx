@@ -19,8 +19,10 @@ import { createAdminClient } from '@/db';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-export const contentType = 'image/png';
-export const size = { width: 1200, height: 630 };
+// Format standard OpenGraph 1200×630 (Facebook, WhatsApp, LinkedIn, Twitter…).
+// Constante locale (PAS exportée) pour ne pas heurter `typedRoutes` qui
+// n'accepte que les exports standards (GET/POST/etc) sur un Route Handler.
+const SIZE = { width: 1200, height: 630 };
 
 export async function GET(): Promise<Response> {
   const h = await headers();
@@ -125,7 +127,7 @@ export async function GET(): Promise<Response> {
       </div>
     </div>,
     {
-      ...size,
+      ...SIZE,
       headers: {
         'Cache-Control': 'public, s-maxage=3600, max-age=600',
       },

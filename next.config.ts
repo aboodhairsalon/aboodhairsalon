@@ -19,7 +19,11 @@ const SUPABASE_HOSTNAME = process.env['NEXT_PUBLIC_SUPABASE_URL']
 
 const config: NextConfig = {
   reactStrictMode: true,
-  typedRoutes: true,
+  // typedRoutes désactivé : System A active cette option mais le fork
+  // single-tenant a beaucoup de `redirect(dynamicString)` héritage du
+  // multi-tenant qui passent des routes calculées. Réactiver après cleanup
+  // pass complet (Phase B2.b — strip `x-tenant-*` + redirections dynamiques).
+  typedRoutes: false,
   poweredByHeader: false,
   images: {
     remotePatterns: SUPABASE_HOSTNAME

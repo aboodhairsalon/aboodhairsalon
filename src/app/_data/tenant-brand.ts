@@ -15,7 +15,8 @@ import { createAdminClient } from '@/db';
  *  Le paramètre `_tenantId` est ignoré (legacy multi-tenant), conservé pour
  *  compat avec les call-sites qui passent `headers().get('x-tenant-id')`. */
 export async function fetchTenantLogo(_tenantId?: string | null): Promise<string | null> {
-  const admin = createAdminClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const admin = createAdminClient() as any;
   const { data } = await admin.from('salon_settings').select('logo_url').maybeSingle();
   return (data as { logo_url: string | null } | null)?.logo_url ?? null;
 }

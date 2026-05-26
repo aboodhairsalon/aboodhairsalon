@@ -92,7 +92,7 @@ const StaffSchema = z.object({
 export type StaffInput = z.input<typeof StaffSchema>;
 
 export async function createStaff(input: StaffInput): Promise<MutationResult> {
-  const ctx = await requireTenant();
+  await requireTenant();
   const supabase = await getServerSupabase();
   const parsed = StaffSchema.safeParse(input);
   if (!parsed.success) {
@@ -196,7 +196,7 @@ const ServiceSchema = z.object({
 export type ServiceInput = z.input<typeof ServiceSchema>;
 
 export async function createService(input: ServiceInput): Promise<MutationResult> {
-  const ctx = await requireTenant();
+  await requireTenant();
   const supabase = await getServerSupabase();
   const parsed = ServiceSchema.safeParse(input);
   if (!parsed.success) {
@@ -270,7 +270,7 @@ const ProductSchema = z.object({
 export type ProductInput = z.input<typeof ProductSchema>;
 
 export async function createProduct(input: ProductInput): Promise<MutationResult> {
-  const ctx = await requireTenant();
+  await requireTenant();
   const supabase = await getServerSupabase();
   const parsed = ProductSchema.safeParse(input);
   if (!parsed.success) {

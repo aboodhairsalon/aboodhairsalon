@@ -170,12 +170,19 @@ export async function requireTenant(): Promise<TenantContext> {
 
   // Charge la ligne unique salon_settings via le client serveur (RLS s'assure
   // qu'un manager autorisé peut lire la ligne).
+  // NOTE(découplage) : la table `salon_settings` n'est pas encore dans
+  // src/db/types.ts (sera générée après application de la migration single-tenant).
+  // En attendant, on cast `supabase as any` pour bypass le type-check.
   const supabase = await getServerSupabase();
-  const { data: settingsRow } = await supabase.from('salon_settings').select('*').maybeSingle();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: settingsRow } = await (supabase as any)
+    .from('salon_settings')
+    .select('*')
+    .maybeSingle();
 
-  const s = settingsRow as Partial<TenantContext['settings']> & {
-    logo_url?: string | null;
-  } | null;
+  const s = settingsRow as
+    | (Partial<TenantContext['settings']> & { logo_url?: string | null })
+    | null;
 
   return {
     user,

@@ -39,7 +39,7 @@ export type ManagerCollections = {
  * Charge staff + services + products du tenant courant.
  * `tenantId` est passé explicitement (déjà résolu par requireTenant()).
  */
-export async function getManagerCollections(tenantId: string): Promise<ManagerCollections> {
+export async function getManagerCollections(_tenantId: string): Promise<ManagerCollections> {
   const supabase = await getServerSupabase();
 
   const staffRes = await supabase

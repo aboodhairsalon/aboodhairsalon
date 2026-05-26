@@ -498,7 +498,8 @@ export async function setBookingExtras(
   bookingId: string,
   extras: BookingExtraInput[],
 ): Promise<MutationResult> {
-  const ctx = await requireTenant();
+  // requireTenant() exécuté pour ses effets de bord (auth + redirect si non-manager).
+  await requireTenant();
   const db = (await getServerSupabase()) as AnySupabase;
 
   // Validation defense-in-depth : un appel malicieux pourrait pousser des

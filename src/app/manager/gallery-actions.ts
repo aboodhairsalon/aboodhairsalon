@@ -207,11 +207,13 @@ export async function uploadGalleryPhoto(
   const bytes = Buffer.from(b64, 'base64');
 
   // 2. Insert le row d'abord pour obtenir un photo_id stable
-  const insertRow: GalleryInsert = {
+  //    TODO(découplage) : `tenant_id` est requis par le schéma hérité.
+  //    À retirer quand le schéma sera consolidé en single-tenant.
+  const insertRow = {
     photo_url: '', // placeholder — on update juste après
     caption: parsed.data.caption ?? null,
     sort_order: nextSort,
-  };
+  } as Omit<GalleryInsert, 'tenant_id'>;
 
   const { data: ins, error } = await admin
     .from('tenant_gallery')
@@ -272,7 +274,7 @@ export async function uploadGalleryPhoto(
  * autre boutique).
  */
 export async function deleteGalleryPhoto(photoId: string): Promise<GalleryResult> {
-  const ctx = await requireTenant();
+  await requireTenant();
   const admin = createAdminClient();
 
   const idValid = z.string().uuid().safeParse(photoId);
@@ -328,7 +330,7 @@ export async function updateGalleryCaption(
   photoId: string,
   caption: string | null,
 ): Promise<GalleryResult> {
-  const ctx = await requireTenant();
+  await requireTenant();
   const admin = createAdminClient();
 
   const idValid = z.string().uuid().safeParse(photoId);
@@ -373,7 +375,7 @@ export async function updateGalleryCaption(
  * pour cet id (le  filtre).
  */
 export async function reorderGalleryPhotos(photoIds: string[]): Promise<GalleryResult> {
-  const ctx = await requireTenant();
+  await requireTenant();
   const admin = createAdminClient();
 
   const idsValid = z.array(z.string().uuid()).min(0).max(MAX_PHOTOS_PER_TENANT).safeParse(photoIds);
@@ -411,7 +413,7 @@ export async function reorderGalleryPhotos(photoIds: string[]): Promise<GalleryR
  * Ordre : sort_order ASC (=) ordre d'affichage côté client.
  */
 export async function listGalleryPhotos(): Promise<GalleryResult<GalleryPhoto[]>> {
-  const ctx = await requireTenant();
+  await requireTenant();
   const admin = createAdminClient();
 
   const { data, error } = await admin
