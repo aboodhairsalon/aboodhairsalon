@@ -11,11 +11,14 @@
  *  - Composé : logo + texte = plus impactant qu'un logo seul
  *  - Pas besoin de resize image upstream
  *
+ * Single-tenant : nom + couleur viennent de @/config/salon, logo lu depuis
+ * la ligne unique `salon_settings` via le helper `fetchSalonLogo()`.
+ *
  * Cache 1h CDN.
  */
 import { ImageResponse } from 'next/og';
-import { headers } from 'next/headers';
-import { createAdminClient } from '@/db';
+import { SALON } from '@/config/salon';
+import { fetchSalonLogo } from '../../_data/tenant-brand';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -25,27 +28,16 @@ export const dynamic = 'force-dynamic';
 const SIZE = { width: 1200, height: 630 };
 
 export async function GET(): Promise<Response> {
-  const h = await headers();
-  const tenantId = h.get('x-tenant-id');
-  const tenantName = h.get('x-tenant-name') ?? 'Salon';
-  const brandPrimary = h.get('x-tenant-brand-primary') ?? '#D08C4F';
+  const tenantName = SALON.name;
+  const brandPrimary = SALON.brand.primary;
 
   let logoSrc: string | null = null;
-  if (tenantId) {
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const admin = createAdminClient() as any;
-      const brandingRes = await admin
-        .from('tenant_branding')
-        .select('logo_url')
-        
-        .maybeSingle();
-      const logoUrl = (brandingRes.data as { logo_url?: string | null } | null)?.logo_url ?? null;
-      // ImageResponse / Satori accepte les data URLs ET les URLs HTTP(S).
-      if (logoUrl) logoSrc = logoUrl;
-    } catch {
-      // best-effort — fallback à l'initiale ci-dessous
-    }
+  try {
+    const logoUrl = await fetchSalonLogo();
+    // ImageResponse / Satori accepte les data URLs ET les URLs HTTP(S).
+    if (logoUrl) logoSrc = logoUrl;
+  } catch {
+    // best-effort — fallback à l'initiale ci-dessous
   }
 
   const initial = tenantName.trim().charAt(0).toUpperCase() || '?';
