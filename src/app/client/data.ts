@@ -1,17 +1,18 @@
 import 'server-only';
 /**
- * Chargement du contexte tenant pour l'espace client public.
+ * Chargement du contexte salon pour l'espace client public.
  *
- * Contrairement au layout /manager (qui utilise requireTenant() + session RLS),
- * l'espace client est public : on lit tenant_id depuis le header x-tenant-id
- * posé par le middleware, puis on charge les données via le client admin
- * (bypass RLS). Aucune session Supabase Auth n'est requise.
+ * Single-tenant : on lit `tenants`, `tenant_branding`, `tenant_settings` via
+ * `.maybeSingle()` (la table ne contient qu'UNE ligne en mono-app). Les valeurs
+ * statiques (timezone, currency, brand colors, slug) viennent en fallback de
+ * `@/config/salon` si la DB est vide.
  *
- * Retourne null si aucun tenant n'est résolu (accès direct à /client sans
- * slug dans l'URL) — le layout affiche alors un fallback.
+ * Plus de guard `x-tenant-id` / `x-tenant-slug` (le middleware ne pose plus ces
+ * headers). L'espace client est public — aucune session Supabase Auth requise,
+ * lecture via client admin (RLS bypass).
  */
-import { headers } from 'next/headers';
 import { createAdminClient } from '@/db';
+import { SALON } from '@/config/salon';
 import type { TenantSession } from '../_components/TenantProvider';
 import type { Currency } from '@/lib/money';
 import type { CashierShift, Product, Service, Staff, StaffRole } from '../_data/mock';
@@ -26,56 +27,45 @@ function toServiceIcon(raw: string | null): ServiceIcon {
 }
 
 /**
- * Charge le contexte complet du tenant (branding, settings, collections)
- * depuis les headers middleware, sans session Auth.
+ * Charge le contexte complet du salon (branding, settings, collections).
  *
- * Lit `x-tenant-id` et `x-tenant-slug` depuis les request headers.
- * Toutes les requêtes DB utilisent le client admin avec ``
- * pour garantir l'isolation des données malgré l'absence de RLS session.
+ * Toutes les requêtes utilisent le client admin (bypass RLS) puisque l'espace
+ * /client est public et ne porte pas de session. Les fallbacks SALON sont
+ * appliqués si une ligne est absente — l'UI doit toujours afficher quelque
+ * chose de cohérent même au premier boot.
  */
 export async function getPublicTenantData(): Promise<TenantSession | null> {
-  const headersList = await headers();
-  const tenantId = headersList.get('x-tenant-id');
-  const slug = headersList.get('x-tenant-slug');
-
-  if (!tenantId || !slug) return null;
-
   const admin = createAdminClient();
 
-  // Requêtes parallèles — aucune session, isolation via 
+  // Requêtes parallèles — toutes via admin client (RLS bypass), une seule
+  // instance salon donc `.maybeSingle()` sur les tables de config.
   const [tenantRes, brandingRes, settingsRes, staffRes, servicesRes, productsRes, galleryRes] =
     await Promise.all([
-      admin.from('tenants').select('*').eq('id', tenantId).maybeSingle(),
+      admin.from('tenants').select('*').maybeSingle(),
       admin.from('tenant_branding').select('*').maybeSingle(),
       admin.from('tenant_settings').select('*').maybeSingle(),
       admin
         .from('staff')
         .select('*')
-        
         .eq('is_active', true)
         .order('sort_order', { ascending: true })
         .order('created_at', { ascending: true }),
       admin
         .from('services')
         .select('*')
-        
         .eq('is_active', true)
         .order('sort_order', { ascending: true })
         .order('created_at', { ascending: true }),
       admin
         .from('products')
         .select('*')
-        
         .eq('is_active', true)
         .order('created_at', { ascending: true }),
       admin
         .from('tenant_gallery')
         .select('id, photo_url, caption, sort_order')
-        
         .order('sort_order', { ascending: true }),
     ]);
-
-  if (!tenantRes.data) return null;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const t = tenantRes.data as any;
@@ -133,38 +123,38 @@ export async function getPublicTenantData(): Promise<TenantSession | null> {
   return {
     // Pas d'utilisateur connecté — espace public.
     tenant: {
-      id: t.id as string,
-      slug: t.slug as string,
-      name: t.name as string,
-      currency: (t.currency as Currency) ?? 'EUR',
-      timezone: (t.timezone as string) ?? 'Europe/Paris',
-      locale: (t.locale as string) ?? 'fr-FR',
-      plan: (t.plan as string) ?? 'starter',
-      status: (t.status as string) ?? 'active',
-      trial_ends_at: (t.trial_ends_at as string | null) ?? null,
+      id: (t?.id as string) ?? SALON.slug,
+      slug: (t?.slug as string) ?? SALON.slug,
+      name: (t?.name as string) ?? SALON.name,
+      currency: ((t?.currency as Currency) ?? (SALON.currency as Currency)) as Currency,
+      timezone: (t?.timezone as string) ?? SALON.timezone,
+      locale: (t?.locale as string) ?? SALON.currencyLocale,
+      plan: (t?.plan as string) ?? 'production',
+      status: (t?.status as string) ?? 'active',
+      trial_ends_at: (t?.trial_ends_at as string | null) ?? null,
     },
     branding: {
       logo_url: (b?.logo_url as string | null) ?? null,
-      brand_primary: (b?.brand_primary as string) ?? '#D08C4F',
-      brand_glow: (b?.brand_glow as string) ?? '#E8A867',
-      brand_deep: (b?.brand_deep as string) ?? '#9B5F26',
+      brand_primary: (b?.brand_primary as string) ?? SALON.brand.primary,
+      brand_glow: (b?.brand_glow as string) ?? SALON.brand.glow,
+      brand_deep: (b?.brand_deep as string) ?? SALON.brand.deep,
       custom_domain: (b?.custom_domain as string | null) ?? null,
     },
     settings: {
-      tax_rate_bp: (s?.tax_rate_bp as number) ?? 2000,
+      tax_rate_bp: (s?.tax_rate_bp as number) ?? 1400, // 14% VAT Égypte
       legal_name: (s?.legal_name as string | null) ?? null,
       legal_address: (s?.legal_address as string | null) ?? null,
-      tagline: (s?.tagline as string | null) ?? null,
+      tagline: (s?.tagline as string | null) ?? SALON.tagline,
       address_street: (s?.address_street as string | null) ?? null,
-      address_city: (s?.address_city as string | null) ?? null,
+      address_city: (s?.address_city as string | null) ?? SALON.address.city,
       address_zip: (s?.address_zip as string | null) ?? null,
       branch: (s?.branch as string | null) ?? null,
-      contact_phone: (s?.contact_phone as string | null) ?? null,
-      contact_email: (s?.contact_email as string | null) ?? null,
+      contact_phone: (s?.contact_phone as string | null) ?? SALON.contact.phone,
+      contact_email: (s?.contact_email as string | null) ?? SALON.contact.email,
       contact_website: (s?.contact_website as string | null) ?? null,
-      contact_instagram: (s?.contact_instagram as string | null) ?? null,
+      contact_instagram: (s?.contact_instagram as string | null) ?? SALON.contact.instagram,
       hours_text: (s?.hours_text as string | null) ?? null,
-      maps_url: (s?.maps_url as string | null) ?? null,
+      maps_url: (s?.maps_url as string | null) ?? SALON.contact.googleMapsUrl ?? null,
       cashback_rate_bp: (s?.cashback_rate_bp as number | null) ?? 250,
       email_from_address: (s?.email_from_address as string | null) ?? null,
     },
