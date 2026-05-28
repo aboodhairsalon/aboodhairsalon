@@ -1465,20 +1465,25 @@ function ClientBookingFlow({
     return map[jsDay] ?? null;
   }, [date]);
   const allSlots = useMemo(() => {
-    // Si pas d'horaires configurés (mode démo ou tenant pas setup), retombe
-    // sur la plage par défaut 09:00→19:00 — n'expose pas un état vide.
-    const day = dateDayKey && weekSchedule ? weekSchedule[dateDayKey] : null;
-    if (!day || !day.open || day.slots.length === 0) {
-      // Tenant connecté + jour fermé → liste vide (UX claire « pas de slot »).
-      if (tenantSession) return [];
-      // Mode démo : fallback 9-19h pour ne pas casser la preview.
-      const fallback: string[] = [];
+    // Plage par défaut 09:00→19:00 (pas de 30 min) — utilisée tant que le gérant
+    // n'a pas renseigné ses horaires (Manager → Paramètres → Horaires).
+    const defaultSlots = (): string[] => {
+      const out: string[] = [];
       for (let h = 9; h < 19; h++) {
-        fallback.push(`${String(h).padStart(2, '0')}:00`);
-        fallback.push(`${String(h).padStart(2, '0')}:30`);
+        out.push(`${String(h).padStart(2, '0')}:00`);
+        out.push(`${String(h).padStart(2, '0')}:30`);
       }
-      return fallback;
-    }
+      return out;
+    };
+    // AUCUN horaire configuré (hours_text vide) → on NE bloque PAS la réservation
+    // avec une grille vide : on propose la plage par défaut. (Avant : un tenant
+    // connecté sans horaires renvoyait [] → impossible de réserver tant que les
+    // horaires n'étaient pas saisis — bug bloquant.)
+    if (!weekSchedule) return defaultSlots();
+    // Horaires configurés : on respecte le jour sélectionné.
+    const day = dateDayKey ? weekSchedule[dateDayKey] : null;
+    // Jour explicitement fermé → liste vide (UX claire « pas de créneau »).
+    if (!day || !day.open || day.slots.length === 0) return [];
     const out: string[] = [];
     for (const range of day.slots) {
       // Parse "HH:mm" → minutes since midnight pour générer les pas de 30min.
@@ -1942,15 +1947,15 @@ function ClientBookingFlow({
                     minHeight: 160,
                   }}
                 >
-                  <div className="mb-auto flex items-start justify-between">
+                  <div className="flex flex-1 items-center justify-center py-3">
                     <div
-                      className="flex h-9 w-9 items-center justify-center rounded-xl"
-                      style={{ background: LC.inputBg }}
+                      className="flex h-16 w-16 items-center justify-center rounded-2xl"
+                      style={{ background: LC.inputBg, color: LC.btn }}
                     >
-                      <ServiceIcon iconKey={s.icon} className="h-5 w-5" />
+                      <ServiceIcon iconKey={s.icon} className="h-8 w-8" />
                     </div>
                   </div>
-                  <div className="display mt-2 text-base leading-tight" style={{ color: LC.title }}>
+                  <div className="display text-base leading-tight" style={{ color: LC.title }}>
                     {s.name}
                   </div>
                   <div className="mt-1.5 flex items-end justify-between">

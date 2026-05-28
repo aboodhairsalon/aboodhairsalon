@@ -51,18 +51,17 @@ export default getRequestConfig(async () => {
   let locale: Locale;
 
   if (isClient) {
-    // RÈGLE STRICTE sur l'espace booking client : EN est le DEFAULT FORT. Le
-    // cookie FR est IGNORÉ — il y a de fortes chances qu'il vienne d'une
-    // session manager partagée (le gérant a son /manager en FR mais on ne
-    // veut pas que son booking public hérite du FR). On respecte UNIQUEMENT
-    // un choix explicite EN ou AR via le LocaleSwitcher de l'accueil client.
+    // Espace booking client : EN reste le DÉFAUT pour un PREMIER visiteur (sans
+    // cookie) — visée touristique (Alexandrie). MAIS on respecte désormais tout
+    // choix EXPLICITE du visiteur via le LocaleSwitcher (FR / EN / AR).
     //
-    // Accept-Language également ignoré ici — un visiteur avec un navigateur
-    // FR (typique localement) doit voir EN par défaut (visée touristique).
-    if (cookieLocale === 'en' || cookieLocale === 'ar') {
+    // (Avant : le cookie FR était ignoré → le sélecteur de langue était cassé
+    // pour le français sur le booking, le client ne pouvait jamais voir le FR.)
+    // Accept-Language reste ignoré ici : pas de cookie ⇒ EN par défaut.
+    if (isValidLocale(cookieLocale)) {
       locale = cookieLocale;
     } else {
-      locale = CLIENT_DEFAULT_LOCALE; // 'en'
+      locale = CLIENT_DEFAULT_LOCALE; // 'en' (premier visiteur, sans cookie)
     }
   } else {
     // Espaces /manager, /cashier, login : comportement classique.
