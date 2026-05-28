@@ -1,10 +1,11 @@
 /**
- * Logo System A One — glyphe A1 fusionné (D-010 / D-024).
+ * Logo Aboodhairsalon — glyphe ciseaux + wordmark.
  *
- * Utilisé sur les pages d'entrée de l'app tenant (signup, login) qui ont
- * adopté la nouvelle DA noir + vert pomme. Glyphe inline depuis le SVG
- * officiel ; wordmark en HTML/Inter Tight.
+ * Utilisé sur les pages d'entrée (signup, login, reset-password) qui portent
+ * la DA noir + vert pomme. Le nom et la tagline viennent de `@/config/salon`
+ * pour rester cohérents et faciles à personnaliser lors d'un fork.
  */
+import { SALON } from '@/config/salon';
 
 interface BrandLogoProps {
   variant?: 'mark' | 'lockup';
@@ -12,23 +13,25 @@ interface BrandLogoProps {
   className?: string;
 }
 
+/** Glyphe ciseaux (salon de coiffure) — remplace l'ancien glyphe A1. */
 function Mark({ size = 30 }: { size?: number }) {
   return (
     <svg
-      width={size * (280 / 440)}
+      width={size}
       height={size}
-      viewBox="0 0 280 440"
+      viewBox="0 0 24 24"
       fill="none"
-      xmlns="http://www.w3.org/2000/svg"
+      stroke="#FAFAFA"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
       aria-hidden="true"
     >
-      <g fill="#FAFAFA">
-        <path d="M 0 400 L 60 400 L 175 60 L 115 60 Z" />
-        <rect x="50" y="240" width="125" height="36" />
-        <rect x="175" y="0" width="48" height="400" />
-        <rect x="140" y="400" width="120" height="36" />
-      </g>
-      <path d="M 120 80 L 175 0 L 175 60 L 145 100 Z" fill="#A3E635" />
+      <circle cx="6" cy="6" r="3" />
+      <path d="M8.12 8.12 12 12" />
+      <path d="M20 4 8.12 15.88" />
+      <circle cx="6" cy="18" r="3" />
+      <path d="M14.8 14.8 20 20" />
     </svg>
   );
 }
@@ -43,13 +46,13 @@ export function BrandLogo({ variant = 'lockup', size = 30, className = '' }: Bra
       {variant === 'lockup' && (
         <span className="flex flex-col leading-none">
           <span className="text-[16px] font-bold tracking-[-0.03em] text-[#FAFAFA]">
-            System A One
+            {SALON.name}
           </span>
           <span
             className="mt-1.5 text-[7px] uppercase tracking-[0.26em] text-[#71717A]"
             style={{ fontFamily: 'var(--font-jetbrains), monospace' }}
           >
-            System · Solution · Optimisation
+            {SALON.tagline}
           </span>
         </span>
       )}

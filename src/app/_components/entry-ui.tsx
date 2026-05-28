@@ -17,9 +17,12 @@ import { useTranslations } from 'next-intl';
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from 'react';
 import { BrandLogo } from './BrandLogo';
 import { LocaleSwitcher } from './LocaleSwitcher';
+import { SALON } from '@/config/salon';
 
-/** Site marketing — destination du logo et du lien retour. */
-const SITE_URL = 'https://www.system-aone.com';
+/** Vitrine du salon — destination du logo et du lien retour. */
+const SITE_URL = SALON.url;
+/** Hostname affiché dans le footer du panneau de marque (ex. aboodhairsalon.com). */
+const SITE_HOST = new URL(SALON.url).hostname.replace(/^www\./, '');
 
 const MONO = 'var(--font-jetbrains), ui-monospace, SFMono-Regular, monospace';
 const SERIF = 'var(--font-instrument), Georgia, serif';
@@ -158,7 +161,7 @@ export function EntryShell({ eyebrow, headline, intro, children }: EntryShellPro
               className="text-[11px] uppercase tracking-[0.22em] text-[#71717A]"
               style={{ fontFamily: MONO }}
             >
-              app.system-aone.com
+              {SITE_HOST}
             </span>
           </div>
         </aside>
