@@ -35,7 +35,7 @@ const SANS = 'var(--font-inter-tight), -apple-system, BlinkMacSystemFont, sans-s
 export function SerifAccent({ children }: { children: ReactNode }) {
   return (
     <span
-      className="text-[#A3E635]"
+      className="text-[#d08c4f]"
       style={{ fontFamily: SERIF, fontStyle: 'italic', fontWeight: 400 }}
     >
       {children}
@@ -49,11 +49,11 @@ export function SerifAccent({ children }: { children: ReactNode }) {
 
 function CheckTick() {
   return (
-    <span className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[5px] border border-[#A3E635]/30 bg-[#A3E635]/10">
+    <span className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[5px] border border-[#d08c4f]/30 bg-[#d08c4f]/10">
       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" aria-hidden="true">
         <path
           d="M20 6 9 17l-5-5"
-          stroke="#A3E635"
+          stroke="#d08c4f"
           strokeWidth="3.5"
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -89,7 +89,7 @@ export function EntryShell({ eyebrow, headline, intro, children }: EntryShellPro
   ];
   return (
     <main
-      className="relative min-h-screen bg-[#0A0A0A] text-[#FAFAFA]"
+      className="relative min-h-screen bg-[#0d0b08] text-[#f2ead8]"
       style={{ fontFamily: SANS }}
     >
       <div className="grid min-h-screen lg:grid-cols-[1.05fr_0.95fr]">
@@ -100,18 +100,18 @@ export function EntryShell({ eyebrow, headline, intro, children }: EntryShellPro
             aria-hidden
             className="pointer-events-none absolute -left-32 -top-28 h-[460px] w-[460px] rounded-full"
             style={{
-              background: 'radial-gradient(circle, rgba(163,230,53,0.12), transparent 70%)',
+              background: 'radial-gradient(circle, rgba(208,140,79,0.12), transparent 70%)',
             }}
           />
           {/* fondu bas */}
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-[#0A0A0A] to-transparent"
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-[#0d0b08] to-transparent"
           />
 
           <a
             href={SITE_URL}
-            className="aone-fade relative w-fit rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#A3E635]"
+            className="aone-fade relative w-fit rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#d08c4f]"
             style={{ animationDelay: '40ms' }}
           >
             <BrandLogo variant="lockup" size={30} />
@@ -119,9 +119,9 @@ export function EntryShell({ eyebrow, headline, intro, children }: EntryShellPro
 
           <div className="relative max-w-[440px]">
             <div className="aone-fade flex items-center gap-3" style={{ animationDelay: '120ms' }}>
-              <span className="h-px w-7 bg-[#A3E635]/55" />
+              <span className="h-px w-7 bg-[#d08c4f]/55" />
               <span
-                className="text-[11px] font-medium uppercase tracking-[0.24em] text-[#A3E635]"
+                className="text-[11px] font-medium uppercase tracking-[0.24em] text-[#d08c4f]"
                 style={{ fontFamily: MONO }}
               >
                 {eyebrow}
@@ -134,14 +134,14 @@ export function EntryShell({ eyebrow, headline, intro, children }: EntryShellPro
               {headline}
             </h1>
             <p
-              className="aone-fade mt-5 max-w-[392px] text-[15px] leading-[1.6] text-[#A1A1AA]"
+              className="aone-fade mt-5 max-w-[392px] text-[15px] leading-[1.6] text-[#a89a7e]"
               style={{ animationDelay: '260ms' }}
             >
               {intro}
             </p>
             <ul className="aone-fade mt-9 space-y-3.5" style={{ animationDelay: '330ms' }}>
               {reassurance.map((item) => (
-                <li key={item} className="flex items-center gap-3 text-[13.5px] text-[#D4D4D8]">
+                <li key={item} className="flex items-center gap-3 text-[13.5px] text-[#cabfa6]">
                   <CheckTick />
                   {item}
                 </li>
@@ -154,11 +154,11 @@ export function EntryShell({ eyebrow, headline, intro, children }: EntryShellPro
             style={{ animationDelay: '400ms' }}
           >
             <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#A3E635] opacity-60" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-[#A3E635]" />
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#d08c4f] opacity-60" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-[#d08c4f]" />
             </span>
             <span
-              className="text-[11px] uppercase tracking-[0.22em] text-[#71717A]"
+              className="text-[11px] uppercase tracking-[0.22em] text-[#857a64]"
               style={{ fontFamily: MONO }}
             >
               {SITE_HOST}
@@ -175,7 +175,7 @@ export function EntryShell({ eyebrow, headline, intro, children }: EntryShellPro
           </div>
           <a
             href={SITE_URL}
-            className="mb-10 w-fit rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#A3E635] lg:hidden"
+            className="mb-10 w-fit rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#d08c4f] lg:hidden"
           >
             <BrandLogo variant="lockup" size={27} />
           </a>
@@ -193,10 +193,10 @@ export function EntryShell({ eyebrow, headline, intro, children }: EntryShellPro
 export function EntryEyebrow({ children }: { children: ReactNode }) {
   return (
     <span
-      className="flex items-center gap-2.5 text-[11px] font-medium uppercase tracking-[0.22em] text-[#A3E635]"
+      className="flex items-center gap-2.5 text-[11px] font-medium uppercase tracking-[0.22em] text-[#d08c4f]"
       style={{ fontFamily: MONO }}
     >
-      <span className="h-px w-6 bg-[#A3E635]/55" />
+      <span className="h-px w-6 bg-[#d08c4f]/55" />
       {children}
     </span>
   );
@@ -228,7 +228,7 @@ export function EntryField({
     <div>
       <label
         htmlFor={fieldId}
-        className="block text-[10.5px] font-medium uppercase tracking-[0.18em] text-[#A1A1AA]"
+        className="block text-[10.5px] font-medium uppercase tracking-[0.18em] text-[#a89a7e]"
         style={{ fontFamily: MONO }}
       >
         {label}
@@ -236,17 +236,17 @@ export function EntryField({
       <input
         id={fieldId}
         name={name}
-        className={`aone-input mt-2 h-12 w-full rounded-[8px] border bg-white/[0.02] px-4 text-[15px] text-[#FAFAFA] outline-none transition-[border-color,background-color,box-shadow] duration-200 placeholder:text-[#52525B] disabled:opacity-55 ${
+        className={`aone-input mt-2 h-12 w-full rounded-[8px] border bg-white/[0.02] px-4 text-[15px] text-[#f2ead8] outline-none transition-[border-color,background-color,box-shadow] duration-200 placeholder:text-[#6e6450] disabled:opacity-55 ${
           error
             ? 'border-[#EF4444]/55 focus:border-[#EF4444]/70 focus:shadow-[0_0_0_3px_rgba(239,68,68,0.13)]'
-            : 'border-[rgba(250,250,250,0.12)] focus:border-[#A3E635]/55 focus:bg-[#A3E635]/[0.04] focus:shadow-[0_0_0_3px_rgba(163,230,53,0.12)]'
+            : 'border-[rgba(250,250,250,0.12)] focus:border-[#d08c4f]/55 focus:bg-[#d08c4f]/[0.04] focus:shadow-[0_0_0_3px_rgba(208,140,79,0.12)]'
         } ${className}`}
         {...rest}
       />
       {error ? (
         <p className="mt-1.5 text-[12px] text-[#F87171]">{error}</p>
       ) : hint ? (
-        <p className="mt-1.5 text-[12px] leading-relaxed text-[#71717A]">{hint}</p>
+        <p className="mt-1.5 text-[12px] leading-relaxed text-[#857a64]">{hint}</p>
       ) : null}
     </div>
   );
@@ -293,12 +293,12 @@ export function EntryButton({
   return (
     <button
       disabled={disabled ?? loading}
-      className={`group inline-flex h-[52px] w-full items-center justify-center gap-2.5 rounded-[8px] bg-[#A3E635] text-[15px] font-semibold tracking-[-0.01em] text-[#0A0A0A] transition-[transform,background-color,box-shadow,opacity] duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#A3E635] enabled:hover:-translate-y-[2px] enabled:hover:bg-[#BEF264] enabled:hover:shadow-[0_14px_36px_-12px_rgba(163,230,53,0.6)] enabled:active:translate-y-0 enabled:active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-55 ${className}`}
+      className={`group inline-flex h-[52px] w-full items-center justify-center gap-2.5 rounded-[8px] bg-[#d08c4f] text-[15px] font-semibold tracking-[-0.01em] text-[#0d0b08] transition-[transform,background-color,box-shadow,opacity] duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d08c4f] enabled:hover:-translate-y-[2px] enabled:hover:bg-[#e8a867] enabled:hover:shadow-[0_14px_36px_-12px_rgba(208,140,79,0.6)] enabled:active:translate-y-0 enabled:active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-55 ${className}`}
       {...rest}
     >
       {children}
       {loading ? (
-        <span className="h-[15px] w-[15px] shrink-0 animate-spin rounded-full border-2 border-[#0A0A0A]/25 border-t-[#0A0A0A]" />
+        <span className="h-[15px] w-[15px] shrink-0 animate-spin rounded-full border-2 border-[#0d0b08]/25 border-t-[#0d0b08]" />
       ) : (
         <Arrow />
       )}

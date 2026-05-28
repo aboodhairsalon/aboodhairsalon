@@ -21,7 +21,7 @@ function Mark({ size = 30 }: { size?: number }) {
       height={size}
       viewBox="0 0 24 24"
       fill="none"
-      stroke="#FAFAFA"
+      stroke="#d08c4f"
       strokeWidth="1.9"
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -45,11 +45,11 @@ export function BrandLogo({ variant = 'lockup', size = 30, className = '' }: Bra
       <Mark size={size} />
       {variant === 'lockup' && (
         <span className="flex flex-col leading-none">
-          <span className="text-[16px] font-bold tracking-[-0.03em] text-[#FAFAFA]">
+          <span className="text-[16px] font-bold tracking-[-0.03em] text-[#f2ead8]">
             {SALON.name}
           </span>
           <span
-            className="mt-1.5 text-[7px] uppercase tracking-[0.26em] text-[#71717A]"
+            className="mt-1.5 text-[7px] uppercase tracking-[0.26em] text-[#857a64]"
             style={{ fontFamily: 'var(--font-jetbrains), monospace' }}
           >
             {SALON.tagline}
