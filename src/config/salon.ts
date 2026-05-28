@@ -61,10 +61,12 @@ export const SALON = {
   },
 
   /** Espaces — URLs canoniques. Utilisées pour les redirects after-login,
-   *  les liens partagés depuis les emails, etc. */
+   *  les liens partagés depuis les emails (liens booking, reçus, etc.). */
   spaces: {
-    /** Vitrine + booking public. */
+    /** Vitrine web (apex). */
     site: 'https://aboodhairsalon.com',
+    /** Réservation client (booking PWA). */
+    book: 'https://book.aboodhairsalon.com',
     /** Espace caisse — accès équipe. */
     cashier: 'https://cashier.aboodhairsalon.com',
     /** Espace direction — accès gérant. */

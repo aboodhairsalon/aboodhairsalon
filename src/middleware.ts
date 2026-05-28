@@ -11,11 +11,13 @@
  *  1. Refresh de session Supabase (rotation des cookies SSR) — critique pour
  *     ne pas avoir de sessions expirées silencieusement côté Server Components.
  *  2. Routing par sous-domaine en production :
- *       - aboodhairsalon.com (apex)        → '/'         (vitrine + booking)
- *       - cashier.aboodhairsalon.com       → '/cashier'  (rewrite root)
- *       - manager.aboodhairsalon.com       → '/manager'  (rewrite root)
- *     En dev local, tout passe par localhost:3000 et le routing se fait par
- *     pathname natif. Pas de rewrite — on tape directement /cashier, /manager.
+ *       - aboodhairsalon.com (apex/www)    → '/site'    (vitrine web)
+ *       - book.aboodhairsalon.com          → '/client'  (réservation client)
+ *       - cashier.aboodhairsalon.com       → '/cashier' (espace caisse)
+ *       - manager.aboodhairsalon.com       → '/manager' (espace direction)
+ *     En dev local (localhost) ou sur l'URL de test Vercel (*.vercel.app), le
+ *     host ne matche aucun sous-domaine → space='site'. On navigue alors par
+ *     pathname natif : /client, /cashier, /manager, /login.
  *  3. Pose le header `x-pathname` avec le pathname effectif (après éventuel
  *     rewrite) pour que `i18n/request.ts` puisse choisir la locale par défaut
  *     selon la route (EN pour booking client, FR pour cashier/manager).
@@ -33,14 +35,16 @@ const PUBLIC_PATHS = ['/_next', '/favicon.ico', '/api/health', '/sitemap.xml', '
 
 /**
  * Détermine la "space" en fonction du host. Sert au rewrite root-path.
- *  - cashier.* → 'cashier'
- *  - manager.* → 'manager'
- *  - sinon (apex, www, localhost) → 'site' (vitrine + booking)
+ *  - cashier.* → 'cashier'  (espace caisse)
+ *  - manager.* → 'manager'  (espace direction)
+ *  - book.*    → 'book'     (réservation client)
+ *  - sinon (apex aboodhairsalon.com, www, localhost, *.vercel.app) → 'site' (vitrine)
  */
-function detectSpace(host: string): 'site' | 'cashier' | 'manager' {
+function detectSpace(host: string): 'site' | 'book' | 'cashier' | 'manager' {
   const h = host.split(':')[0]?.toLowerCase() ?? '';
   if (h.startsWith('cashier.')) return 'cashier';
   if (h.startsWith('manager.')) return 'manager';
+  if (h.startsWith('book.')) return 'book';
   return 'site';
 }
 
@@ -81,15 +85,17 @@ export async function middleware(request: NextRequest) {
 
   // Rewrites internes uniquement quand le path est `/` (URL bar reste à `/`,
   // Next.js sert le contenu de l'espace correspondant). Sinon on respecte le
-  // pathname demandé (ex. /book/abc, /cashier/log).
-  //   - aboodhairsalon.com/        → /client  (booking PWA, espace public)
+  // pathname demandé (ex. /client/booking/abc, /cashier/log).
+  //   - aboodhairsalon.com/         → /site    (vitrine web)
+  //   - book.aboodhairsalon.com/    → /client  (réservation client)
   //   - cashier.aboodhairsalon.com/ → /cashier
   //   - manager.aboodhairsalon.com/ → /manager
   let effectivePathname = pathname;
   if (pathname === '/') {
     if (space === 'cashier') effectivePathname = '/cashier';
     else if (space === 'manager') effectivePathname = '/manager';
-    else effectivePathname = '/client';
+    else if (space === 'book') effectivePathname = '/client';
+    else effectivePathname = '/site';
   }
 
   // ── 3) Pose x-pathname pour i18n ────────────────────────────────────────
