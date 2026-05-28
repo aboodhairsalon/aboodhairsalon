@@ -24,6 +24,7 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createAdminClient } from '@/db';
+import { SALON } from '@/config/salon';
 import { getCurrentUser } from '../_data/auth-server';
 
 export type CashbackErrorCode =
@@ -83,7 +84,7 @@ async function computeEarnedCashbackCents(
     admin
       .from('sales')
       .select('subtotal_cents, refunded_cents')
-      
+      .eq('tenant_id', SALON.tenantUuid)
       .eq('client_phone', phone)
       .eq('status', 'completed'),
     admin
@@ -121,8 +122,11 @@ export async function redeemCashbackForSale(
   // 2. Auth : user connecté + appartient au tenant ciblé
   const user = await getCurrentUser();
   if (!user) return { ok: false, errorKey: 'authRequired' };
-  const userTenant = (user.app_metadata?.['tenant_id'] as string | undefined) ?? '';
-  if (userTenant !== tenantId) {
+  // Single-tenant : tout staff authentifié (manager/cashier) est autorisé. Le
+  // claim app_metadata.tenant_id n'existe pas sur les comptes caissier — s'y
+  // fier bloquait la redemption cashback en caisse.
+  const role = user.app_metadata?.['role'] as string | undefined;
+  if (role && role !== 'manager' && role !== 'cashier') {
     return { ok: false, errorKey: 'tenantNotAuthorized' };
   }
 

@@ -54,9 +54,15 @@ async function requireAnyTenantRole(): Promise<
 > {
   const user = await getCurrentUser();
   if (!user) return { ok: false, errorKey: 'directionOnly' as const };
-  const tenantId = user.app_metadata?.['tenant_id'] as string | undefined;
-  if (!tenantId) return { ok: false, errorKey: 'tenantMissing' as const };
-  return { ok: true, userId: user.id, tenantId };
+  // Single-tenant : tout staff authentifié (manager OU cashier) est autorisé.
+  // On ne dépend PLUS de app_metadata.tenant_id — ce claim n'est pas posé sur
+  // les comptes caissier (cf. createCashierAccess → { role, staff_id }), ce qui
+  // bloquait les remboursements en caisse. Le tenant est la constante SALON.
+  const role = user.app_metadata?.['role'] as string | undefined;
+  if (role && role !== 'manager' && role !== 'cashier') {
+    return { ok: false, errorKey: 'directionOnly' as const };
+  }
+  return { ok: true, userId: user.id, tenantId: SALON.tenantUuid };
 }
 
 const RefundSchema = z.object({
@@ -108,7 +114,7 @@ export async function refundSale(input: RefundInput): Promise<RefundResult> {
       'id, status, tenant_id, total_cents, refunded_cents, cashback_redeemed_cents, booking_id, client_phone',
     )
     .eq('id', saleId)
-     // sécurité : pas de cross-tenant via UUID deviné
+    .eq('tenant_id', SALON.tenantUuid) // sécurité : pas de cross-tenant via UUID deviné
     .maybeSingle();
 
   if (fetchErr || !row) {
@@ -168,7 +174,7 @@ export async function refundSale(input: RefundInput): Promise<RefundResult> {
     .from('sales')
     .update(updatePayload)
     .eq('id', saleId)
-    
+    .eq('tenant_id', SALON.tenantUuid)
     .eq('status', 'completed') // garde statut (pas de refund sur voided/refunded)
     .eq('refunded_cents', alreadyRefunded) // garde TOCTOU partial refund
     .select('id');
@@ -235,7 +241,7 @@ export async function refundSale(input: RefundInput): Promise<RefundResult> {
       .from('bookings')
       .update({ paid: false })
       .eq('id', bookingId)
-      ;
+      .eq('tenant_id', SALON.tenantUuid);
   }
 
   // (c) Si refund full → restituer le stock des produits vendus en créant

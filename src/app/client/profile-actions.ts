@@ -28,8 +28,15 @@ type ErrResult = { ok: false; errorKey: ClientErrorCode; errorValues?: ClientErr
 async function requireSameTenant(tenantId: string): Promise<{ ok: true } | ErrResult> {
   const user = await getCurrentUser();
   if (!user) return { ok: false, errorKey: 'authRequired' };
-  const userTenant = (user.app_metadata?.['tenant_id'] as string | undefined) ?? '';
-  if (userTenant !== tenantId) return { ok: false, errorKey: 'tenantNotAuthorized' };
+  // Single-tenant : tout staff authentifié (manager/cashier) est autorisé. Le
+  // claim app_metadata.tenant_id n'est pas posé sur les comptes caissier — s'y
+  // fier bloquait la recherche client en caisse. `tenantId` reste dans la
+  // signature pour la compat des call-sites mais l'autorisation est par rôle.
+  void tenantId;
+  const role = user.app_metadata?.['role'] as string | undefined;
+  if (role && role !== 'manager' && role !== 'cashier') {
+    return { ok: false, errorKey: 'tenantNotAuthorized' };
+  }
   return { ok: true };
 }
 

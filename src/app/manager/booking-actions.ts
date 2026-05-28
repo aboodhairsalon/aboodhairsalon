@@ -333,11 +333,33 @@ export async function payBooking(input: PayBookingInput): Promise<MutationResult
   const { error: itemsErr } = await db.from('sale_items').insert(itemsToInsert);
 
   if (itemsErr) {
+    // Compensation : la vente a été créée mais sans lignes. On la supprime et
+    // on remet le RDV en non-payé pour permettre une nouvelle tentative propre
+    // (évite la vente orpheline + le RDV bloqué « payé » sans reçu).
+    await db.from('sales').delete().eq('id', saleRow.id);
+    await db.from('bookings').update({ paid: false }).eq('id', input.bookingId);
     return {
       ok: false,
       errorKey: 'saleItemsFailed',
       errorValues: { message: itemsErr.message ?? '' },
     };
+  }
+
+  // Décrément du stock pour les produits vendus (extras kind='product').
+  // Best-effort comme côté refund : un mouvement raté n'annule pas la vente
+  // (déjà comptabilisée), le stock reste ajustable manuellement.
+  const stockMovements = (input.extras ?? [])
+    .filter((e) => e.kind === 'product')
+    .map((e) => ({
+      tenant_id: ctx.tenant.id,
+      product_id: e.refId,
+      kind: 'sale' as const,
+      qty_delta: -Math.abs(e.qty),
+      reference_id: saleRow.id,
+      reason: 'Vente',
+    }));
+  if (stockMovements.length > 0) {
+    await db.from('product_movements').insert(stockMovements);
   }
 
   revalidatePath('/cashier');
@@ -449,11 +471,28 @@ export async function createDirectSale(input: CreateDirectSaleInput): Promise<Mu
 
   const { error: itemsErr } = await db.from('sale_items').insert(itemsToInsert);
   if (itemsErr) {
+    // Compensation : vente créée sans lignes → on la supprime (évite l'orpheline).
+    await db.from('sales').delete().eq('id', saleRow.id);
     return {
       ok: false,
       errorKey: 'saleItemsFailed',
       errorValues: { message: itemsErr.message ?? '' },
     };
+  }
+
+  // Décrément du stock pour les produits vendus (best-effort).
+  const stockMovements = input.items
+    .filter((i) => i.kind === 'product')
+    .map((i) => ({
+      tenant_id: ctx.tenant.id,
+      product_id: i.refId,
+      kind: 'sale' as const,
+      qty_delta: -Math.abs(i.qty),
+      reference_id: saleRow.id,
+      reason: 'Vente',
+    }));
+  if (stockMovements.length > 0) {
+    await db.from('product_movements').insert(stockMovements);
   }
 
   // Enregistrement best-effort du profil client (clé tenant_id + phone).
