@@ -168,17 +168,21 @@ export async function requireTenant(): Promise<TenantContext> {
     redirect('/cashier');
   }
 
-  // Charge la ligne unique salon_settings via le client serveur (RLS s'assure
-  // qu'un manager autorisé peut lire la ligne).
-  // NOTE(découplage) : la table `salon_settings` n'est pas encore dans
-  // src/db/types.ts (sera générée après application de la migration single-tenant).
-  // En attendant, on cast `supabase as any` pour bypass le type-check.
+  // Source unique de vérité : tenant_settings + tenant_branding (les tables
+  // éditées par le manager > Paramètres). Filtrées par SALON.tenantUuid (le
+  // seul tenant). On lit les deux en parallèle.
   const supabase = await getServerSupabase();
-  const { data: settingsRow } = await supabase.from('salon_settings').select('*').maybeSingle();
+  const [{ data: settingsRow }, { data: brandingRow }] = await Promise.all([
+    supabase.from('tenant_settings').select('*').eq('tenant_id', SALON.tenantUuid).maybeSingle(),
+    supabase
+      .from('tenant_branding')
+      .select('logo_url')
+      .eq('tenant_id', SALON.tenantUuid)
+      .maybeSingle(),
+  ]);
 
-  const s = settingsRow as
-    | (Partial<TenantContext['settings']> & { logo_url?: string | null })
-    | null;
+  const s = settingsRow as Partial<TenantContext['settings']> | null;
+  const logoUrl = (brandingRow as { logo_url?: string | null } | null)?.logo_url ?? null;
 
   return {
     user,
@@ -196,7 +200,7 @@ export async function requireTenant(): Promise<TenantContext> {
       stripe_connect_account_id: null,
     },
     branding: {
-      logo_url: s?.logo_url ?? null,
+      logo_url: logoUrl,
       brand_primary: SALON.brand.primary,
       brand_glow: SALON.brand.glow,
       brand_deep: SALON.brand.deep,

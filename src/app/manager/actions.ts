@@ -234,7 +234,7 @@ export async function updateSalonProfile(input: SalonProfileInput): Promise<Salo
   const { data: bRows, error: bErr } = await admin
     .from('tenant_branding')
     .update(bUpdate as never)
-    
+    .eq('tenant_id', ctx.tenant.id)
     .select('tenant_id');
   if (bErr)
     return { ok: false, errorKey: 'brandingDbError', errorValues: { message: bErr.message } };
@@ -264,7 +264,7 @@ export async function updateSalonProfile(input: SalonProfileInput): Promise<Salo
   const { data: sRows, error: sErr } = await admin
     .from('tenant_settings')
     .update(sUpdate as never)
-    
+    .eq('tenant_id', ctx.tenant.id)
     .select('tenant_id');
   if (sErr)
     return { ok: false, errorKey: 'settingsDbError', errorValues: { message: sErr.message } };

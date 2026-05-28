@@ -60,7 +60,11 @@ export async function resolveFromAddress(): Promise<string> {
   let fromAddress = process.env['RESEND_FROM_EMAIL'] || DEFAULT_FROM;
   try {
     const admin = createAdminClient();
-    const res = await admin.from('salon_settings').select('email_from_address').maybeSingle();
+    const res = await admin
+      .from('tenant_settings')
+      .select('email_from_address')
+      .eq('tenant_id', SALON.tenantUuid)
+      .maybeSingle();
     const dbFrom = res.data?.email_from_address;
     if (dbFrom && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(dbFrom)) {
       fromAddress = dbFrom;

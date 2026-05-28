@@ -39,7 +39,11 @@ export async function fetchSalonFavicon(): Promise<string> {
   let iconUrl = FALLBACK_FAVICON;
   try {
     const admin = createAdminClient();
-    const { data } = await admin.from('salon_settings').select('logo_url').maybeSingle();
+    const { data } = await admin
+      .from('tenant_branding')
+      .select('logo_url')
+      .eq('tenant_id', SALON.tenantUuid)
+      .maybeSingle();
     const logo = data?.logo_url ?? null;
 
     // Accepte data URL bitmap (PNG/JPEG/WebP/SVG) OU HTTPS URL bitmap.

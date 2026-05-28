@@ -2,21 +2,26 @@ import 'server-only';
 /**
  * Chargement du logo du salon — pour les pages de connexion.
  *
- * Single-tenant (Aboodhairsalon) : pas de tenant_id, lecture directe de la ligne
- * unique `salon_settings.logo_url`. Le client admin est utilisé car les pages
- * de connexion n'ont pas de session (RLS ne donnerait pas accès à la table).
+ * Single-tenant (Aboodhairsalon) : lecture de `tenant_branding.logo_url`
+ * filtrée par SALON.tenantUuid (table éditée par le manager > Paramètres).
+ * Le client admin est utilisé car les pages de connexion n'ont pas de session.
  *
  * Le fichier garde son nom historique `tenant-brand.ts` pour minimiser le
  * diff sur les imports — à renommer dans un cleanup pass futur.
  */
 import { createAdminClient } from '@/db';
+import { SALON } from '@/config/salon';
 
 /** Retourne l'URL du logo du salon, ou null si non configuré.
  *  Le paramètre `_tenantId` est ignoré (legacy multi-tenant), conservé pour
  *  compat avec les call-sites qui passent `headers().get('x-tenant-id')`. */
 export async function fetchTenantLogo(_tenantId?: string | null): Promise<string | null> {
   const admin = createAdminClient();
-  const { data } = await admin.from('salon_settings').select('logo_url').maybeSingle();
+  const { data } = await admin
+    .from('tenant_branding')
+    .select('logo_url')
+    .eq('tenant_id', SALON.tenantUuid)
+    .maybeSingle();
   return data?.logo_url ?? null;
 }
 
