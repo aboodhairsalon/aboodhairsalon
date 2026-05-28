@@ -22,8 +22,8 @@
     "required": "Requis"
   },
   "app": {
-    "title": "System A One — Espace de gestion",
-    "titleTemplate": "{page} · System A One",
+    "title": "Aboodhairsalon — Espace de gestion",
+    "titleTemplate": "{page} · Aboodhairsalon",
     "description": "Gérez votre établissement : réservations, caisse, équipe, stock."
   },
   "locale": {
@@ -177,7 +177,7 @@
       "settings": "Paramètres"
     },
     "trial": {
-      "expired": "Votre essai gratuit est terminé. Pour continuer à utiliser System A, contactez-nous.",
+      "expired": "Votre essai gratuit est terminé. Pour continuer à utiliser Aboodhairsalon, contactez-nous.",
       "expiresTomorrow": "Votre essai gratuit expire demain ({date}).",
       "expiresIn": "Votre essai gratuit expire dans {count} jours ({date}).",
       "contactCta": "Nous contacter"
@@ -772,7 +772,7 @@
       },
       "emailSender": {
         "label": "Adresse expéditeur des emails (optionnel)",
-        "hint": "Ex. noreply@votresalon.com. Vide = vos emails partiront de noreply@system-aone.com. Pré-requis : domaine vérifié dans Resend (DKIM + SPF + DMARC dans votre DNS)."
+        "hint": "Ex. noreply@votresalon.com. Vide = vos emails partiront de noreply@aboodhairsalon.com. Pré-requis : domaine vérifié dans Resend (DKIM + SPF + DMARC dans votre DNS)."
       }
     },
     "gallery": {

@@ -23,8 +23,8 @@
     "required": "مطلوب"
   },
   "app": {
-    "title": "سيستم آيه ون — مساحة الإدارة",
-    "titleTemplate": "{page} · سيستم آيه ون",
+    "title": "Aboodhairsalon — مساحة الإدارة",
+    "titleTemplate": "{page} · Aboodhairsalon",
     "description": "أدر منشأتك: الحجوزات، الكاشير، الفريق، المخزون."
   },
   "locale": {
@@ -178,7 +178,7 @@
       "settings": "الإعدادات"
     },
     "trial": {
-      "expired": "انتهت فترتك التجريبية المجانية. تواصل معنا للاستمرار في استخدام System A.",
+      "expired": "انتهت فترتك التجريبية المجانية. تواصل معنا للاستمرار في استخدام Aboodhairsalon.",
       "expiresTomorrow": "تنتهي فترتك التجريبية غداً ({date}).",
       "expiresIn": "تنتهي فترتك التجريبية خلال {count} أيام ({date}).",
       "contactCta": "تواصل معنا"
@@ -773,7 +773,7 @@
       },
       "emailSender": {
         "label": "عنوان مرسِل الإيميلات (اختياري)",
-        "hint": "مثل noreply@yoursalon.com. فارغ = ستُرسَل الإيميلات من noreply@system-aone.com. شرط مسبق: نطاق مُتحقَّق منه في Resend (DKIM + SPF + DMARC في DNS)."
+        "hint": "مثل noreply@yoursalon.com. فارغ = ستُرسَل الإيميلات من noreply@aboodhairsalon.com. شرط مسبق: نطاق مُتحقَّق منه في Resend (DKIM + SPF + DMARC في DNS)."
       }
     },
     "gallery": {

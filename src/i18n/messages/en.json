@@ -22,8 +22,8 @@
     "required": "Required"
   },
   "app": {
-    "title": "System A One — Management space",
-    "titleTemplate": "{page} · System A One",
+    "title": "Aboodhairsalon — Management space",
+    "titleTemplate": "{page} · Aboodhairsalon",
     "description": "Run your business: bookings, register, team, stock."
   },
   "locale": {
@@ -177,7 +177,7 @@
       "settings": "Settings"
     },
     "trial": {
-      "expired": "Your free trial has ended. Contact us to keep using System A.",
+      "expired": "Your free trial has ended. Contact us to keep using Aboodhairsalon.",
       "expiresTomorrow": "Your free trial expires tomorrow ({date}).",
       "expiresIn": "Your free trial expires in {count} days ({date}).",
       "contactCta": "Contact us"
@@ -772,7 +772,7 @@
       },
       "emailSender": {
         "label": "Email sender address (optional)",
-        "hint": "Ex. noreply@yoursalon.com. Empty = emails will be sent from noreply@system-aone.com. Prerequisite: domain verified in Resend (DKIM + SPF + DMARC in your DNS)."
+        "hint": "Ex. noreply@yoursalon.com. Empty = emails will be sent from noreply@aboodhairsalon.com. Prerequisite: domain verified in Resend (DKIM + SPF + DMARC in your DNS)."
       }
     },
     "gallery": {
