@@ -118,53 +118,6 @@
     "cancel": "Annuler",
     "summaryLabel": "Résumé ·"
   },
-  "entry": {
-    "reassuranceConfig": "Réservations, caisse et équipe réunies",
-    "reassuranceHosting": "Données hébergées en Europe",
-    "reassuranceNoCommit": "Accès sécurisé, partout"
-  },
-  "signup": {
-    "eyebrow": "Création de compte",
-    "headlineLine1": "Votre établissement,",
-    "headlineAccent": "dans un seul espace.",
-    "intro": "Réservations, caisse, équipe et stock — réunis sur une plateforme à votre image. La mise en route ne prend que quelques minutes.",
-    "formEyebrow": "Inscription",
-    "formTitle": "Créer mon compte",
-    "formIntro": "Renseignez votre établissement et choisissez un mot de passe. Tout reste modifiable ensuite dans votre espace de gestion.",
-    "salonNameLabel": "Nom de l'établissement",
-    "salonNamePlaceholder": "Mon établissement",
-    "slugLabel": "Adresse de l'espace",
-    "slugCustomize": "personnaliser",
-    "slugPlaceholder": "mon-etablissement",
-    "slugAria": "Identifiant de votre espace",
-    "slugHint": "L'adresse publique de votre espace de gestion.",
-    "emailLabel": "Email du gérant",
-    "emailPlaceholder": "gerant@mon-etablissement.com",
-    "passwordLabel": "Mot de passe",
-    "passwordPlaceholder": "8 caractères minimum",
-    "passwordHint": "Vous l'utiliserez pour vous connecter à votre espace.",
-    "submitting": "Création en cours…",
-    "submit": "Créer mon compte",
-    "footnote": "Configuration en quelques minutes · Données hébergées en Europe",
-    "alreadyHaveAccount": "Déjà un compte ?",
-    "signIn": "Se connecter",
-    "errors": {
-      "salonNameTooShort": "Le nom du salon doit faire au moins 2 caractères.",
-      "salonNameTooLong": "Le nom du salon est limité à 60 caractères.",
-      "emailInvalid": "Email invalide.",
-      "passwordTooShort": "Le mot de passe doit faire au moins 8 caractères.",
-      "passwordTooLong": "Le mot de passe est limité à 72 caractères.",
-      "slugInvalid": "Le slug doit contenir 2 à 50 caractères : lettres minuscules, chiffres, tirets uniquement.",
-      "slugReserved": "Le slug « {slug} » est réservé. Choisis un autre nom ou édite le slug.",
-      "slugTaken": "Le slug « {slug} » est déjà pris. Édite le slug ou change le nom.",
-      "emailTaken": "L'email « {email} » est déjà associé à un compte. Connecte-toi via /login.",
-      "tenantCreation": "Erreur création tenant : {message}",
-      "branding": "Erreur branding : {message}",
-      "settings": "Erreur settings : {message}",
-      "userCreation": "Erreur création du compte : {message}",
-      "invalidData": "Données invalides."
-    }
-  },
   "manager": {
     "tabs": {
       "dash": "Tableau de bord",
@@ -1423,11 +1376,7 @@
   },
   "resetPassword": {
     "eyebrow": "Réinitialisation",
-    "headlineLine1": "Un mot de passe oublié,",
-    "headlineAccent": "ça se récupère.",
-    "intro": "Réinitialisez en quelques secondes le mot de passe d'accès à votre espace de gestion — réservations, caisse, équipe et stock.",
     "recover": {
-      "eyebrow": "Nouveau mot de passe",
       "title": "Définir mon mot de passe",
       "intro": "Choisissez un nouveau mot de passe — vous serez connecté à votre espace immédiatement après.",
       "passwordLabel": "Nouveau mot de passe",
@@ -1437,14 +1386,12 @@
       "error": "Échec de la mise à jour. Le lien a peut-être expiré — recommencez."
     },
     "sent": {
-      "eyebrow": "Email envoyé",
       "title": "Vérifiez votre boîte mail",
       "bodyBefore": "Si un compte existe pour ",
       "bodyAfter": ", un lien de réinitialisation vient d'y être envoyé. Ouvrez-le pour définir un nouveau mot de passe.",
       "spamHint": "Pensez à vérifier vos spams. Le lien est valable une heure."
     },
     "request": {
-      "eyebrow": "Mot de passe oublié",
       "title": "Réinitialiser mon accès",
       "intro": "Saisissez l'email de votre compte Direction — nous vous envoyons un lien sécurisé pour choisir un nouveau mot de passe.",
       "emailLabel": "Email du compte",

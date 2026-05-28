@@ -10,7 +10,7 @@
  *       (Alexandrie est un quartier touristique/international, clients qui
  *        scannent le QR ou cliquent sur le lien Instagram parlent souvent
  *        anglais — maximise la portée)
- *     - Espaces /cashier, /manager, /login, /signup → `fr` (équipe et gérant
+ *     - Espaces /cashier, /manager, /login → `fr` (équipe et gérant
  *       travaillent en français par défaut)
  */
 import { cookies, headers } from 'next/headers';
@@ -31,7 +31,6 @@ function isClientRoute(pathname: string | null | undefined): boolean {
     pathname.startsWith('/cashier') ||
     pathname.startsWith('/manager') ||
     pathname.startsWith('/login') ||
-    pathname.startsWith('/signup') ||
     pathname.startsWith('/reset-password') ||
     pathname.startsWith('/api') ||
     pathname.startsWith('/sys-diag')
@@ -66,7 +65,7 @@ export default getRequestConfig(async () => {
       locale = CLIENT_DEFAULT_LOCALE; // 'en'
     }
   } else {
-    // Espaces /manager, /cashier, signup, login : comportement classique.
+    // Espaces /manager, /cashier, login : comportement classique.
     // Source : cookie explicite > Accept-Language > FR par défaut.
     if (isValidLocale(cookieLocale)) {
       locale = cookieLocale;

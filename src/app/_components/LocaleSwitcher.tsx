@@ -14,16 +14,14 @@ import { useTransition } from 'react';
 import { locales, type Locale, LOCALE_LABELS, LOCALE_NATIVE_NAMES } from '../../i18n/config';
 import { setLocale } from '../../i18n/locale-actions';
 
-type Variant = 'header' | 'auth' | 'entry';
+type Variant = 'header' | 'auth';
 
 interface LocaleSwitcherProps {
   /** Variante visuelle :
    *   - `header` (défaut) : compact, fond `bg-surface`, pour AppHeader
    *     (espace manager / cashier authentifié — thème clair cuivre)
-   *   - `auth` : pour les pages /login + /cashier/login (thème clair
-   *     posé sur fond crème, segments arrondis)
-   *   - `entry` : pour signup / reset-password (thème sombre System A One,
-   *     accent vert pomme A3E635) */
+   *   - `auth` : pour les pages /login + /cashier/login + /reset-password
+   *     (thème clair posé sur fond crème, segments arrondis) */
   variant?: Variant;
   /** Surcharge la couleur de fond du segment actif (utile sur les pages
    *  authentifiées qui injectent leur propre brand color). */
@@ -58,17 +56,6 @@ const VARIANT_STYLES: Record<
     activeBg: '#18160F',
     activeFg: '#FFFFFF',
     inactiveClass: 'text-[#8A8478] hover:text-[#18160F]',
-  },
-  entry: {
-    container: 'inline-flex items-center gap-0.5 rounded-full border p-0.5 text-[10px]',
-    containerStyle: {
-      borderColor: 'rgba(250,250,250,0.12)',
-      background: 'rgba(250,250,250,0.03)',
-    },
-    button: 'btn-press rounded-full px-2.5 py-1 font-semibold tracking-wider transition',
-    activeBg: '#A3E635',
-    activeFg: '#0A0A0A',
-    inactiveClass: 'text-[#A1A1AA] hover:text-[#FAFAFA]',
   },
 };
 

@@ -3,6 +3,7 @@ import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages, getTranslations } from 'next-intl/server';
 import { getDirection, type Locale } from '@/i18n/config';
 import { fontVariables } from './fonts';
+import { fetchSalonFavicon } from './_lib/favicon';
 import { SALON } from '@/config/salon';
 import './globals.css';
 
@@ -10,13 +11,17 @@ import './globals.css';
  * Root layout — Aboodhairsalon (single-tenant).
  *
  * Différences avec System A :
- *  - Pas de `fetchTenantFavicon()` dynamique : favicon hardcodé en public/
- *    (et override possible via salon_settings si on veut un upload manager).
+ *  - Favicon dynamique via `fetchSalonFavicon()` : utilise le logo du salon
+ *    (`tenant_branding.logo_url`) s'il est posé et valide, sinon fallback
+ *    statique `/brand/favicon.svg`.
  *  - Pas de `headers().get('x-tenant-id')` : le tenant est implicite.
  *  - Title/description via i18n (3 langues), même approche que System A.
  */
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('app');
+  // Favicon = logo du salon (tenant_branding.logo_url) si posé et valide ;
+  // sinon fallback statique /brand/favicon.svg (géré dans fetchSalonFavicon).
+  const faviconUrl = await fetchSalonFavicon();
   return {
     title: {
       default: t('title'),
@@ -24,9 +29,9 @@ export async function generateMetadata(): Promise<Metadata> {
     },
     description: t('description'),
     icons: {
-      icon: '/brand/favicon.svg',
-      apple: '/brand/apple-touch-icon.png',
-      shortcut: '/brand/favicon.svg',
+      icon: faviconUrl,
+      apple: faviconUrl,
+      shortcut: faviconUrl,
     },
     metadataBase: new URL(SALON.url),
     openGraph: {

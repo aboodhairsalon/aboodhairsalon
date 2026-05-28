@@ -118,53 +118,6 @@
     "cancel": "Cancel",
     "summaryLabel": "Summary ·"
   },
-  "entry": {
-    "reassuranceConfig": "Bookings, register and team in one place",
-    "reassuranceHosting": "Data hosted in Europe",
-    "reassuranceNoCommit": "Secure access, anywhere"
-  },
-  "signup": {
-    "eyebrow": "Create account",
-    "headlineLine1": "Your business,",
-    "headlineAccent": "in a single space.",
-    "intro": "Bookings, register, team and stock — all on a platform that matches your brand. Setup takes only a few minutes.",
-    "formEyebrow": "Sign up",
-    "formTitle": "Create my account",
-    "formIntro": "Enter your business details and choose a password. Everything can be edited later from your management space.",
-    "salonNameLabel": "Business name",
-    "salonNamePlaceholder": "My business",
-    "slugLabel": "Space address",
-    "slugCustomize": "customize",
-    "slugPlaceholder": "my-business",
-    "slugAria": "Your space identifier",
-    "slugHint": "The public address of your management space.",
-    "emailLabel": "Manager email",
-    "emailPlaceholder": "manager@my-business.com",
-    "passwordLabel": "Password",
-    "passwordPlaceholder": "8 characters minimum",
-    "passwordHint": "You'll use it to sign in to your space.",
-    "submitting": "Creating…",
-    "submit": "Create my account",
-    "footnote": "Setup in minutes · Data hosted in Europe",
-    "alreadyHaveAccount": "Already have an account?",
-    "signIn": "Sign in",
-    "errors": {
-      "salonNameTooShort": "Business name must be at least 2 characters.",
-      "salonNameTooLong": "Business name is limited to 60 characters.",
-      "emailInvalid": "Invalid email.",
-      "passwordTooShort": "Password must be at least 8 characters.",
-      "passwordTooLong": "Password is limited to 72 characters.",
-      "slugInvalid": "Slug must be 2 to 50 characters: lowercase letters, digits, hyphens only.",
-      "slugReserved": "Slug “{slug}” is reserved. Choose another name or edit the slug.",
-      "slugTaken": "Slug “{slug}” is already taken. Edit the slug or change the name.",
-      "emailTaken": "Email “{email}” is already linked to an account. Sign in via /login.",
-      "tenantCreation": "Tenant creation error: {message}",
-      "branding": "Branding error: {message}",
-      "settings": "Settings error: {message}",
-      "userCreation": "Account creation error: {message}",
-      "invalidData": "Invalid data."
-    }
-  },
   "manager": {
     "tabs": {
       "dash": "Dashboard",
@@ -1423,11 +1376,7 @@
   },
   "resetPassword": {
     "eyebrow": "Reset",
-    "headlineLine1": "A forgotten password,",
-    "headlineAccent": "is recoverable.",
-    "intro": "Reset in seconds the password used to access your management space — bookings, register, team and stock.",
     "recover": {
-      "eyebrow": "New password",
       "title": "Set my password",
       "intro": "Choose a new password — you'll be signed in to your space right after.",
       "passwordLabel": "New password",
@@ -1437,14 +1386,12 @@
       "error": "Update failed. The link may have expired — try again."
     },
     "sent": {
-      "eyebrow": "Email sent",
       "title": "Check your inbox",
       "bodyBefore": "If an account exists for ",
       "bodyAfter": ", a reset link has just been sent. Open it to set a new password.",
       "spamHint": "Don't forget to check your spam folder. The link is valid for one hour."
     },
     "request": {
-      "eyebrow": "Forgot password",
       "title": "Reset my access",
       "intro": "Enter the email of your management account — we'll send a secure link to choose a new password.",
       "emailLabel": "Account email",

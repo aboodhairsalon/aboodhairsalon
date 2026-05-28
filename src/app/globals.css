@@ -384,46 +384,6 @@
   }
 }
 
-/* ════════════════════════════════════════════════════════════════════════
- * Pages d'entrée Aboodhairsalon (signup, login, reset-password)
- * DA noir chaud + copper + Inter Tight.
- * ════════════════════════════════════════════════════════════════════════ */
-
-/* Grille "plan d'architecte" — fond du panneau de marque */
-.aone-grid {
-  background-image:
-    linear-gradient(rgba(242, 234, 216, 0.045) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(242, 234, 216, 0.045) 1px, transparent 1px);
-  background-size: 72px 72px;
-}
-
-/* Halo copper */
-.aone-glow {
-  box-shadow:
-    0 0 0 1px rgba(208, 140, 79, 0.16),
-    0 30px 90px -42px rgba(208, 140, 79, 0.3);
-}
-
-@keyframes aone-fade-up {
-  from {
-    opacity: 0;
-    transform: translateY(14px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-.aone-fade {
-  animation: aone-fade-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-/* Autofill dark theme (chaud) */
-.aone-input:-webkit-autofill,
-.aone-input:-webkit-autofill:hover,
-.aone-input:-webkit-autofill:focus {
-  -webkit-text-fill-color: #f2ead8;
-  -webkit-box-shadow: 0 0 0 100px #14110d inset;
-  caret-color: #f2ead8;
-  transition: background-color 9999s ease-in-out 0s;
-}
+/* Pages d'entrée (login, cashier/login, reset-password) : voir le composant
+ * partagé `AuthShell` (thème clair « booking », palette AUTH_C dans auth-ui.tsx).
+ * Plus de styles `aone-*` : la coquille sombre System A One a été retirée. */
