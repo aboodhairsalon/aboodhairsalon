@@ -65,9 +65,10 @@ const C = {
   shadowLg: '0 24px 64px rgba(40,35,28,0.12), 0 4px 12px rgba(40,35,28,0.08)',
 };
 
-// ─── Assets Supabase Storage (téléchargés depuis le WP IONOS) ──────────────
-const ST =
-  'https://wiguonxrnjtavtwtpqzr.supabase.co/storage/v1/object/public/salon-gallery/tenant/fa508622-b027-4907-9508-afd2e9f83eeb/wp-snapshot';
+// ─── Assets Supabase Storage (migrés vers le projet dédié Aboodhairsalon) ───
+// Host dérivé de NEXT_PUBLIC_SUPABASE_URL → reste lié au projet configuré et
+// ne réintroduit jamais une dépendance vers l'ancien storage System A.
+const ST = `${process.env['NEXT_PUBLIC_SUPABASE_URL']}/storage/v1/object/public/salon-gallery/tenant/fa508622-b027-4907-9508-afd2e9f83eeb/wp-snapshot`;
 const IMG = {
   logo: `${ST}/wp-logo.png`,
   owner: `${ST}/wp-owner.jpeg`,
