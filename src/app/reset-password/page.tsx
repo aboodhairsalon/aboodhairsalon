@@ -37,23 +37,42 @@ export default function ResetPasswordPage() {
   const [errorKey, setErrorKey] = useState<ErrorKey | null>(null);
 
   useEffect(() => {
-    // Lire le hash AVANT de créer le client (detectSessionInUrl le consomme).
-    // Le lien email implicite renvoie ici avec #access_token=…&type=recovery.
+    // Capturer les artefacts de l'URL AVANT de créer le client : `detectSessionInUrl`
+    // peut consommer/nettoyer le hash ou le code dès la création du client.
+    const search = new URLSearchParams(window.location.search);
+    const code = search.get('code'); // flux PKCE
     const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
-    const accessToken = hash.get('access_token');
+    const accessToken = hash.get('access_token'); // flux implicite
     const refreshToken = hash.get('refresh_token');
-    const isRecovery = hash.get('type') === 'recovery' || (!!accessToken && !!refreshToken);
-    if (!isRecovery) return;
+    const hashIsRecovery = hash.get('type') === 'recovery' || (!!accessToken && !!refreshToken);
 
-    setMode('recover');
-    // Établit explicitement la session de récupération depuis les tokens du
-    // hash — fiable et indépendant de l'appareil où le lien a été demandé.
-    if (accessToken && refreshToken) {
-      void getBrowserClient().auth.setSession({
-        access_token: accessToken,
-        refresh_token: refreshToken,
-      });
+    const supabase = getBrowserClient();
+
+    // Filet : Supabase émet PASSWORD_RECOVERY quand il traite le token de
+    // récupération (couvre les cas où detectSessionInUrl gère tout seul).
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') setMode('recover');
+    });
+
+    if (code) {
+      // Flux PKCE : échange le code contre une session (verifier en localStorage,
+      // posé lors de resetPasswordForEmail sur le même navigateur).
+      setMode('recover');
+      void supabase.auth.exchangeCodeForSession(code);
+    } else if (hashIsRecovery) {
+      // Flux implicite : établit la session depuis les tokens du hash.
+      setMode('recover');
+      if (accessToken && refreshToken) {
+        void supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+      }
     }
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const requestReset = async (e: React.FormEvent) => {
