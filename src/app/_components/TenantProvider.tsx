@@ -110,13 +110,15 @@ export function useTenantOrNull(): TenantSession | null {
 }
 
 /**
- * Préfixe un path avec le slug du tenant courant.
- * Retourne le path inchangé si aucun tenant en contexte (mode démo / pages génériques).
+ * Retourne le path tel quel.
+ *
+ * En multi-tenant System A, ce helper préfixait avec le slug du tenant
+ * (`/aboodhairsalon/manager`). En single-tenant, il n'y a PAS de préfixe
+ * d'URL — chaque espace vit sur son propre sous-domaine. Le helper est
+ * conservé (call-sites inchangés) mais retourne désormais le path brut.
  *
  * Usage : <Link href={useSalonPath('/manager')}>Direction</Link>
  */
 export function useSalonPath(path: string): string {
-  const tenant = useTenantOrNull();
-  const slug = tenant?.tenant.slug;
-  return slug ? `/${slug}${path}` : path;
+  return path;
 }

@@ -12,6 +12,7 @@
  *  - reset         : nouveau mot de passe.
  *  - confirmRevoke : confirmation de suppression du compte.
  */
+import { SALON } from '@/config/salon';
 import {
   AlertTriangle,
   Check,
@@ -71,11 +72,9 @@ export function CashierAccessModal({ staff, onClose }: CashierAccessModalProps) 
     setPassword(generatePassword());
   }, []);
 
-  const slug = session?.tenant.slug;
-  const loginUrl =
-    typeof window === 'undefined'
-      ? `${slug ? `/${slug}` : ''}/cashier/login`
-      : `${window.location.origin}${slug ? `/${slug}` : ''}/cashier/login`;
+  // Lien à transmettre au caissier : son espace dédié sur le sous-domaine
+  // cashier.aboodhairsalon.com (single-tenant — plus de préfixe slug).
+  const loginUrl = `${SALON.spaces.cashier}/cashier/login`;
 
   const passwordValid = password.length >= 8;
 

@@ -67,18 +67,13 @@ export function AppHeader({
   setActive,
   brandName,
   hideLogo,
-  slug: slugProp,
 }: AppHeaderProps) {
   const tHeader = useTranslations('header');
   const tAuth = useTranslations('auth.common');
   const profile = useDisplayProfile();
   const displayName = brandName?.trim() || profile.name;
-  const tenantSession = useTenantOrNull();
-  // Résolution du slug pour la redirection logout :
-  //   1. TenantProvider si présent (manager)
-  //   2. Prop explicite (cashier — pas de TenantProvider dans son layout)
-  //   3. Vide → fallback `/login` ou `/cashier/login` sans préfixe tenant
-  const effectiveSlug = tenantSession?.tenant.slug ?? slugProp ?? '';
+  // Single-tenant : pas de préfixe slug dans les URLs. Le logout redirige
+  // directement vers /login (manager) ou /cashier/login (caisse).
   const [, startLogoutTransition] = useTransition();
   return (
     <header className="border-line bg-bg/85 sticky top-0 z-30 border-b backdrop-blur-md">
@@ -185,9 +180,7 @@ export function AppHeader({
                   // window.location.href pour forcer un refresh complet — sinon
                   // les Server Components peuvent re-render avec la session
                   // mémorisée côté Edge le temps que les cookies refresh.
-                  window.location.href = effectiveSlug
-                    ? `/${effectiveSlug}${loginPath}`
-                    : loginPath;
+                  window.location.href = loginPath;
                 })
               }
               aria-label={tAuth('logoutAria')}

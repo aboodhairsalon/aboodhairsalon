@@ -37,6 +37,7 @@ import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { Btn, Card, Input, Modal, Tag } from '@/components';
+import { SALON } from '@/config/salon';
 import { AppHeader, type TabDef } from '../_components/AppHeader';
 import { ServiceIcon } from '../_components/ServiceIcon';
 import { StaffPhoto } from '../_components/StaffPhoto';
@@ -3375,14 +3376,12 @@ function ManagerSettings() {
 
   const reset = () => setDraft(stored);
 
-  // Lien espace booking client — résolu côté client pour éviter le mismatch SSR.
-  const clientSlug = tenantSession?.tenant.slug ?? '';
-  const clientPath = clientSlug ? `/${clientSlug}/client` : '/client';
-  const [bookingUrl, setBookingUrl] = useState(clientPath);
+  // Lien espace booking client — sous-domaine dédié (single-tenant, plus de slug).
+  const [bookingUrl, setBookingUrl] = useState(SALON.spaces.book);
   const [urlCopied, setUrlCopied] = useState(false);
   useEffect(() => {
-    setBookingUrl(window.location.origin + clientPath);
-  }, [clientPath]);
+    setBookingUrl(SALON.spaces.book);
+  }, []);
   const copyBookingUrl = () => {
     void navigator.clipboard.writeText(bookingUrl);
     setUrlCopied(true);
@@ -3453,7 +3452,7 @@ function ManagerSettings() {
             {urlCopied ? t('bookingUrl.copiedBtn') : t('bookingUrl.copyBtn')}
           </button>
           <a
-            href={clientPath}
+            href={bookingUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="mono btn-press bg-brand-primary/12 border-brand-primary/30 text-brand-primary flex items-center gap-1.5 rounded-sm border px-4 py-2 text-[9px] uppercase tracking-wider transition-opacity hover:opacity-80"
