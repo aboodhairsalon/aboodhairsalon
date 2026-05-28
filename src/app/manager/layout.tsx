@@ -14,7 +14,6 @@ import { ToastProvider } from '../_components/Toast';
 import { requireTenant } from '../_data/auth-server';
 import type { Currency } from '@/lib/money';
 import { getManagerCollections } from './data';
-import { TrialBanner } from './TrialBanner';
 
 export const dynamic = 'force-dynamic';
 
@@ -87,7 +86,6 @@ export default async function ManagerLayout({ children }: { children: React.Reac
         }
       >
         <ToastProvider>
-          <TrialBanner />
           {children}
         </ToastProvider>
       </div>

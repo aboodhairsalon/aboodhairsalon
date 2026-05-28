@@ -87,7 +87,7 @@ export function AuthShell({
             alt={roleLabel}
             width={64}
             height={64}
-            unoptimized
+            unoptimized={logoUrl.startsWith('data:')}
             className="relative h-16 w-16 rounded-2xl object-cover"
             style={{ border: `1px solid ${AUTH_C.cardBorder}`, boxShadow: AUTH_C.cardShadow }}
           />

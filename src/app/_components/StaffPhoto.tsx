@@ -27,7 +27,7 @@ export function StaffPhoto({
         alt={initials}
         width={120}
         height={120}
-        unoptimized
+        unoptimized={photoUrl.startsWith('data:')}
         className={`${className} shrink-0 rounded-full object-cover`}
         style={{ border: `1px solid ${tone}` }}
       />

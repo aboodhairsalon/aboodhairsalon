@@ -881,7 +881,7 @@ function GalleryLightbox({
           className="btn-press tap-target absolute start-4 z-10 inline-flex items-center justify-center rounded-full bg-white/10 p-2 text-white hover:bg-white/20"
           aria-label={t('galleryPrev')}
         >
-          <ChevronLeft className="h-6 w-6" strokeWidth={1.7} />
+          <ChevronLeft className="h-6 w-6 rtl:-scale-x-100" strokeWidth={1.7} />
         </button>
       )}
 
@@ -896,7 +896,7 @@ function GalleryLightbox({
           className="btn-press tap-target absolute end-4 z-10 inline-flex items-center justify-center rounded-full bg-white/10 p-2 text-white hover:bg-white/20"
           aria-label={t('galleryNext')}
         >
-          <ChevronRight className="h-6 w-6" strokeWidth={1.7} />
+          <ChevronRight className="h-6 w-6 rtl:-scale-x-100" strokeWidth={1.7} />
         </button>
       )}
 
@@ -1251,7 +1251,7 @@ function ClientHome({
               {openNow ? t('openNow') : t('closedNow')}
             </span>
           )}
-          <ChevronRight className="h-4 w-4 shrink-0" strokeWidth={1.5} style={{ color: LC.back }} />
+          <ChevronRight className="h-4 w-4 shrink-0 rtl:-scale-x-100" strokeWidth={1.5} style={{ color: LC.back }} />
         </button>
 
         {/* ── Prestations en avant ─────────────────────────────────────────── */}
@@ -1980,7 +1980,7 @@ function ClientBookingFlow({
               className="btn-press mono mb-6 flex items-center gap-2 text-[10px] uppercase tracking-[0.25em]"
               style={{ color: LC.back }}
             >
-              <ChevronLeft className="h-3 w-3" /> {t('modifyService')}
+              <ChevronLeft className="h-3 w-3 rtl:-scale-x-100" /> {t('modifyService')}
             </button>
             <h3
               className="mono mb-4 text-[10px] uppercase tracking-[0.3em]"
@@ -2083,7 +2083,7 @@ function ClientBookingFlow({
                       }}
                     >
                       {hasReviews ? t('reviewsCount', { count }) : t('viewReviews')}
-                      <ChevronRight className="h-3 w-3" />
+                      <ChevronRight className="h-3 w-3 rtl:-scale-x-100" />
                     </button>
                   </div>
                 );
@@ -2101,7 +2101,7 @@ function ClientBookingFlow({
               className="btn-press mono mb-6 flex items-center gap-2 text-[10px] uppercase tracking-[0.25em]"
               style={{ color: LC.back }}
             >
-              <ChevronLeft className="h-3 w-3" /> {t('modifyBarber')}
+              <ChevronLeft className="h-3 w-3 rtl:-scale-x-100" /> {t('modifyBarber')}
             </button>
             <h3
               className="mono mb-4 text-[10px] uppercase tracking-[0.3em]"
@@ -2174,7 +2174,7 @@ function ClientBookingFlow({
               className="btn-press mono mb-6 flex items-center gap-2 text-[10px] uppercase tracking-[0.25em]"
               style={{ color: LC.back }}
             >
-              <ChevronLeft className="h-3 w-3" /> {t('modifyDate')}
+              <ChevronLeft className="h-3 w-3 rtl:-scale-x-100" /> {t('modifyDate')}
             </button>
             <h3
               className="mono mb-4 text-[10px] uppercase tracking-[0.3em]"
@@ -3464,7 +3464,7 @@ function ProfileTab({
             className="btn-press mono absolute start-6 top-6 flex items-center gap-1 text-[10px] uppercase tracking-wider transition-opacity hover:opacity-60"
             style={{ color: C.back }}
           >
-            <ChevronLeft className="h-3.5 w-3.5" /> {t('backToSalon')}
+            <ChevronLeft className="h-3.5 w-3.5 rtl:-scale-x-100" /> {t('backToSalon')}
           </button>
         )}
 
@@ -3616,7 +3616,7 @@ function ProfileTab({
           className="btn-press mono absolute start-6 top-6 flex items-center gap-1 text-[10px] uppercase tracking-wider transition-opacity hover:opacity-60"
           style={{ color: C.back }}
         >
-          <ChevronLeft className="h-3.5 w-3.5" /> {t('create.backLink')}
+          <ChevronLeft className="h-3.5 w-3.5 rtl:-scale-x-100" /> {t('create.backLink')}
         </button>
 
         {/* ── En-tête ───────────────────────────────────────────────────── */}

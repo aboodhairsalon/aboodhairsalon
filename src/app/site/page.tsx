@@ -231,7 +231,7 @@ function Nav({ t, tenantName, logoUrl }: { t: SiteT; tenantName: string; logoUrl
             height={40}
             className="h-10 w-10 rounded-2xl object-cover"
             style={{ border: `1px solid ${C.border}` }}
-            unoptimized
+            unoptimized={logoUrl.startsWith('data:')}
           />
           <span className="text-sm font-semibold tracking-tight" style={{ color: C.text }}>
             {tenantName}
@@ -798,7 +798,7 @@ function Footer({
               width={48}
               height={48}
               className="h-12 w-12 rounded-2xl object-cover"
-              unoptimized
+              unoptimized={logoUrl.startsWith('data:')}
             />
             <div>
               <div className="text-base font-semibold tracking-tight" style={{ color: C.text }}>
