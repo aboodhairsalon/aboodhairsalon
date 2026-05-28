@@ -54,3 +54,7 @@ Thumbs.db
 
 # Local AI / Claude
 .claude/
+
+
+# Temp scratch (JSON requests, etc.)
+.tmp/
