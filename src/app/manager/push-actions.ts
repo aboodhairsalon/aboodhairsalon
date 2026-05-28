@@ -36,9 +36,8 @@ export type PushResult =
 function configureVapid(): { ok: boolean; publicKey: string | null } {
   const publicKey = process.env['VAPID_PUBLIC_KEY'] ?? null;
   const privateKey = process.env['VAPID_PRIVATE_KEY'] ?? null;
-  // VAPID subject — domaine UNIFIÉ sur `system-aone.com` (domaine prod vérifié
-  // DNS + Resend). `system-a.com` était une variante historique sans SPF/DKIM.
-  const subject = process.env['VAPID_SUBJECT'] ?? 'mailto:noreply@system-aone.com';
+  // VAPID subject — email de contact du salon (fallback si VAPID_SUBJECT absent).
+  const subject = process.env['VAPID_SUBJECT'] ?? `mailto:${SALON.contact.email}`;
   if (!publicKey || !privateKey) {
     return { ok: false, publicKey: null };
   }

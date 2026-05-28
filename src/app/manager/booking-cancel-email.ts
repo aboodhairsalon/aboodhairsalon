@@ -21,6 +21,7 @@ import { createClientToken } from '../_lib/client-token';
 import { resolveFromHeader } from '../_lib/email-sender';
 import { reportError } from '../_lib/error-reporter';
 import { formatDateLong, utcIsoToZonedParts } from '../_lib/timezone';
+import { SALON } from '@/config/salon';
 
 type Locale = 'fr' | 'en' | 'ar';
 
@@ -141,8 +142,7 @@ export async function notifyClientOfCancellation(input: NotifyCancellationInput)
   let rebookUrl = '';
   try {
     const token = createClientToken(input.tenantId, profile.phone);
-    const base = process.env['NEXT_PUBLIC_ROOT_URL'] || 'https://app.system-aone.com';
-    rebookUrl = `${base}/${tenant.slug}/client?t=${encodeURIComponent(token)}&tab=book`;
+    rebookUrl = `${SALON.spaces.book}/client?t=${encodeURIComponent(token)}&tab=book`;
   } catch {
     rebookUrl = '';
   }

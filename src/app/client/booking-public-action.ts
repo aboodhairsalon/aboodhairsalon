@@ -235,7 +235,7 @@ export async function createBookingPublic(input: CreateBookingInput): Promise<Mu
   const [svcRes, barberRes] = await Promise.all([
     admin
       .from('services')
-      .select('id, tenant_id, name')
+      .select('id, tenant_id, name, price_cents')
       .eq('id', data.serviceId)
       .eq('tenant_id', tenantId)
       .maybeSingle(),
@@ -255,6 +255,16 @@ export async function createBookingPublic(input: CreateBookingInput): Promise<Mu
   }
   const serviceName = (svcRes.data as { name?: string }).name ?? '';
   const barberName = (barberRes.data as { name?: string }).name ?? '';
+
+  // Sécurité : le montant est RECALCULÉ depuis le prix serveur du service. On
+  // ne fait jamais confiance au `amountCents` envoyé par le client (sinon un
+  // client malicieux pourrait poster 0 et polluer le CA / la fidélité).
+  // Fallback sur l'input uniquement si price_cents est NULL en base.
+  const servicePriceCents = (svcRes.data as { price_cents?: number | null }).price_cents;
+  const verifiedAmountCents =
+    typeof servicePriceCents === 'number' && servicePriceCents >= 0
+      ? servicePriceCents
+      : data.amountCents;
 
   // 3. Compose le créneau dans le TZ du tenant. `tenants.timezone` (IANA,
   //    ex. "Africa/Cairo") détermine comment interpréter la saisie locale.
@@ -316,7 +326,7 @@ export async function createBookingPublic(input: CreateBookingInput): Promise<Mu
       barber_id: data.barberId,
       starts_at: startsAt,
       ends_at: endsAt,
-      amount_cents: data.amountCents,
+      amount_cents: verifiedAmountCents,
       status: 'upcoming',
       source: 'client_app',
     })

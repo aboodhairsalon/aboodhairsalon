@@ -139,7 +139,9 @@ interface AuthFieldProps extends InputHTMLAttributes<HTMLInputElement> {
   error?: string;
 }
 
-export function AuthField({ label, error, className = '', ...rest }: AuthFieldProps) {
+export function AuthField({ label, error, id, name, className = '', ...rest }: AuthFieldProps) {
+  const fieldId = id ?? name ?? label.toLowerCase().replace(/\s+/g, '-');
+  const errorId = `${fieldId}-error`;
   return (
     <label className="block">
       <span
@@ -149,6 +151,10 @@ export function AuthField({ label, error, className = '', ...rest }: AuthFieldPr
         {label}
       </span>
       <input
+        id={fieldId}
+        name={name}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? errorId : undefined}
         className={`w-full rounded-xl px-4 py-3 text-sm outline-none transition-all disabled:opacity-50 ${className}`}
         style={{
           background: AUTH_C.inputBg,
@@ -173,7 +179,7 @@ export function AuthField({ label, error, className = '', ...rest }: AuthFieldPr
         {...rest}
       />
       {error && (
-        <p className="mt-1.5 text-xs" style={{ color: AUTH_C.red }}>
+        <p id={errorId} className="mt-1.5 text-xs" style={{ color: AUTH_C.red }}>
           {error}
         </p>
       )}

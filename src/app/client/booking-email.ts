@@ -27,6 +27,7 @@ import { createClientToken } from '../_lib/client-token';
 import { resolveFromHeader } from '../_lib/email-sender';
 import { reportError } from '../_lib/error-reporter';
 import { formatDateLong, utcIsoToZonedParts } from '../_lib/timezone';
+import { SALON } from '@/config/salon';
 
 type Locale = 'fr' | 'en' | 'ar';
 
@@ -182,15 +183,15 @@ export async function notifyClientOfNewBooking(input: NotifyBookingInput): Promi
   let openProfileUrl = '';
   try {
     const token = createClientToken(input.tenantId, profile.phone);
-    const base = process.env['NEXT_PUBLIC_ROOT_URL'] || 'https://app.system-aone.com';
-    openProfileUrl = `${base}/${tenant.slug}/client?t=${encodeURIComponent(token)}`;
+    // Single-tenant : l'espace client est servi par le sous-domaine booking
+    // (plus de path-based slug ni de domaine System A).
+    openProfileUrl = `${SALON.spaces.book}/client?t=${encodeURIComponent(token)}`;
   } catch {
     // Si CLIENT_TOKEN_SECRET absent (dev), on bypass le CTA — pas critique
     openProfileUrl = '';
   }
 
-  const icsBase = process.env['NEXT_PUBLIC_ROOT_URL'] || 'https://app.system-aone.com';
-  const icsUrl = `${icsBase}/${tenant.slug}/client/booking/${input.bookingId}/ics`;
+  const icsUrl = `${SALON.spaces.book}/client/booking/${input.bookingId}/ics`;
 
   const subject = labels.subject(tenant.name);
 

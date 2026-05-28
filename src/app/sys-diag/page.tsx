@@ -147,7 +147,7 @@ export default async function DebugPage() {
           v={
             ctx.settings.email_from_address
               ? `tenant_settings.email_from_address (custom)`
-              : `RESEND_FROM_EMAIL env var ou fallback noreply@system-aone.com`
+              : `RESEND_FROM_EMAIL env var ou fallback noreply@aboodhairsalon.com`
           }
         />
         <p style={{ color: '#8A8478', fontSize: '12px', marginTop: '8px' }}>
@@ -164,7 +164,7 @@ export default async function DebugPage() {
         />
         <Row
           k="RESEND_FROM_EMAIL"
-          v={hasEnv('RESEND_FROM_EMAIL') ? '✅ configuré' : 'fallback noreply@system-aone.com'}
+          v={hasEnv('RESEND_FROM_EMAIL') ? '✅ configuré' : 'fallback noreply@aboodhairsalon.com'}
         />
         <Row
           k="CLIENT_TOKEN_SECRET"
@@ -190,7 +190,7 @@ export default async function DebugPage() {
         />
         <Row
           k="NEXT_PUBLIC_ROOT_URL"
-          v={process.env['NEXT_PUBLIC_ROOT_URL'] ?? '(fallback app.system-aone.com)'}
+          v={process.env['NEXT_PUBLIC_ROOT_URL'] ?? '(non utilisé — liens emails dérivés de SALON.spaces.book)'}
         />
       </Section>
     </main>

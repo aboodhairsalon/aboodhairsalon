@@ -1,6 +1,6 @@
 /* global self, caches, clients */
 
-// System A — Service Worker.
+// Aboodhairsalon — Service Worker.
 //
 // Deux rôles :
 //   1. Cache des assets statiques (next/static, /brand/*) pour des chargements
@@ -73,15 +73,15 @@ self.addEventListener('push', (event) => {
   try {
     payload = event.data.json();
   } catch {
-    payload = { title: 'System A', body: event.data.text() };
+    payload = { title: 'Aboodhairsalon', body: event.data.text() };
   }
 
-  const title = payload.title || 'System A';
+  const title = payload.title || 'Aboodhairsalon';
   const options = {
     body: payload.body || '',
     icon: payload.icon || '/brand/icon-192.png',
     badge: payload.badge || '/brand/icon-192.png',
-    tag: payload.tag || 'system-a',
+    tag: payload.tag || 'aboodhairsalon',
     data: { url: payload.url || '/' },
     // requireInteraction false → notification se ferme seule (UX moins agressif)
     requireInteraction: false,

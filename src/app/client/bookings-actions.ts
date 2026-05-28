@@ -22,6 +22,7 @@
 
 import { headers } from 'next/headers';
 import { createAdminClient } from '@/db';
+import { SALON } from '@/config/salon';
 import { rlSalesIp, rlSalesPhone } from '../_lib/rate-limit';
 import { sendPushToTenant } from '../manager/push-actions';
 
@@ -50,11 +51,6 @@ export type CancelBookingResult =
 export type TakenSlotsResult = { ok: true; takenTimes: string[] } | { ok: false; errorKey: string };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-
-async function tenantFromHeaders(): Promise<string | null> {
-  const h = await headers();
-  return h.get('x-tenant-id');
-}
 
 async function clientIp(): Promise<string> {
   const h = await headers();
@@ -109,15 +105,10 @@ export async function getClientBookings(
   tenantIdInput: string,
   phone: string,
 ): Promise<ClientBookingsResult> {
-  const headerTenantId = await tenantFromHeaders();
-  // Le tenant est toujours celui des headers middleware (jamais l'input).
-  // L'argument `tenantIdInput` est conservé pour symétrie d'API mais on
-  // valide qu'il matche pour bloquer les call-sites buggés.
-  if (!headerTenantId) return { ok: false, errorKey: 'tenantMissing' };
-  if (tenantIdInput && tenantIdInput !== headerTenantId) {
-    return { ok: false, errorKey: 'tenantMismatch' };
-  }
-  const tenantId = headerTenantId;
+  // Single-tenant : tenant = constante SALON.tenantUuid (le middleware de ce
+  // fork ne pose plus de header x-tenant-id ; `tenantIdInput` est gardé pour la
+  // compat des call-sites mais n'est plus utilisé).
+  const tenantId = SALON.tenantUuid;
 
   const trimmedPhone = phone.trim();
   if (!trimmedPhone || trimmedPhone.length < 6) {
@@ -155,6 +146,7 @@ export async function getClientBookings(
       'id, starts_at, status, paid, amount_cents, service_id, barber_id, client_display_name, client_phone',
     )
     
+    .eq('tenant_id', tenantId)
     .eq('client_phone', trimmedPhone)
     .gte('starts_at', ninetyDaysAgo.toISOString())
     .order('starts_at', { ascending: false })
@@ -200,12 +192,8 @@ export async function cancelClientBooking(
   phone: string,
   bookingId: string,
 ): Promise<CancelBookingResult> {
-  const headerTenantId = await tenantFromHeaders();
-  if (!headerTenantId) return { ok: false, errorKey: 'tenantMissing' };
-  if (tenantIdInput && tenantIdInput !== headerTenantId) {
-    return { ok: false, errorKey: 'tenantMismatch' };
-  }
-  const tenantId = headerTenantId;
+  // Single-tenant : tenant = constante SALON.tenantUuid (plus de header x-tenant-id).
+  const tenantId = SALON.tenantUuid;
 
   const trimmedPhone = phone.trim();
   if (!trimmedPhone || trimmedPhone.length < 6) {
@@ -229,6 +217,7 @@ export async function cancelClientBooking(
     .from('bookings')
     .select('id, status, starts_at, client_phone, tenant_id')
     .eq('id', bookingId)
+    .eq('tenant_id', tenantId)
     
     .maybeSingle();
 
@@ -261,6 +250,7 @@ export async function cancelClientBooking(
     .from('bookings')
     .update({ status: 'cancelled' })
     .eq('id', bookingId)
+    .eq('tenant_id', tenantId)
     
     .eq('client_phone', trimmedPhone)
     .eq('status', 'upcoming');
@@ -322,12 +312,8 @@ export async function getTakenSlots(
   barberId: string,
   date: string,
 ): Promise<TakenSlotsResult> {
-  const headerTenantId = await tenantFromHeaders();
-  if (!headerTenantId) return { ok: false, errorKey: 'tenantMissing' };
-  if (tenantIdInput && tenantIdInput !== headerTenantId) {
-    return { ok: false, errorKey: 'tenantMismatch' };
-  }
-  const tenantId = headerTenantId;
+  // Single-tenant : tenant = constante SALON.tenantUuid (plus de header x-tenant-id).
+  const tenantId = SALON.tenantUuid;
 
   if (!/^[0-9a-f-]{36}$/i.test(barberId)) {
     return { ok: false, errorKey: 'invalidBarber' };
@@ -354,6 +340,7 @@ export async function getTakenSlots(
     .from('bookings')
     .select('starts_at, ends_at, status')
     
+    .eq('tenant_id', tenantId)
     .eq('barber_id', barberId)
     .in('status', ['upcoming', 'in_chair', 'done'])
     .gte('starts_at', wideStart.toISOString())

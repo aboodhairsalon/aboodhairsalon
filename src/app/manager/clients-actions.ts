@@ -291,7 +291,7 @@ async function notifyOldEmailOfChange(args: {
         `L'adresse email associée à votre compte chez ${args.tenantName} vient d'être modifiée vers ${newEmailMasked}.\n\n` +
         `Si vous êtes à l'origine de ce changement, vous pouvez ignorer ce message.\n\n` +
         `Si ce n'est PAS vous, contactez le salon immédiatement pour faire annuler la modification.\n\n` +
-        `— System A One`,
+        `— ${args.tenantName}`,
       tags: [{ name: 'type', value: 'email-change-notif' }],
     });
   } catch {
