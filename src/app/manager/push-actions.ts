@@ -22,6 +22,7 @@
 import webpush from 'web-push';
 import { z } from 'zod';
 import { createAdminClient } from '@/db';
+import { SALON } from '@/config/salon';
 import { getCurrentUser } from '../_data/auth-server';
 import type { ManagerErrorCode, ManagerErrorValues } from './actions';
 
@@ -140,8 +141,11 @@ export async function subscribePush(input: SubscriptionInput): Promise<PushResul
   const admin = createAdminClient() as any;
 
   // upsert sur endpoint (UNIQUE) — idempotent et refresh des keys + tenant.
+  // `tenant_id` est requis par le schéma hérité (NOT NULL) ; en single-tenant
+  // c'est toujours la constante SALON.tenantUuid.
   const { error } = await admin.from('push_subscriptions').upsert(
     {
+      tenant_id: SALON.tenantUuid,
       user_id: guard.userId,
       role: guard.role,
       endpoint: sub.endpoint,
@@ -221,20 +225,13 @@ export async function sendPushToTenant(
   payload: PushPayload,
   filter?: { role?: 'manager' | 'cashier' },
 ): Promise<{ ok: true; sent: number; pruned: number } | { ok: false; errorKey: PushErrorCode }> {
-  // Garde : soit l'appelant est authentifié dans CE tenant, soit le tenant
-  // est résolu via le middleware (booking public sur /{slug}/client → le
-  // header `x-tenant-id` est posé serveur-side et incontournable côté browser).
-  const user = await getCurrentUser();
-  const userTenantId = user?.app_metadata?.['tenant_id'] as string | undefined;
-  if (userTenantId !== tenantId) {
-    // Pas la session du tenant — on regarde si le contexte tenant a été
-    // résolu par le middleware (cas booking public).
-    const { headers } = await import('next/headers');
-    const headersList = await headers();
-    const headerTenantId = headersList.get('x-tenant-id');
-    if (headerTenantId !== tenantId) {
-      return { ok: false, errorKey: 'tenantNotAuthorized' };
-    }
+  // Garde single-tenant : il n'existe qu'un seul tenant (SALON.tenantUuid).
+  // Tout appel ciblant une autre valeur est rejeté (défense anti-spam : un
+  // browser ne doit pas pouvoir pousser des notifs sur un tenantId arbitraire).
+  // Le header `x-tenant-id` du middleware multi-tenant n'existe plus dans ce
+  // fork ; le booking public appelle cette action avec SALON.tenantUuid en dur.
+  if (tenantId !== SALON.tenantUuid) {
+    return { ok: false, errorKey: 'tenantNotAuthorized' };
   }
 
   const cfg = configureVapid();

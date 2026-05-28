@@ -22,6 +22,7 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createAdminClient } from '@/db';
+import { SALON } from '@/config/salon';
 import { getCurrentUser } from '../_data/auth-server';
 import { notifyClientOfRefund } from './refund-email';
 import type { ManagerErrorCode, ManagerErrorValues } from './actions';
@@ -254,6 +255,7 @@ export async function refundSale(input: RefundInput): Promise<RefundResult> {
       const movements = productLines
         .filter((l) => l.product_id)
         .map((l) => ({
+          tenant_id: SALON.tenantUuid, // requis (NOT NULL) — constante single-tenant
           product_id: l.product_id,
           kind: 'return' as const,
           qty_delta: Math.abs(l.qty), // positif → restore stock via trigger 0004

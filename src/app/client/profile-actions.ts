@@ -11,6 +11,7 @@
  * sur les bookings paid=true, status='done', client_phone=phone.
  */
 import { createAdminClient } from '@/db';
+import { SALON } from '@/config/salon';
 import { getCurrentUser } from '../_data/auth-server';
 import { rlSalesIp, rlSalesPhone } from '../_lib/rate-limit';
 import type { ClientErrorCode, ClientErrorValues } from './review-actions';
@@ -410,6 +411,7 @@ export async function upsertClientProfile(input: UpsertProfileInput): Promise<Sa
   // ne pas écraser une valeur DB existante par null lors d'un update.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const upsertPayload: any = {
+    tenant_id: SALON.tenantUuid,
     phone: phone.trim(),
     first_name: firstName.trim() || null,
     last_name: lastName.trim() || null,
@@ -439,6 +441,7 @@ export async function upsertClientProfile(input: UpsertProfileInput): Promise<Sa
     // pas de session Supabase Auth (identité par téléphone localStorage).
     // L'absence d'actor_id signale « action self-service du client ».
     void admin.from('audit_log').insert({
+      tenant_id: SALON.tenantUuid,
       actor_id: null,
       table_name: 'client_profiles',
       row_id: phone.trim(),
@@ -698,6 +701,7 @@ export async function createClientFromCashier(
   // contrainte (tenant_id, phone) protège l'intégrité — en cas de conflit
   // simultané, on bascule sur la branche "existing" au prochain retry.
   const { error } = await admin.from('client_profiles').insert({
+    tenant_id: SALON.tenantUuid,
     phone: normalizedPhone,
     email: normalizedEmail,
     first_name: firstName?.trim() || null,
@@ -1157,6 +1161,7 @@ export async function deleteClientAccount(
   await admin
     .from('audit_log')
     .insert({
+      tenant_id: SALON.tenantUuid,
       actor_id: user.id,
       table_name: 'client_profiles',
       row_id: profileRow.id,

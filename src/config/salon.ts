@@ -19,6 +19,16 @@ export const SALON = {
    *  Stable forever, ne JAMAIS le changer après le premier déploiement. */
   slug: 'aboodhairsalon',
 
+  /** UUID du tenant en base. Le schéma hérité de System A (option A — conservé)
+   *  garde une colonne `tenant_id uuid` sur toutes les tables. En single-tenant
+   *  il n'y a qu'une valeur : celle-ci. Doit matcher :
+   *   - `tenants.id` (seedé par migration)
+   *   - `salon_settings.id`
+   *   - `app_metadata.tenant_id` des comptes manager/cashier
+   *  Utilisée pour TOUS les inserts (`tenant_id: SALON.tenantUuid`) et comme
+   *  valeur de `ctx.tenant.id`. */
+  tenantUuid: '00000000-0000-0000-0000-000000000001',
+
   /** Description courte (tagline). Utilisée en meta-description fallback. */
   tagline: 'Salon de coiffure homme — Alexandrie',
 

@@ -206,18 +206,19 @@ export async function uploadGalleryPhoto(
   const contentType = `image/${ext}`;
   const bytes = Buffer.from(b64, 'base64');
 
-  // 2. Insert le row d'abord pour obtenir un photo_id stable
-  //    TODO(découplage) : `tenant_id` est requis par le schéma hérité.
-  //    À retirer quand le schéma sera consolidé en single-tenant.
-  const insertRow = {
+  // 2. Insert le row d'abord pour obtenir un photo_id stable. `tenant_id` est
+  //    requis par le schéma hérité de System A (option A conservée) — en
+  //    single-tenant c'est toujours SALON.tenantUuid, exposé via ctx.tenant.id.
+  const insertRow: GalleryInsert = {
+    tenant_id: ctx.tenant.id,
     photo_url: '', // placeholder — on update juste après
     caption: parsed.data.caption ?? null,
     sort_order: nextSort,
-  } as Omit<GalleryInsert, 'tenant_id'>;
+  };
 
   const { data: ins, error } = await admin
     .from('tenant_gallery')
-    .insert(insertRow as never)
+    .insert(insertRow)
     .select('id')
     .single();
 

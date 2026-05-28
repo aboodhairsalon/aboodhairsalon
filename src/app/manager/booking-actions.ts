@@ -68,6 +68,7 @@ export async function createBooking(input: CreateBookingInput): Promise<Mutation
   const { data, error } = await (supabase as AnySupabase)
     .from('bookings')
     .insert({
+      tenant_id: ctx.tenant.id,
       client_display_name: input.clientName,
       client_phone: input.clientPhone?.trim() || null,
       service_id: input.serviceId,
@@ -263,6 +264,7 @@ export async function payBooking(input: PayBookingInput): Promise<MutationResult
   const { data: sale, error: saleErr } = await db
     .from('sales')
     .insert({
+      tenant_id: ctx.tenant.id,
       barber_id: bookingRow.barber_id ?? null,
       booking_id: input.bookingId,
       client_name: bookingRow.client_display_name ?? null,
@@ -392,6 +394,7 @@ export async function createDirectSale(input: CreateDirectSaleInput): Promise<Mu
   const { data: sale, error: saleErr } = await db
     .from('sales')
     .insert({
+      tenant_id: ctx.tenant.id,
       barber_id: input.barberId ?? null,
       client_phone: input.clientPhone?.trim() || null,
       client_name: input.clientName?.trim() || null,
@@ -461,7 +464,7 @@ export async function createDirectSale(input: CreateDirectSaleInput): Promise<Mu
     await db
       .from('client_profiles')
       .upsert(
-        { phone, first_name: name },
+        { tenant_id: ctx.tenant.id, phone, first_name: name },
         { onConflict: 'tenant_id,phone', ignoreDuplicates: true },
       );
   }

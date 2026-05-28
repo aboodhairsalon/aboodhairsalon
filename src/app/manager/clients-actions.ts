@@ -222,6 +222,7 @@ export async function updateClientProfile(
     // un éventuel détournement de compte. La colonne `diff` est JSONB donc
     // on stocke un objet { from, to } pour la lisibilité.
     void admin.from('audit_log').insert({
+      tenant_id: ctx.tenant.id,
       actor_id: ctx.user.id,
       table_name: 'client_profiles',
       row_id: d.id,

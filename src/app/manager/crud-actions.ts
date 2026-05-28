@@ -12,8 +12,17 @@
  */
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
+import type { Database } from '@/db';
 import { requireTenant } from '../_data/auth-server';
 import { getServerSupabase } from '../_data/supabase-server';
+
+// @supabase/ssr v0.5.x a des trous d'inférence quand le schéma est volumineux :
+// `.from(table).insert(obj)` infère le paramètre comme `never` au lieu du type
+// `Insert` de la table. On caste l'OBJET vers son type Insert exact (pas `never`)
+// pour conserver le type-check sur les champs tout en contournant le bug d'inférence.
+type StaffInsert = Database['public']['Tables']['staff']['Insert'];
+type ServiceInsert = Database['public']['Tables']['services']['Insert'];
+type ProductInsert = Database['public']['Tables']['products']['Insert'];
 
 /** Codes d'erreur émis par les mutations CRUD. */
 export type CrudErrorCode =
@@ -92,27 +101,31 @@ const StaffSchema = z.object({
 export type StaffInput = z.input<typeof StaffSchema>;
 
 export async function createStaff(input: StaffInput): Promise<MutationResult> {
-  await requireTenant();
+  const ctx = await requireTenant();
   const supabase = await getServerSupabase();
   const parsed = StaffSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, errorKey: zodMessageToCode(parsed.error.errors[0]?.message) };
   }
   const d = parsed.data;
+  // Objet typé `StaffInsert` (type-check complet des champs) puis `as never` au
+  // call-site pour contourner l'inférence `.insert(never)` de @supabase/ssr.
+  const row: StaffInsert = {
+    tenant_id: ctx.tenant.id,
+    name: d.name,
+    initials: d.initials.toUpperCase(),
+    tone: d.tone,
+    phone: d.phone,
+    email: d.email,
+    photo_url: d.photoUrl ?? null,
+    roles: d.roles,
+    shift: d.shift,
+    commission_bp: d.commissionBp ?? 4000,
+    category: d.category,
+  };
   const { data, error } = await supabase
     .from('staff')
-    .insert({
-      name: d.name,
-      initials: d.initials.toUpperCase(),
-      tone: d.tone,
-      phone: d.phone,
-      email: d.email,
-      photo_url: d.photoUrl ?? null,
-      roles: d.roles,
-      shift: d.shift,
-      commission_bp: d.commissionBp ?? 4000,
-      category: d.category,
-    } as never)
+    .insert(row as never)
     .select('id')
     .single();
   if (error) return { ok: false, errorKey: 'dbError', errorValues: { message: error.message } };
@@ -196,23 +209,25 @@ const ServiceSchema = z.object({
 export type ServiceInput = z.input<typeof ServiceSchema>;
 
 export async function createService(input: ServiceInput): Promise<MutationResult> {
-  await requireTenant();
+  const ctx = await requireTenant();
   const supabase = await getServerSupabase();
   const parsed = ServiceSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, errorKey: zodMessageToCode(parsed.error.errors[0]?.message) };
   }
   const d = parsed.data;
+  const row: ServiceInsert = {
+    tenant_id: ctx.tenant.id,
+    name: d.name,
+    duration_min: d.duration,
+    price_cents: d.priceCents,
+    icon: d.icon,
+    description: d.desc,
+    category: d.category,
+  };
   const { data, error } = await supabase
     .from('services')
-    .insert({
-      name: d.name,
-      duration_min: d.duration,
-      price_cents: d.priceCents,
-      icon: d.icon,
-      description: d.desc,
-      category: d.category,
-    } as never)
+    .insert(row as never)
     .select('id')
     .single();
   if (error) return { ok: false, errorKey: 'dbError', errorValues: { message: error.message } };
@@ -270,23 +285,25 @@ const ProductSchema = z.object({
 export type ProductInput = z.input<typeof ProductSchema>;
 
 export async function createProduct(input: ProductInput): Promise<MutationResult> {
-  await requireTenant();
+  const ctx = await requireTenant();
   const supabase = await getServerSupabase();
   const parsed = ProductSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, errorKey: zodMessageToCode(parsed.error.errors[0]?.message) };
   }
   const d = parsed.data;
+  const row: ProductInsert = {
+    tenant_id: ctx.tenant.id,
+    name: d.name,
+    sku: d.sku.toUpperCase(),
+    price_cents: d.priceCents,
+    cost_cents: d.costCents ?? 0,
+    stock: d.stock,
+    low_threshold: d.low,
+  };
   const { data, error } = await supabase
     .from('products')
-    .insert({
-      name: d.name,
-      sku: d.sku.toUpperCase(),
-      price_cents: d.priceCents,
-      cost_cents: d.costCents ?? 0,
-      stock: d.stock,
-      low_threshold: d.low,
-    } as never)
+    .insert(row as never)
     .select('id')
     .single();
   if (error) {

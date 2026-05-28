@@ -174,11 +174,7 @@ export async function requireTenant(): Promise<TenantContext> {
   // src/db/types.ts (sera générée après application de la migration single-tenant).
   // En attendant, on cast `supabase as any` pour bypass le type-check.
   const supabase = await getServerSupabase();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: settingsRow } = await (supabase as any)
-    .from('salon_settings')
-    .select('*')
-    .maybeSingle();
+  const { data: settingsRow } = await supabase.from('salon_settings').select('*').maybeSingle();
 
   const s = settingsRow as
     | (Partial<TenantContext['settings']> & { logo_url?: string | null })
@@ -187,7 +183,7 @@ export async function requireTenant(): Promise<TenantContext> {
   return {
     user,
     tenant: {
-      id: SALON.slug, // identifiant stable pour Storage keys / audit logs
+      id: SALON.tenantUuid, // UUID réel — sert aux inserts tenant_id + queries
       slug: SALON.slug,
       name: SALON.name,
       currency: SALON.currency,
@@ -259,7 +255,7 @@ export async function requireCashier(): Promise<CashierContext> {
 
   return {
     user,
-    tenantId: SALON.slug,
+    tenantId: SALON.tenantUuid, // UUID réel — sert aux inserts/queries tenant_id
     staffId,
     slug: SALON.slug,
   };

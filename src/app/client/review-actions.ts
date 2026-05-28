@@ -10,6 +10,7 @@
  * FR/EN/AR brute.
  */
 import { createAdminClient } from '@/db';
+import { SALON } from '@/config/salon';
 
 /** Codes d'erreur émis par les Server Actions côté client. */
 export type ClientErrorCode =
@@ -181,18 +182,18 @@ export async function submitReview(input: SubmitReviewInput): Promise<SubmitRevi
 
   const admin = createAdminClient();
 
-  // TODO(découplage) : `tenant_id` est requis par le schéma multi-tenant
-  // hérité de System A. À retirer quand le schéma DB sera consolidé en
-  // single-tenant (drop column tenant_id). En attendant, on cast à `never`
-  // pour bypass le type-check, et le RLS server-side filtre via auth.uid().
+  // `tenant_id` est requis par le schéma hérité de System A (option A
+  // conservée). Action publique (pas de session) → on utilise la constante
+  // SALON.tenantUuid, seule valeur de tenant en base single-tenant.
   const { error } = await admin.from('barber_reviews').insert({
+    tenant_id: SALON.tenantUuid,
     barber_id: barberId,
     client_phone: clientPhone.trim(),
     booking_id: bookingId ?? null,
     sale_id: saleId ?? null,
     rating,
     comment: comment?.trim() || null,
-  } as never);
+  });
 
   if (error) {
     // Violation de la contrainte UNIQUE → déjà noté
