@@ -3535,21 +3535,6 @@ function ManagerSettings() {
                   </div>
                 );
               })()}
-              <div className="border-line mt-3 border-t pt-3">
-                <div className="mono text-ink-soft text-[9px] uppercase tracking-wider">
-                  {t('preview.salonColor')}
-                </div>
-                <div className="mt-1.5 flex items-center gap-2">
-                  <div
-                    className="h-6 w-6 rounded-full"
-                    style={{
-                      background: draft.brandPrimary,
-                      border: '1px solid var(--color-line-hi)',
-                    }}
-                  />
-                  <span className="mono">{draft.brandPrimary}</span>
-                </div>
-              </div>
             </div>
           </Card>
         </div>
@@ -3620,46 +3605,16 @@ function ManagerSettings() {
               />
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-[1fr_auto]">
-              <Input
-                label={t('identity.salonNameLabel')}
-                value={draft.name}
-                onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-                placeholder={t('identity.salonNamePlaceholder')}
-                maxLength={64}
-              />
-              <div>
-                <span className="mono text-ink-soft mb-2 block text-[10px] uppercase tracking-[0.2em]">
-                  {t('identity.accentColorLabel')}
-                </span>
-                <div className="flex flex-wrap gap-2">
-                  {[
-                    '#D08C4F',
-                    '#8BAE6E',
-                    '#C97D8A',
-                    '#7BA4B3',
-                    '#A89A7E',
-                    '#B85C3C',
-                    '#9B7BBF',
-                    '#C9A85E',
-                  ].map((c) => (
-                    <button
-                      key={c}
-                      type="button"
-                      onClick={() => setDraft({ ...draft, brandPrimary: c })}
-                      aria-label={c}
-                      title={c}
-                      className={`btn-press h-9 w-9 rounded-full border-2 transition ${
-                        draft.brandPrimary === c
-                          ? 'border-ink scale-110'
-                          : 'border-transparent hover:scale-105'
-                      }`}
-                      style={{ background: c }}
-                    />
-                  ))}
-                </div>
-              </div>
-            </div>
+            {/* Couleur d'accent : fonctionnalité retirée (inutile pour un salon
+                unique). L'accent est désormais un gris neutre fixe, défini dans
+                `src/config/salon.ts` + `globals.css`. */}
+            <Input
+              label={t('identity.salonNameLabel')}
+              value={draft.name}
+              onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+              placeholder={t('identity.salonNamePlaceholder')}
+              maxLength={64}
+            />
 
             <div className="mt-4">
               <Input

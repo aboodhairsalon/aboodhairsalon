@@ -24,12 +24,13 @@
   --color-ink-mute: #a89a7e;
   --color-ink-soft: #6e6450;
 
-  /* ── Marque Aboodhairsalon — copper barbershop ───────────────────────── */
+  /* ── Marque Aboodhairsalon — accent gris neutre ──────────────────────── */
   /* Ces 3 couleurs DÉFINISSENT l'identité visuelle. Pour personnaliser un
-     fork, changer UNIQUEMENT ces lignes (et `src/config/salon.ts`). */
-  --color-brand-primary: #d08c4f;
-  --color-brand-glow: #e8a867;
-  --color-brand-deep: #9b5f26;
+     fork, changer UNIQUEMENT ces lignes (et `src/config/salon.ts`).
+     deep (#6C7074) sert d'accent texte sur fond clair (contraste ≈ 4.6:1). */
+  --color-brand-primary: #9AA0A6;
+  --color-brand-glow: #ACB1B6;
+  --color-brand-deep: #6C7074;
 
   /* ── Status colors (cohérence inter-installations) ────────────────────── */
   --color-green: #8bae6e;

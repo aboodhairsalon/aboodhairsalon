@@ -73,9 +73,9 @@ export const SALON = {
    *  Dupliquées ici pour les helpers JS qui ont besoin des hex (ex. génération
    *  d'OG image, email templates, charts). */
   brand: {
-    primary: '#d08c4f',
-    glow: '#e8a867',
-    deep: '#9b5f26',
+    primary: '#9AA0A6',
+    glow: '#ACB1B6',
+    deep: '#6C7074',
   },
 
   /** Espaces — URLs canoniques. Utilisées pour les redirects after-login,
