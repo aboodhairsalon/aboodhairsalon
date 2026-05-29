@@ -1213,6 +1213,7 @@
       "namePromptPlaceholder": "مثال: كريم بن علي",
       "registerRequiredHint": "تسجيل سريع مطلوب — تُحفظ بياناتك للتذكير ولبرنامج الولاء.",
       "cashbackTeaser": "ستحصل على {amount} استرداد نقدي للزيارة القادمة.",
+      "punctualityNotice": "لا يمكن ضمان توفّر الموعد في حال التأخّر — يُرجى الالتزام بالوقت المحجوز.",
       "regFirstNameLabel": "الاسم الأول",
       "regFirstNamePlaceholder": "كريم",
       "regLastNameLabel": "اسم العائلة",

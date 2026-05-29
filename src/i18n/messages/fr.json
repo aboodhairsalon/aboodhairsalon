@@ -1212,6 +1212,7 @@
       "namePromptPlaceholder": "Ex : Karim Benali",
       "registerRequiredHint": "Inscription rapide nécessaire — vos coordonnées sont enregistrées pour les rappels et votre programme fidélité.",
       "cashbackTeaser": "Vous gagnerez {amount} de cashback à la prochaine visite.",
+      "punctualityNotice": "Aucune disponibilité n'est garantie en cas de retard — merci de respecter l'horaire réservé.",
       "regFirstNameLabel": "Prénom",
       "regFirstNamePlaceholder": "Karim",
       "regLastNameLabel": "Nom",

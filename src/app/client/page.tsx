@@ -2191,6 +2191,22 @@ function ClientBookingFlow({
               {t('step4Header')}
             </h3>
 
+            {/* Avis ponctualité — en tête du récap : prévient le client qu'un
+                retard peut faire sauter son créneau (les RDV s'enchaînent).
+                Ton ambre = information importante mais non bloquante, même
+                style que le bandeau d'inscription pour rester cohérent. */}
+            <div
+              className="mb-4 flex items-start gap-2.5 rounded-xl px-3 py-2.5 text-xs"
+              style={{
+                background: 'rgba(224,162,61,0.12)',
+                border: '1px solid rgba(224,162,61,0.35)',
+                color: '#7A5320',
+              }}
+            >
+              <Clock className="mt-0.5 h-3.5 w-3.5 shrink-0" strokeWidth={1.8} />
+              <span>{t('punctualityNotice')}</span>
+            </div>
+
             {/* Résumé */}
             <div
               className="mb-4 p-6"
