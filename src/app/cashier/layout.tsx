@@ -13,6 +13,7 @@ import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import { SALON } from '@/config/salon';
 import { LIGHT_SURFACE_VARS } from '../_components/light-theme';
+import { ToastProvider } from '../_components/Toast';
 
 export function generateMetadata(): Metadata {
   return {
@@ -40,7 +41,11 @@ export default function CashierLayout({ children }: { children: ReactNode }) {
         } as React.CSSProperties
       }
     >
-      {children}
+      {/* ToastProvider — manquait dans l'espace Caisse (présent côté client +
+          manager) : sans lui, useToast() était un no-op silencieux et AUCUN
+          toast caisse ne s'affichait (erreurs, remboursements, confirmation
+          d'abonnement push…). */}
+      <ToastProvider>{children}</ToastProvider>
     </div>
   );
 }
