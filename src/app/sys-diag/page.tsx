@@ -183,9 +183,11 @@ export default async function DebugPage() {
           v={hasEnv('VAPID_PRIVATE_KEY') ? '✅ configuré' : '⚠️ push notifications désactivées'}
         />
         <Row
-          k="UPSTASH_REDIS_REST_URL"
+          k="Redis rate-limit (Upstash/KV)"
           v={
-            hasEnv('UPSTASH_REDIS_REST_URL') ? '✅ configuré' : '⚠️ rate-limit en mémoire fallback'
+            hasEnv('UPSTASH_REDIS_REST_URL') || hasEnv('KV_REST_API_URL')
+              ? '✅ configuré (distribué)'
+              : '⚠️ rate-limit en mémoire fallback'
           }
         />
         <Row

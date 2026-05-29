@@ -34,8 +34,14 @@ let limitersInstance: {
 
 function getRedis(): Redis | null {
   if (redisInstance) return redisInstance;
-  const url = process.env['UPSTASH_REDIS_REST_URL'];
-  const token = process.env['UPSTASH_REDIS_REST_TOKEN'];
+  // Accepte les DEUX schémas de nommage selon la façon dont la base est
+  // provisionnée :
+  //  - Upstash natif (upstash.com)            → UPSTASH_REDIS_REST_URL / _TOKEN
+  //  - Intégration Vercel Marketplace (KV)     → KV_REST_API_URL / KV_REST_API_TOKEN
+  // Ainsi le rate-limit distribué s'active dès que l'un OU l'autre est présent,
+  // sans dépendre du nom exact injecté par l'intégration.
+  const url = process.env['UPSTASH_REDIS_REST_URL'] ?? process.env['KV_REST_API_URL'];
+  const token = process.env['UPSTASH_REDIS_REST_TOKEN'] ?? process.env['KV_REST_API_TOKEN'];
   if (!url || !token) return null;
   redisInstance = new Redis({ url, token });
   return redisInstance;
