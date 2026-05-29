@@ -3292,7 +3292,11 @@ function ManagerSettings() {
             email: tenantSession.settings.contact_email ?? '',
             website: tenantSession.settings.contact_website ?? '',
             instagram: tenantSession.settings.contact_instagram ?? '',
-            hours: tenantSession.settings.hours_text ?? '',
+            // Défaut = planning par défaut SÉRIALISÉ (pas '') : le planning
+            // AFFICHÉ par l'éditeur devient aussi celui ENREGISTRÉ au save.
+            // (Avant : '' → l'éditeur montrait un défaut jamais capturé dans le
+            // draft → "Enregistrer" sans toucher les horaires persistait null.)
+            hours: tenantSession.settings.hours_text ?? JSON.stringify(DEFAULT_WEEK_SCHEDULE),
             mapsUrl: tenantSession.settings.maps_url ?? '',
             cashbackRateBp: tenantSession.settings.cashback_rate_bp ?? 250,
             taxRateBp: tenantSession.settings.tax_rate_bp ?? 0,

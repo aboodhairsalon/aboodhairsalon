@@ -1942,7 +1942,10 @@ function ClientBookingFlow({
                   style={{
                     background: LC.card,
                     borderColor: serviceId === s.id ? LC.btn : LC.cardBorder,
-                    boxShadow: serviceId === s.id ? LC.cardShadow : undefined,
+                    boxShadow:
+                      serviceId === s.id
+                        ? '0 0 28px rgba(40,35,28,0.24), 0 0 2px rgba(40,35,28,0.16)'
+                        : '0 0 20px rgba(40,35,28,0.14), 0 0 1px rgba(40,35,28,0.10)',
                     aspectRatio: '1 / 1',
                     minHeight: 160,
                   }}
