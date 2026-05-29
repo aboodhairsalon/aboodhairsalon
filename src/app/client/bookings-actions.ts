@@ -25,6 +25,7 @@ import { createAdminClient } from '@/db';
 import { SALON } from '@/config/salon';
 import { rlSalesIp, rlSalesPhone } from '../_lib/rate-limit';
 import { sendPushToTenant } from '../manager/push-actions';
+import { getAuthedClientPhone } from './client-session';
 
 // ─── Types partagés ──────────────────────────────────────────────────────────
 
@@ -110,10 +111,12 @@ export async function getClientBookings(
   // compat des call-sites mais n'est plus utilisé).
   const tenantId = SALON.tenantUuid;
 
-  const trimmedPhone = phone.trim();
-  if (!trimmedPhone || trimmedPhone.length < 6) {
-    return { ok: false, errorKey: 'phoneRequired' };
-  }
+  // 🔒 Source de vérité : le téléphone vient du COOKIE de session vérifié,
+  // jamais du paramètre reçu (forgeable). Le paramètre est ignoré.
+  const authedPhone = await getAuthedClientPhone();
+  if (!authedPhone) return { ok: false, errorKey: 'authRequired' };
+  void phone;
+  const trimmedPhone = authedPhone;
 
   const ip = await clientIp();
   if (!(await rlSalesPhone(tenantId, trimmedPhone))) {
@@ -195,10 +198,12 @@ export async function cancelClientBooking(
   // Single-tenant : tenant = constante SALON.tenantUuid (plus de header x-tenant-id).
   const tenantId = SALON.tenantUuid;
 
-  const trimmedPhone = phone.trim();
-  if (!trimmedPhone || trimmedPhone.length < 6) {
-    return { ok: false, errorKey: 'phoneRequired' };
-  }
+  // 🔒 Source de vérité : le téléphone vient du COOKIE de session vérifié,
+  // jamais du paramètre reçu (forgeable). Le paramètre est ignoré.
+  const authedPhone = await getAuthedClientPhone();
+  if (!authedPhone) return { ok: false, errorKey: 'authRequired' };
+  void phone;
+  const trimmedPhone = authedPhone;
 
   // Rate-limit (anti-spam annulations).
   const ip = await clientIp();

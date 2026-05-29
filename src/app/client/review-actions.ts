@@ -11,6 +11,7 @@
  */
 import { createAdminClient } from '@/db';
 import { SALON } from '@/config/salon';
+import { getAuthedClientPhone } from './client-session';
 
 /** Codes d'erreur émis par les Server Actions côté client. */
 export type ClientErrorCode =
@@ -89,8 +90,14 @@ export async function getReviewableVisits(
 ): Promise<GetReviewableVisitsResult> {
   if (!tenantId || !phone?.trim()) return { ok: true, visits: [] };
 
+  // 🔒 Source de vérité : le téléphone vient du COOKIE de session vérifié,
+  // jamais du paramètre reçu (forgeable). Le paramètre est ignoré.
+  const authedPhone = await getAuthedClientPhone();
+  if (!authedPhone) return { ok: false, errorKey: 'authRequired' };
+  void phone;
+
   const admin = createAdminClient();
-  const normalizedPhone = phone.trim();
+  const normalizedPhone = authedPhone;
 
   // 1. Bookings payés, avec barbier + service
   const { data: bookings, error: bErr } = await admin
@@ -180,6 +187,12 @@ export async function submitReview(input: SubmitReviewInput): Promise<SubmitRevi
     return { ok: false, errorKey: 'invalidRating' };
   }
 
+  // 🔒 Source de vérité : le téléphone vient du COOKIE de session vérifié,
+  // jamais du paramètre reçu (forgeable). Le paramètre est ignoré.
+  const authedPhone = await getAuthedClientPhone();
+  if (!authedPhone) return { ok: false, errorKey: 'authRequired' };
+  void clientPhone;
+
   const admin = createAdminClient();
 
   // `tenant_id` est requis par le schéma hérité de System A (option A
@@ -188,7 +201,7 @@ export async function submitReview(input: SubmitReviewInput): Promise<SubmitRevi
   const { error } = await admin.from('barber_reviews').insert({
     tenant_id: SALON.tenantUuid,
     barber_id: barberId,
-    client_phone: clientPhone.trim(),
+    client_phone: authedPhone,
     booking_id: bookingId ?? null,
     sale_id: saleId ?? null,
     rating,

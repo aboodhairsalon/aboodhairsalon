@@ -12,6 +12,7 @@
  */
 import { createAdminClient } from '@/db';
 import { SALON } from '@/config/salon';
+import { getAuthedClientPhone } from './client-session';
 import { getCurrentUser } from '../_data/auth-server';
 import { rlSalesIp, rlSalesPhone } from '../_lib/rate-limit';
 import type { ClientErrorCode, ClientErrorValues } from './review-actions';
@@ -89,9 +90,15 @@ export async function getClientProfile(tenantId: string, phone: string): Promise
     return { ok: false, errorKey: 'missingParams' };
   }
 
+  // 🔒 Source de vérité : le téléphone vient du COOKIE de session vérifié,
+  // jamais du paramètre reçu (forgeable). Le paramètre est ignoré.
+  const authedPhone = await getAuthedClientPhone();
+  if (!authedPhone) return { ok: false, errorKey: 'authRequired' };
+  void phone;
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const admin = createAdminClient() as any;
-  const normalizedPhone = phone.trim();
+  const normalizedPhone = authedPhone;
 
   // Profil + cashback déjà utilisé
   const { data: row, error: profileErr } = await admin
@@ -194,16 +201,14 @@ export async function getClientProfile(tenantId: string, phone: string): Promise
 // ─── getClientProfileByEmail ────────────────────────────────────────────────
 
 /**
- * Charge le profil et les points par email — utilisé comme identifiant principal
- * sur l'écran de connexion client. Si plusieurs profils partagent le même
- * email pour ce tenant (data legacy ou doublon), on retourne le plus récemment
- * créé (le visiteur revoit ses dernières infos plutôt qu'un vieux compte fantôme).
+ * Charge le profil et les points du client connecté.
  *
- * Une fois le téléphone résolu, on délègue à `getClientProfile(tenantId, phone)`
- * pour le calcul des points — pas de duplication de la logique de fidélité.
- *
- * Email comparison: lowercase + trim côté DB via ILIKE pour gérer le bruit
- * de saisie ('John@EXAMPLE.com' vs 'john@example.com').
+ * SÉCURITÉ — Le paramètre `email` est désormais IGNORÉ : l'identité provient
+ * exclusivement du cookie de session vérifié (`getAuthedClientPhone`). On
+ * délègue ensuite à `getClientProfile(tenantId, phoneDeLaSession)` — pas de
+ * duplication de la logique de fidélité, et aucun moyen de lire le profil
+ * d'autrui en passant son email. La signature est conservée pour la compat
+ * des call-sites existants.
  */
 export async function getClientProfileByEmail(
   tenantId: string,
@@ -212,62 +217,14 @@ export async function getClientProfileByEmail(
   if (!tenantId || !email?.trim()) {
     return { ok: false, errorKey: 'missingParams' };
   }
-  const normalizedEmail = email.trim().toLowerCase();
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const admin = createAdminClient() as any;
-
-  // Lookup par email — case-insensitive. On récupère jusqu'à 2 rows pour
-  // détecter les doublons (cas typique : famille/couple qui partage email,
-  // ou data legacy). Si >= 2 matches, on signale au caller via `ambiguous`
-  // pour que l'UI demande au client de confirmer son téléphone.
-  const { data: rows, error: profileErr } = await admin
-    .from('client_profiles')
-    .select('phone, first_name, last_name, date_of_birth, email, created_at')
-    
-    .ilike('email', normalizedEmail)
-    .order('created_at', { ascending: false })
-    .limit(2);
-
-  if (profileErr) {
-    return {
-      ok: false,
-      errorKey: 'dbError',
-      errorValues: { message: (profileErr as { message?: string }).message ?? '' },
-    };
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const matchedRows = (rows as any[] | null) ?? [];
-  const row = matchedRows[0];
-  if (!row) {
-    // Aucun profil pour cet email → l'UI affichera le formulaire d'inscription
-    return {
-      ok: true,
-      exists: false,
-      profile: {
-        phone: '',
-        firstName: null,
-        lastName: null,
-        dateOfBirth: null,
-        email: normalizedEmail,
-      },
-      points: 0,
-      cashbackCents: 0,
-    };
-  }
-
-  // Si on a 2+ matches pour cet email, on signale l'ambiguïté au caller
-  // pour que l'UI demande au client de confirmer son téléphone (ou de se
-  // re-inscrire avec un autre email). On ne login PAS automatiquement le
-  // dernier profil créé — risque d'identité usurpée si data partagée.
-  if (matchedRows.length > 1) {
-    return { ok: false, errorKey: 'ambiguousEmail' };
-  }
-
-  // On a trouvé exactement un profil → on délègue à getClientProfile
-  // (même logique que la branche phone-based) pour rester DRY.
-  return getClientProfile(tenantId, row.phone as string);
+  // 🔒 Source de vérité : le téléphone vient du COOKIE de session vérifié,
+  // jamais du paramètre reçu (forgeable). Le paramètre est ignoré.
+  const authedPhone = await getAuthedClientPhone();
+  if (!authedPhone) return { ok: false, errorKey: 'authRequired' };
+  void email;
+  // La session est la source de vérité : on délègue au lookup par téléphone.
+  return getClientProfile(tenantId, authedPhone);
 }
 
 // ─── checkClientPhoneAvailable ──────────────────────────────────────────────
@@ -836,7 +793,13 @@ export async function getClientSales(
   if (!tenantId || !phone?.trim()) {
     return { ok: false, errorKey: 'missingParams' };
   }
-  const normalizedPhone = phone.trim();
+
+  // 🔒 Source de vérité : le téléphone vient du COOKIE de session vérifié,
+  // jamais du paramètre reçu (forgeable). Le paramètre est ignoré.
+  const authedPhone = await getAuthedClientPhone();
+  if (!authedPhone) return { ok: false, errorKey: 'authRequired' };
+  void phone;
+  const normalizedPhone = authedPhone;
 
   if (!(await rateLimitSalesLookup(tenantId, normalizedPhone))) {
     // Code générique pour ne pas révéler si le compte existe ou non.
@@ -959,7 +922,15 @@ export async function getSaleReceiptSnapshot(
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(saleId)) {
     return { ok: false, errorKey: 'missingParams' };
   }
-  const normalizedPhone = phone.trim();
+
+  // 🔒 Source de vérité : le téléphone vient du COOKIE de session vérifié,
+  // jamais du paramètre reçu (forgeable). Le paramètre est ignoré → un client
+  // ne peut récupérer que SES propres reçus.
+  const authedPhone = await getAuthedClientPhone();
+  if (!authedPhone) return { ok: false, errorKey: 'authRequired' };
+  void phone;
+  const normalizedPhone = authedPhone;
+
   if (!(await rateLimitSalesLookup(tenantId, normalizedPhone))) {
     return { ok: false, errorKey: 'tenantNotAuthorized' };
   }
@@ -1078,15 +1049,15 @@ export type DeleteAccountResult = { ok: true } | ErrResult;
  *
  * 1. `client_profiles` : phone → `deleted-<uuid>`, email/noms/DOB → NULL,
  *    push_subscription → NULL (plus de notifications)
- * 2. `auth.users` : si lié au profil par email, suppression du compte Auth
- *    (le magic link ne fonctionne plus)
+ * 2. `auth.users` : si le profil référence un `user_id`, suppression du compte
+ *    Auth associé (best-effort)
  * 3. Les `bookings` et `sales` historiques conservent `client_phone` mais
  *    pointent désormais sur un téléphone anonymisé — impossibles à relier
  *    au client supprimé.
  *
- * Garde : le caller DOIT être authentifié (session magic link) ET son email
- * doit matcher l'email du profil cible. Sans cette double vérif, n'importe
- * quel client connecté pourrait supprimer le compte d'un autre.
+ * Garde : l'identité provient EXCLUSIVEMENT du cookie de session vérifié
+ * (`getAuthedClientPhone`). Le paramètre `phone` est ignoré. Un client ne peut
+ * donc supprimer que SON propre compte — la session est la preuve de propriété.
  */
 export async function deleteClientAccount(
   tenantId: string,
@@ -1095,22 +1066,26 @@ export async function deleteClientAccount(
   if (!tenantId || !phone?.trim()) {
     return { ok: false, errorKey: 'missingParams' };
   }
-  const normalizedPhone = phone.trim();
 
-  const user = await getCurrentUser();
-  if (!user?.email) {
-    return { ok: false, errorKey: 'authRequired' };
-  }
+  // 🔒 Source de vérité : le téléphone vient du COOKIE de session vérifié,
+  // jamais du paramètre reçu (forgeable). Le paramètre est ignoré → un client
+  // ne peut supprimer que SON propre compte (la session EST la preuve de
+  // propriété). On abandonne l'ancien modèle getCurrentUser()+email (session
+  // Supabase STAFF, inadapté aux clients).
+  const authedPhone = await getAuthedClientPhone();
+  if (!authedPhone) return { ok: false, errorKey: 'authRequired' };
+  void phone;
+  const normalizedPhone = authedPhone;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const admin = createAdminClient() as any;
 
-  // Vérif d'identité : on charge le profil cible et on s'assure que son
-  // email matche celui de la session. Sinon refus.
+  // On charge le profil ciblé par le téléphone de la session pour récupérer
+  // son `user_id` (étape optionnelle de suppression du compte Auth).
   const { data: profile, error: loadErr } = await admin
     .from('client_profiles')
     .select('id, email, user_id')
-    
+
     .eq('phone', normalizedPhone)
     .maybeSingle();
 
@@ -1119,13 +1094,6 @@ export async function deleteClientAccount(
   }
 
   const profileRow = profile as { id: string; email: string | null; user_id: string | null };
-
-  if (
-    !profileRow.email ||
-    profileRow.email.trim().toLowerCase() !== user.email.trim().toLowerCase()
-  ) {
-    return { ok: false, errorKey: 'tenantNotAuthorized' };
-  }
 
   // Anonymisation : on remplace phone par un placeholder unique pour
   // libérer la valeur (un autre client peut reprendre ce numéro plus tard)
@@ -1156,7 +1124,7 @@ export async function deleteClientAccount(
   // Suppression du compte Auth — best effort, on continue si ça échoue
   // (le profil est déjà anonymisé, donc le client perd l'accès même si
   // auth.users persiste).
-  const authUserId = profileRow.user_id ?? user.id;
+  const authUserId = profileRow.user_id;
   if (authUserId) {
     await admin.auth.admin.deleteUser(authUserId).catch(() => {
       // Silent fail — log côté Sentry plus tard si besoin.
@@ -1168,8 +1136,11 @@ export async function deleteClientAccount(
   await admin
     .from('audit_log')
     .insert({
+      // actor_id nul : le client n'a pas de session Supabase Auth (identité
+      // par cookie de session signé). L'absence d'actor_id signale une action
+      // self-service du client lui-même.
       tenant_id: SALON.tenantUuid,
-      actor_id: user.id,
+      actor_id: null,
       table_name: 'client_profiles',
       row_id: profileRow.id,
       operation: 'delete',
