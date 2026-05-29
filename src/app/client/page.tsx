@@ -61,7 +61,6 @@ import {
   checkClientPhoneAvailable,
   deleteClientAccount,
   getClientProfile,
-  getClientProfileByEmail,
   upsertClientProfile,
 } from './profile-actions';
 import {
@@ -74,6 +73,7 @@ import {
   type ReviewableVisit,
 } from './review-actions';
 import { getClientSales, type ClientSaleItem } from './profile-actions';
+import { loginClient, requestClientPasswordReset, logoutClient } from './auth-actions';
 import { InstallPwaButton } from './InstallPwaButton';
 import { ShareSalonModal } from './ShareSalonModal';
 import { verifyClientTokenAction } from './token-verify-action';
@@ -3134,6 +3134,9 @@ function ProfileTab({
   const [signupPhone, setSignupPhone] = useState('');
   const [lookupPending, setLookupPending] = useState(false);
   const [lookupError, setLookupError] = useState<string | null>(null);
+  // Mot de passe (connexion) + état « lien de réinitialisation envoyé ».
+  const [loginPassword, setLoginPassword] = useState('');
+  const [resetSent, setResetSent] = useState(false);
 
   // Synchronise le mode quand le prop `phone` change de l'extérieur
   useEffect(() => {
@@ -3270,11 +3273,14 @@ function ProfileTab({
           setLastName(result.profile.lastName ?? '');
           setDob(result.profile.dateOfBirth ?? '');
           setEmail(result.profile.email ?? '');
+        } else if (result.errorKey === 'authRequired') {
+          // Session absente/expirée → purge le phone local + retour au login.
+          onPhoneChange('');
         }
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [phone, tenantId]);
+  }, [phone, tenantId, onPhoneChange]);
 
   // Snapshot du Set submittedVisits dans une ref — évite de re-fetch
   // getReviewableVisits à chaque submit (le filtre n'a besoin que de la
@@ -3308,68 +3314,59 @@ function ProfileTab({
   // matchent toujours sur phone — ID stable historique).
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    // Identifiant = EMAIL ou TÉLÉPHONE. On détecte par la présence d'un « @ ».
-    // Le téléphone reste l'ID canonique en DB (client_profiles.phone) ; pour
-    // l'email on résout email→phone, pour le téléphone on interroge directement.
+    // Identifiant = EMAIL ou TÉLÉPHONE + mot de passe. `loginClient` détecte
+    // le type, vérifie le hash scrypt et pose le COOKIE de session httpOnly.
+    // On ne fait plus aucun lookup non authentifié côté UI.
     const raw = loginEmail.trim();
     if (!raw) {
       setLookupError(t('errors.emailOrPhoneRequired'));
       return;
     }
+    if (!loginPassword) {
+      setLookupError(t('errors.passwordRequired'));
+      return;
+    }
     if (!tenantId) return;
     setLookupError(null);
-
-    // Traitement commun du résultat (email OU téléphone) : connexion si le
-    // profil existe, sinon bascule vers l'inscription avec l'identifiant
-    // pré-rempli dans le bon champ.
-    const apply = (
-      result: Awaited<ReturnType<typeof getClientProfile>>,
-      fallbackEmail: string,
-      fallbackPhone: string,
-    ) => {
+    setResetSent(false);
+    setLookupPending(true);
+    loginClient(raw, loginPassword).then((res) => {
       setLookupPending(false);
-      if (!result.ok) {
-        setLookupError(tErrors(result.errorKey as 'dbError', result.errorValues));
-        return;
-      }
-      if (result.exists) {
-        // Profil existant → connexion directe via le phone résolu en DB
-        setPoints(result.points);
-        setCashbackCents(result.cashbackCents);
-        setFirstName(result.profile.firstName ?? '');
-        setLastName(result.profile.lastName ?? '');
-        setDob(result.profile.dateOfBirth ?? '');
-        setEmail(result.profile.email ?? fallbackEmail);
-        onPhoneChange(result.profile.phone);
+      if (res.ok) {
+        // Cookie de session posé côté serveur ; on remonte le phone pour l'UI.
+        onPhoneChange(res.phone);
         setMode('profile');
-      } else {
-        // Aucun profil → formulaire d'inscription, identifiant pré-rempli
-        setEmail(fallbackEmail);
-        setSignupPhone(fallbackPhone);
-        setMode('create');
-      }
-    };
-
-    if (raw.includes('@')) {
-      // ── Identifiant = email ──────────────────────────────────────────────
-      const normalizedEmail = raw.toLowerCase();
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
-        setLookupError(t('errors.invalidEmail'));
         return;
       }
-      setLookupPending(true);
-      getClientProfileByEmail(tenantId, normalizedEmail).then((result) =>
-        apply(result, normalizedEmail, ''),
+      setLookupError(
+        res.code === 'invalidCredentials'
+          ? t('errors.invalidCredentials')
+          : res.code === 'mustSetPassword'
+            ? t('errors.mustSetPassword')
+            : res.code === 'notFound'
+              ? t('errors.accountNotFound')
+              : res.code === 'rateLimited'
+                ? t('errors.rateLimited')
+                : t('errors.unexpected'),
       );
-    } else {
-      // ── Identifiant = téléphone ── (≥ 6 chiffres, cohérent avec l'inscription)
-      if (raw.replace(/\D/g, '').length < 6) {
-        setLookupError(t('errors.invalidPhone'));
-        return;
-      }
-      setLookupPending(true);
-      getClientProfile(tenantId, raw).then((result) => apply(result, '', raw));
+    });
+  };
+
+  // ── Mot de passe oublié / première définition ────────────────────────────
+  // Envoie un lien signé par email (l'identifiant doit être un email — le SMS
+  // n'est pas branché). Réponse toujours « envoyé » côté UI (anti-énumération).
+  const handleForgotPassword = () => {
+    const raw = loginEmail.trim().toLowerCase();
+    if (!raw.includes('@') || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw)) {
+      setLookupError(t('errors.invalidEmail'));
+      return;
     }
+    setLookupError(null);
+    setLookupPending(true);
+    requestClientPasswordReset(raw).then(() => {
+      setLookupPending(false);
+      setResetSent(true);
+    });
   };
 
   // ── Soumission inscription (création de profil) ────────────────────────
@@ -3617,6 +3614,40 @@ function ProfileTab({
               />
             </label>
 
+            <label className="block">
+              <span
+                className="mono mb-2 block text-[9px] uppercase tracking-[0.2em]"
+                style={{ color: C.back }}
+              >
+                {t('login.passwordLabel')}
+              </span>
+              <input
+                type="password"
+                autoComplete="current-password"
+                value={loginPassword}
+                onChange={(e) => {
+                  setLoginPassword(e.target.value);
+                  setLookupError(null);
+                }}
+                placeholder={t('login.passwordPlaceholder')}
+                disabled={lookupPending}
+                className="w-full rounded-xl px-4 py-3 text-sm outline-none transition-all disabled:opacity-50"
+                style={{
+                  background: C.inputBg,
+                  border: `1px solid ${C.inputBorder}`,
+                  color: C.inputText,
+                }}
+                onFocus={(e) => {
+                  e.currentTarget.style.borderColor = C.inputBorderFocus;
+                  e.currentTarget.style.background = '#FFFFFF';
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.borderColor = C.inputBorder;
+                  e.currentTarget.style.background = C.inputBg;
+                }}
+              />
+            </label>
+
             {lookupError && (
               <p className="border-red/30 bg-red/10 text-red rounded-xl border px-4 py-2.5 text-xs">
                 {lookupError}
@@ -3625,12 +3656,35 @@ function ProfileTab({
 
             <button
               type="submit"
-              disabled={lookupPending || !loginEmail.trim() || !tenantSession}
+              disabled={lookupPending || !loginEmail.trim() || !loginPassword || !tenantSession}
               className="btn-press mt-1 w-full rounded-xl py-3.5 text-sm font-semibold transition-opacity disabled:opacity-30"
               style={{ background: C.btn, color: C.btnText }}
             >
               {lookupPending ? t('login.submitting') : t('login.submit')}
             </button>
+
+            <button
+              type="button"
+              onClick={handleForgotPassword}
+              disabled={lookupPending}
+              className="btn-press w-full text-center text-xs underline disabled:opacity-50"
+              style={{ color: C.subtitle }}
+            >
+              {t('login.forgotLink')}
+            </button>
+
+            {resetSent && (
+              <p
+                className="rounded-xl border px-4 py-2.5 text-xs"
+                style={{
+                  borderColor: 'rgba(139,174,110,0.3)',
+                  background: 'rgba(139,174,110,0.12)',
+                  color: '#3d5d2a',
+                }}
+              >
+                {t('login.resetSent')}
+              </p>
+            )}
 
             {!tenantSession && (
               <p className="text-center text-xs" style={{ color: C.subtitle }}>
@@ -4374,6 +4428,7 @@ function ProfileTab({
                 <button
                   type="button"
                   onClick={() => {
+                    void logoutClient(); // efface le cookie de session httpOnly
                     onPhoneChange('');
                     setMode('login');
                     setLoginEmail('');
@@ -4592,7 +4647,8 @@ function ProfileTab({
                         setFormError(tErrors(res.errorKey, res.errorValues));
                         return;
                       }
-                      // Vide la session et bascule sur l'ecran de login.
+                      // Vide la session (cookie httpOnly + état) puis login.
+                      void logoutClient();
                       onPhoneChange('');
                       setMode('login');
                       setLoginEmail('');
