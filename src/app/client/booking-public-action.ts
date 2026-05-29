@@ -389,6 +389,14 @@ export async function createBookingPublic(input: CreateBookingInput): Promise<Mu
         { title: labels.title, body, url: '/manager?tab=reserv', tag: 'new-booking' },
         { role: 'manager' },
       );
+      // Notifie AUSSI la caisse — c'est le poste en salle qui doit réagir le
+      // plus vite à une nouvelle réservation. Appel séparé : l'URL de clic
+      // diffère (caissier → /cashier, pas /manager qui le redirigerait).
+      await sendPushToTenant(
+        tenantId,
+        { title: labels.title, body, url: '/cashier', tag: 'new-booking' },
+        { role: 'cashier' },
+      );
     } catch {
       // best-effort
     }

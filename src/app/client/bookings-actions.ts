@@ -288,6 +288,17 @@ export async function cancelClientBooking(
         },
         { role: 'manager' },
       );
+      // Idem côté caisse — le poste en salle voit l'annulation immédiatement.
+      await sendPushToTenant(
+        tenantId,
+        {
+          title: labels.title,
+          body: labels.body,
+          url: '/cashier',
+          tag: 'booking-cancelled',
+        },
+        { role: 'cashier' },
+      );
     } catch {
       // best-effort
     }

@@ -9,6 +9,7 @@ import { useSalonProfile } from '../_data/local-state';
 import { signOut } from '../manager/actions';
 import { InstallPWA } from './InstallPWA';
 import { LocaleSwitcher } from './LocaleSwitcher';
+import { PushBellToggle } from './PushBellToggle';
 import { useTenantOrNull } from './TenantProvider';
 
 export interface TabDef {
@@ -139,6 +140,9 @@ export function AppHeader({
               <Tag tone="copper">{tHeader('connected')}</Tag>
             </div>
           )}
+          {/* Cloche notifications push — espace Caisse : le poste en salle
+              s'abonne en un tap aux alertes (nouvelle réservation / annulation). */}
+          {role === 'cashier' && <PushBellToggle />}
           <LocaleSwitcher variant="header" />
           <InstallPWA />
           {role !== 'client' && (

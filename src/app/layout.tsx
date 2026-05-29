@@ -5,6 +5,7 @@ import { getDirection, type Locale } from '@/i18n/config';
 import { fontVariables } from './fonts';
 import { fetchSalonFavicon } from './_lib/favicon';
 import { SALON } from '@/config/salon';
+import { ServiceWorkerRegister } from './_components/ServiceWorkerRegister';
 import './globals.css';
 
 /**
@@ -83,6 +84,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         }}
       >
         <NextIntlClientProvider locale={locale} messages={messages}>
+          {/* Enregistre /sw.js en prod : prérequis du cache PWA ET des
+              notifications push (sans SW enregistré, navigator.serviceWorker.ready
+              ne résout jamais et pushManager.subscribe ne peut pas aboutir). */}
+          <ServiceWorkerRegister />
           {children}
         </NextIntlClientProvider>
       </body>
