@@ -35,6 +35,14 @@ export const SALON = {
   /** URL canonique de la vitrine. Doit matcher NEXT_PUBLIC_SITE_URL. */
   url: 'https://aboodhairsalon.com',
 
+  /** Logo du salon — SOURCE DE VÉRITÉ STABLE (favicon, nav, manifest PWA,
+   *  emails, OG). `tenant_branding.logo_url` (éditable par le gérant) PRIME
+   *  s'il est posé ; sinon on retombe ICI. Garantit que le logo ne disparaît
+   *  JAMAIS — même si un « Enregistrer » côté manager vide la colonne (le
+   *  brouillon d'identité repart de cette valeur, donc il la ré-écrit). */
+  logoUrl:
+    'https://wgijrxzgimkfljgmkrqk.supabase.co/storage/v1/object/public/salon-gallery/tenant/fa508622-b027-4907-9508-afd2e9f83eeb/logo/logo.jpg',
+
   /** Adresse postale (affichée sur la vitrine + emails). */
   address: {
     street: '',

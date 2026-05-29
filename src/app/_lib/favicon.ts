@@ -44,7 +44,8 @@ export async function fetchSalonFavicon(): Promise<string> {
       .select('logo_url')
       .eq('tenant_id', SALON.tenantUuid)
       .maybeSingle();
-    const logo = data?.logo_url ?? null;
+    // Override gérant (tenant_branding.logo_url) > logo stable de config.
+    const logo = data?.logo_url ?? SALON.logoUrl;
 
     // Accepte data URL bitmap (PNG/JPEG/WebP/SVG) OU HTTPS URL bitmap.
     const isDataBitmap =

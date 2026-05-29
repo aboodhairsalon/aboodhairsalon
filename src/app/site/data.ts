@@ -106,7 +106,7 @@ export async function getSiteTenantData(): Promise<SiteTenantData | null> {
       timezone: (t?.['timezone'] as string | undefined) ?? SALON.timezone,
     },
     branding: {
-      logo_url: (b?.['logo_url'] as string | null | undefined) ?? null,
+      logo_url: (b?.['logo_url'] as string | null | undefined) ?? SALON.logoUrl,
       brand_primary: (b?.['brand_primary'] as string | undefined) ?? SALON.brand.primary,
       brand_glow: (b?.['brand_glow'] as string | undefined) ?? SALON.brand.glow,
       brand_deep: (b?.['brand_deep'] as string | undefined) ?? SALON.brand.deep,

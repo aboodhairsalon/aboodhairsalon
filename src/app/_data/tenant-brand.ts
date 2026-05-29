@@ -22,7 +22,8 @@ export async function fetchTenantLogo(_tenantId?: string | null): Promise<string
     .select('logo_url')
     .eq('tenant_id', SALON.tenantUuid)
     .maybeSingle();
-  return data?.logo_url ?? null;
+  // Override gérant > logo stable de config (jamais de logo manquant).
+  return data?.logo_url ?? SALON.logoUrl;
 }
 
 /** Alias sémantique — préférer dans le nouveau code. */

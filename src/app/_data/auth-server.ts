@@ -182,7 +182,11 @@ export async function requireTenant(): Promise<TenantContext> {
   ]);
 
   const s = settingsRow as Partial<TenantContext['settings']> | null;
-  const logoUrl = (brandingRow as { logo_url?: string | null } | null)?.logo_url ?? null;
+  // Override gérant > logo stable de config — garantit le logo dans le header
+  // manager + le brouillon Identité (donc un « Enregistrer » le ré-écrit au
+  // lieu de le vider).
+  const logoUrl =
+    (brandingRow as { logo_url?: string | null } | null)?.logo_url ?? SALON.logoUrl;
 
   return {
     user,

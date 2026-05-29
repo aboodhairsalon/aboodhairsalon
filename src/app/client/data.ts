@@ -134,7 +134,7 @@ export async function getPublicTenantData(): Promise<TenantSession | null> {
       trial_ends_at: (t?.trial_ends_at as string | null) ?? null,
     },
     branding: {
-      logo_url: (b?.logo_url as string | null) ?? null,
+      logo_url: (b?.logo_url as string | null) ?? SALON.logoUrl,
       brand_primary: (b?.brand_primary as string) ?? SALON.brand.primary,
       brand_glow: (b?.brand_glow as string) ?? SALON.brand.glow,
       brand_deep: (b?.brand_deep as string) ?? SALON.brand.deep,
