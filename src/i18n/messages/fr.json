@@ -1283,6 +1283,8 @@
         "phoneRequired": "Le numéro de téléphone est requis.",
         "emailRequired": "L'adresse email est obligatoire.",
         "invalidEmail": "Adresse email invalide.",
+        "invalidPhone": "Numéro de téléphone invalide.",
+        "emailOrPhoneRequired": "Entrez votre email ou votre numéro de téléphone.",
         "firstNameRequired": "Votre prénom est obligatoire.",
         "dobRequired": "Date de naissance obligatoire.",
         "dobInvalid": "Date de naissance invalide.",
@@ -1297,10 +1299,12 @@
         "subtitle": "Accédez à vos rendez-vous et à vos points de fidélité.",
         "emailLabel": "Adresse email",
         "emailPlaceholder": "vous@exemple.com",
+        "identifierLabel": "Email ou téléphone",
+        "identifierPlaceholder": "vous@exemple.com ou 01XXXXXXXXX",
         "submitting": "Vérification…",
         "submit": "Se connecter",
         "demoMode": "Mode démo — connexion non disponible.",
-        "firstVisitHint": "Première visite ? Entrez votre email — nous créerons votre profil si nécessaire."
+        "firstVisitHint": "Première visite ? Entrez votre email ou téléphone — nous créerons votre profil si nécessaire."
       },
       "create": {
         "backLink": "Modifier l'email",

@@ -3308,19 +3308,25 @@ function ProfileTab({
   // matchent toujours sur phone — ID stable historique).
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    const normalizedEmail = loginEmail.trim().toLowerCase();
-    if (!normalizedEmail) {
-      setLookupError(t('errors.emailRequired'));
-      return;
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
-      setLookupError(t('errors.invalidEmail'));
+    // Identifiant = EMAIL ou TÉLÉPHONE. On détecte par la présence d'un « @ ».
+    // Le téléphone reste l'ID canonique en DB (client_profiles.phone) ; pour
+    // l'email on résout email→phone, pour le téléphone on interroge directement.
+    const raw = loginEmail.trim();
+    if (!raw) {
+      setLookupError(t('errors.emailOrPhoneRequired'));
       return;
     }
     if (!tenantId) return;
     setLookupError(null);
-    setLookupPending(true);
-    getClientProfileByEmail(tenantId, normalizedEmail).then((result) => {
+
+    // Traitement commun du résultat (email OU téléphone) : connexion si le
+    // profil existe, sinon bascule vers l'inscription avec l'identifiant
+    // pré-rempli dans le bon champ.
+    const apply = (
+      result: Awaited<ReturnType<typeof getClientProfile>>,
+      fallbackEmail: string,
+      fallbackPhone: string,
+    ) => {
       setLookupPending(false);
       if (!result.ok) {
         setLookupError(tErrors(result.errorKey as 'dbError', result.errorValues));
@@ -3333,16 +3339,37 @@ function ProfileTab({
         setFirstName(result.profile.firstName ?? '');
         setLastName(result.profile.lastName ?? '');
         setDob(result.profile.dateOfBirth ?? '');
-        setEmail(result.profile.email ?? normalizedEmail);
+        setEmail(result.profile.email ?? fallbackEmail);
         onPhoneChange(result.profile.phone);
         setMode('profile');
       } else {
-        // Aucun profil pour cet email → formulaire d'inscription, email pré-rempli
-        setEmail(normalizedEmail);
-        setSignupPhone('');
+        // Aucun profil → formulaire d'inscription, identifiant pré-rempli
+        setEmail(fallbackEmail);
+        setSignupPhone(fallbackPhone);
         setMode('create');
       }
-    });
+    };
+
+    if (raw.includes('@')) {
+      // ── Identifiant = email ──────────────────────────────────────────────
+      const normalizedEmail = raw.toLowerCase();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+        setLookupError(t('errors.invalidEmail'));
+        return;
+      }
+      setLookupPending(true);
+      getClientProfileByEmail(tenantId, normalizedEmail).then((result) =>
+        apply(result, normalizedEmail, ''),
+      );
+    } else {
+      // ── Identifiant = téléphone ── (≥ 6 chiffres, cohérent avec l'inscription)
+      if (raw.replace(/\D/g, '').length < 6) {
+        setLookupError(t('errors.invalidPhone'));
+        return;
+      }
+      setLookupPending(true);
+      getClientProfile(tenantId, raw).then((result) => apply(result, '', raw));
+    }
   };
 
   // ── Soumission inscription (création de profil) ────────────────────────
@@ -3559,18 +3586,18 @@ function ProfileTab({
                 className="mono mb-2 block text-[9px] uppercase tracking-[0.2em]"
                 style={{ color: C.back }}
               >
-                {t('login.emailLabel')}
+                {t('login.identifierLabel')}
               </span>
               <input
-                type="email"
-                inputMode="email"
-                autoComplete="email"
+                type="text"
+                inputMode="text"
+                autoComplete="username"
                 value={loginEmail}
                 onChange={(e) => {
                   setLoginEmail(e.target.value);
                   setLookupError(null);
                 }}
-                placeholder={t('login.emailPlaceholder')}
+                placeholder={t('login.identifierPlaceholder')}
                 disabled={lookupPending}
                 required
                 className="w-full rounded-xl px-4 py-3 text-sm outline-none transition-all disabled:opacity-50"

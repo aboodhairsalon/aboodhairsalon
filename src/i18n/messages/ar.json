@@ -1284,6 +1284,8 @@
         "phoneRequired": "رقم الهاتف مطلوب.",
         "emailRequired": "البريد الإلكتروني مطلوب.",
         "invalidEmail": "بريد إلكتروني غير صالح.",
+        "invalidPhone": "رقم هاتف غير صالح.",
+        "emailOrPhoneRequired": "أدخل بريدك الإلكتروني أو رقم هاتفك.",
         "firstNameRequired": "الاسم الأول مطلوب.",
         "dobRequired": "تاريخ الميلاد مطلوب.",
         "dobInvalid": "تاريخ ميلاد غير صالح.",
@@ -1298,10 +1300,12 @@
         "subtitle": "ادخل إلى مواعيدك ونقاط الولاء الخاصة بك.",
         "emailLabel": "البريد الإلكتروني",
         "emailPlaceholder": "you@example.com",
+        "identifierLabel": "البريد الإلكتروني أو الهاتف",
+        "identifierPlaceholder": "you@example.com أو 01XXXXXXXXX",
         "submitting": "جاري التحقق…",
         "submit": "تسجيل الدخول",
         "demoMode": "وضع تجريبي — تسجيل الدخول غير متاح.",
-        "firstVisitHint": "زيارة أولى؟ أدخل بريدك الإلكتروني — سننشئ ملفك إن لزم الأمر."
+        "firstVisitHint": "زيارة أولى؟ أدخل بريدك الإلكتروني أو هاتفك — سننشئ ملفك إن لزم الأمر."
       },
       "create": {
         "backLink": "تغيير البريد الإلكتروني",

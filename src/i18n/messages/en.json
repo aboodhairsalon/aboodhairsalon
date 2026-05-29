@@ -1283,6 +1283,8 @@
         "phoneRequired": "Phone number is required.",
         "emailRequired": "Email address is required.",
         "invalidEmail": "Invalid email address.",
+        "invalidPhone": "Invalid phone number.",
+        "emailOrPhoneRequired": "Enter your email or phone number.",
         "firstNameRequired": "Your first name is required.",
         "dobRequired": "Date of birth is required.",
         "dobInvalid": "Invalid date of birth.",
@@ -1297,10 +1299,12 @@
         "subtitle": "Access your appointments and loyalty points.",
         "emailLabel": "Email address",
         "emailPlaceholder": "you@example.com",
+        "identifierLabel": "Email or phone",
+        "identifierPlaceholder": "you@example.com or 01XXXXXXXXX",
         "submitting": "Checking…",
         "submit": "Sign in",
         "demoMode": "Demo mode — sign in not available.",
-        "firstVisitHint": "First visit? Enter your email — we'll create your profile if needed."
+        "firstVisitHint": "First visit? Enter your email or phone — we'll create your profile if needed."
       },
       "create": {
         "backLink": "Change email",
