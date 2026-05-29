@@ -10,28 +10,27 @@
  * Utilisée par client/page.tsx au montage pour hydrater l'état initial
  * (phone + localStorage) sans jamais avoir le téléphone en clair côté URL.
  */
-import { headers } from 'next/headers';
 import { verifyClientToken } from '../_lib/client-token';
+import { SALON } from '@/config/salon';
+import { setClientSession } from './client-session';
 
 export type VerifyTokenResult =
   | { ok: true; phone: string; tenantId: string }
   | { ok: false; reason: 'invalid' | 'expired' | 'tenantMismatch' };
 
-/** Vérifie le token contre le tenant résolu par le middleware. Le tenantId
- *  attendu est lu du header `x-tenant-id` (posé par le middleware ET purgé
- *  des entrants — cf. middleware.ts purge). Si le tenant est absent (page
- *  publique inaccessible), on rejette. */
+/** Vérifie un token magic-link (`?t=`) contre le tenant unique
+ *  (`SALON.tenantUuid`). Avant, on lisait `x-tenant-id` posé par le middleware
+ *  — ce header n'existe plus dans le fork single-tenant, donc la vérification
+ *  échouait toujours (lien magique cassé). En cas de succès on établit une
+ *  SESSION (cookie httpOnly) : le lien email/QR connecte le client sans mot de
+ *  passe (il a prouvé l'accès en recevant le lien). */
 export async function verifyClientTokenAction(token: string): Promise<VerifyTokenResult> {
-  const h = await headers();
-  const expectedTenantId = h.get('x-tenant-id');
-  if (!expectedTenantId) {
-    return { ok: false, reason: 'tenantMismatch' };
-  }
-  const result = verifyClientToken(token, expectedTenantId);
+  const result = verifyClientToken(token, SALON.tenantUuid);
   if (!result) {
     // On ne distingue pas invalid vs expired vs cross-tenant côté UI pour
     // éviter de leak des infos via le message. Tous renvoient 'invalid'.
     return { ok: false, reason: 'invalid' };
   }
+  await setClientSession(result.phone);
   return { ok: true, phone: result.phone, tenantId: result.tenantId };
 }
