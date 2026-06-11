@@ -310,6 +310,7 @@ export async function payBooking(input: PayBookingInput): Promise<MutationResult
   const itemsToInsert = [
     {
       sale_id: saleRow.id,
+      tenant_id: ctx.tenant.id,
       kind: 'service' as const,
       service_id: bookingRow.service_id ?? null,
       product_id: null,
@@ -320,6 +321,7 @@ export async function payBooking(input: PayBookingInput): Promise<MutationResult
     },
     ...(input.extras ?? []).map((e) => ({
       sale_id: saleRow.id,
+      tenant_id: ctx.tenant.id,
       kind: e.kind,
       service_id: e.kind === 'service' ? e.refId : null,
       product_id: e.kind === 'product' ? e.refId : null,
@@ -332,6 +334,7 @@ export async function payBooking(input: PayBookingInput): Promise<MutationResult
       ? [
           {
             sale_id: saleRow.id,
+            tenant_id: ctx.tenant.id,
             kind: 'service' as const,
             service_id: null,
             product_id: null,
@@ -464,6 +467,7 @@ export async function createDirectSale(input: CreateDirectSaleInput): Promise<Mu
   const itemsToInsert = [
     ...input.items.map((i) => ({
       sale_id: saleRow.id,
+      tenant_id: ctx.tenant.id,
       kind: i.kind,
       service_id: i.kind === 'service' ? i.refId : null,
       product_id: i.kind === 'product' ? i.refId : null,
@@ -476,6 +480,7 @@ export async function createDirectSale(input: CreateDirectSaleInput): Promise<Mu
       ? [
           {
             sale_id: saleRow.id,
+            tenant_id: ctx.tenant.id,
             kind: 'service' as const,
             service_id: null,
             product_id: null,
