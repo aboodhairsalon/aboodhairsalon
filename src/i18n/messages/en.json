@@ -524,6 +524,8 @@
       "deleteSectionBtn": "Delete section",
       "addInSectionBtn": "Add in this section",
       "newServiceBtn": "New service",
+      "moveUpBtn": "Move up",
+      "moveDownBtn": "Move down",
       "editModal": {
         "newTitle": "New service",
         "editTitle": "Edit service",

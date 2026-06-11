@@ -524,6 +524,8 @@
       "deleteSectionBtn": "Supprimer la section",
       "addInSectionBtn": "Ajouter dans cette section",
       "newServiceBtn": "Nouvelle prestation",
+      "moveUpBtn": "Monter",
+      "moveDownBtn": "Descendre",
       "editModal": {
         "newTitle": "Nouvelle prestation",
         "editTitle": "Modifier la prestation",

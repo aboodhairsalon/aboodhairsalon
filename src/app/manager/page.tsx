@@ -8,6 +8,8 @@ import {
   Building2,
   Calendar,
   Check,
+  ChevronDown,
+  ChevronUp,
   Clock,
   ContactRound,
   Copy,
@@ -74,6 +76,7 @@ import {
   deleteProduct,
   deleteService,
   deleteStaff,
+  reorderServices,
   updateProduct,
   updateService,
   updateStaff,
@@ -2744,11 +2747,53 @@ interface ServicesProps {
 
 function ManagerServices({ services, setServices }: ServicesProps) {
   const t = useTranslations('manager.services');
+  const tErrors = useTranslations('manager.errors');
+  const toast = useToast();
   const fmt = useFmtMoney();
   const tenantSession = useTenantOrNull();
   const localProfile = useSalonProfile();
   const currency = tenantSession?.tenant.currency ?? localProfile.currency;
   const [editing, setEditing] = useState<Service | null>(null);
+  const [, startTransition] = useTransition();
+
+  // Réordonnancement : déplace une carte d'un cran dans son groupe (vue plate
+  // OU section). On reconstitue l'ordre GLOBAL à partir de l'ordre local et on
+  // pousse la liste complète à `reorderServices` (sort_order = index).
+  const handleMoveService = (
+    id: string,
+    direction: 'up' | 'down',
+    siblings: Service[],
+  ) => {
+    const idx = siblings.findIndex((s) => s.id === id);
+    if (idx < 0) return;
+    const newIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (newIdx < 0 || newIdx >= siblings.length) return;
+
+    // 1. Nouvel ordre LOCAL (au sein du groupe affiché).
+    const localNext = [...siblings];
+    const [moved] = localNext.splice(idx, 1);
+    if (!moved) return;
+    localNext.splice(newIdx, 0, moved);
+
+    // 2. Nouvel ordre GLOBAL : on remplace, dans `services`, chaque position
+    //    occupée par un sibling par l'élément correspondant de `localNext`.
+    //    Les services hors-groupe gardent leur position.
+    const siblingIdSet = new Set(siblings.map((s) => s.id));
+    let li = 0;
+    const globalNext = services.map((s) =>
+      siblingIdSet.has(s.id) ? localNext[li++]! : s,
+    );
+
+    setServices(globalNext); // optimistic — UI bouge tout de suite
+    startTransition(async () => {
+      const res = await reorderServices(globalNext.map((s) => s.id));
+      if (!res.ok) {
+        toast.error(tErrors(res.errorKey as 'dbError', res.errorValues));
+        // Rollback : revert au state précédent (avant le déplacement).
+        setServices(services);
+      }
+    });
+  };
   const blank: Service = {
     id: '',
     name: '',
@@ -2793,13 +2838,37 @@ function ManagerServices({ services, setServices }: ServicesProps) {
     );
   };
 
-  const renderServiceCard = (s: Service) => (
+  const renderServiceCard = (s: Service, siblings: Service[]) => {
+    const idx = siblings.findIndex((x) => x.id === s.id);
+    const isFirst = idx === 0;
+    const isLast = idx === siblings.length - 1;
+    return (
     <Card key={s.id} className="group p-5">
       <div className="mb-3 flex items-start justify-between">
         <div className="text-brand-primary">
           <ServiceIcon iconKey={s.icon} className="h-6 w-6" />
         </div>
         <div className="flex gap-1 opacity-0 transition group-hover:opacity-100">
+          <button
+            type="button"
+            onClick={() => handleMoveService(s.id, 'up', siblings)}
+            disabled={isFirst}
+            title={t('moveUpBtn')}
+            aria-label={t('moveUpBtn')}
+            className="btn-press bg-surface-elev hover:bg-surface-hi rounded-sm p-2 disabled:cursor-not-allowed disabled:opacity-30"
+          >
+            <ChevronUp className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => handleMoveService(s.id, 'down', siblings)}
+            disabled={isLast}
+            title={t('moveDownBtn')}
+            aria-label={t('moveDownBtn')}
+            className="btn-press bg-surface-elev hover:bg-surface-hi rounded-sm p-2 disabled:cursor-not-allowed disabled:opacity-30"
+          >
+            <ChevronDown className="h-3.5 w-3.5" />
+          </button>
           <button
             type="button"
             onClick={() => setEditing(s)}
@@ -2826,7 +2895,8 @@ function ManagerServices({ services, setServices }: ServicesProps) {
         <span className="display text-brand-primary mono text-xl">{fmt(s.priceCents)}</span>
       </div>
     </Card>
-  );
+    );
+  };
 
   return (
     <div className="mx-auto max-w-7xl px-6 py-10 md:px-10">
@@ -2883,7 +2953,7 @@ function ManagerServices({ services, setServices }: ServicesProps) {
       {/* Vue plate — aucune section */}
       {sections.length === 0 && (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {services.map((s) => renderServiceCard(s))}
+          {services.map((s) => renderServiceCard(s, services))}
         </div>
       )}
 
@@ -2909,7 +2979,7 @@ function ManagerServices({ services, setServices }: ServicesProps) {
                   )}
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {items.map((s) => renderServiceCard(s))}
+                  {items.map((s) => renderServiceCard(s, items))}
                   <button
                     type="button"
                     onClick={() => setEditing({ ...blank, category: sectionName })}
@@ -2935,7 +3005,7 @@ function ManagerServices({ services, setServices }: ServicesProps) {
                 {t('noSection')}
               </div>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {grouped.unassigned.map((s) => renderServiceCard(s))}
+                {grouped.unassigned.map((s) => renderServiceCard(s, grouped.unassigned))}
               </div>
             </div>
           )}

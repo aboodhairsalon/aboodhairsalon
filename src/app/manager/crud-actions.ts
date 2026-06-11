@@ -266,6 +266,43 @@ export async function updateService(id: string, input: ServiceInput): Promise<Mu
   return { ok: true };
 }
 
+/**
+ * Réordonne les prestations en mettant `sort_order = index` pour chaque ID.
+ * Mirror de `reorderGalleryPhotos` — call avec la liste complète des IDs
+ * dans le nouvel ordre voulu. Les rangées non listées gardent leur sort_order
+ * (en pratique tu envoies TOUS les services pour rester cohérent).
+ */
+export async function reorderServices(serviceIds: string[]): Promise<MutationResult> {
+  await requireTenant();
+  const admin = createAdminClient();
+
+  const idsValid = z.array(z.string().uuid()).min(0).max(200).safeParse(serviceIds);
+  if (!idsValid.success) return { ok: false, errorKey: 'invalidData' };
+
+  // Updates en parallèle — chaque ligne reçoit son nouveau sort_order = index.
+  // En cas d'erreur partielle on retourne la première erreur ; les updates déjà
+  // passés restent commités (acceptable : un retry côté UI suffit, l'ordre reste
+  // cohérent même s'il diffère du voulu).
+  const updates = idsValid.data.map((id, idx) =>
+    admin
+      .from('services')
+      .update({ sort_order: idx } as never)
+      .eq('id', id),
+  );
+
+  const results = await Promise.all(updates);
+  const firstErr = results.find((r) => r.error);
+  if (firstErr?.error) {
+    return {
+      ok: false,
+      errorKey: 'dbError',
+      errorValues: { message: firstErr.error.message },
+    };
+  }
+  revalidatePath('/manager');
+  return { ok: true };
+}
+
 export async function deleteService(id: string): Promise<MutationResult> {
   await requireTenant();
   const supabase = createAdminClient();

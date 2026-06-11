@@ -525,6 +525,8 @@
       "deleteSectionBtn": "حذف القسم",
       "addInSectionBtn": "إضافة في هذا القسم",
       "newServiceBtn": "خدمة جديدة",
+      "moveUpBtn": "تحريك للأعلى",
+      "moveDownBtn": "تحريك للأسفل",
       "editModal": {
         "newTitle": "خدمة جديدة",
         "editTitle": "تعديل الخدمة",
