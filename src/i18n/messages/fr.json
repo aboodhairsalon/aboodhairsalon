@@ -1294,6 +1294,7 @@
         "dobRequired": "Date de naissance obligatoire.",
         "dobInvalid": "Date de naissance invalide.",
         "phoneAlreadyLinked": "Ce numéro est déjà associé à un compte ({email}). Connectez-vous avec cette adresse email à la place.",
+        "forgotPasswordNeedsEmail": "Pour réinitialiser votre mot de passe, entrez votre adresse email (pas votre numéro de téléphone).",
         "unexpected": "Erreur inattendue."
       },
       "fallbackSalonName": "Votre salon",
@@ -1314,6 +1315,20 @@
         "submit": "Se connecter",
         "demoMode": "Mode démo — connexion non disponible.",
         "firstVisitHint": "Première visite ? Entrez votre email ou téléphone — nous créerons votre profil si nécessaire."
+      },
+      "setPassword": {
+        "roleLabel": "Espace Client",
+        "title": "Votre mot de passe",
+        "subtitle": "Choisissez un mot de passe pour sécuriser l'accès à votre compte (rendez-vous, cashback).",
+        "newPasswordLabel": "Nouveau mot de passe",
+        "confirmPasswordLabel": "Confirmer le mot de passe",
+        "submit": "Enregistrer le mot de passe",
+        "errors": {
+          "linkInvalid": "Lien invalide ou expiré. Demandez un nouvel email de réinitialisation.",
+          "tooShort": "Le mot de passe doit contenir au moins 8 caractères.",
+          "mismatch": "Les deux mots de passe ne correspondent pas.",
+          "generic": "Une erreur est survenue. Réessayez."
+        }
       },
       "create": {
         "backLink": "Modifier l'email",

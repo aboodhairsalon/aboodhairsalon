@@ -3368,7 +3368,10 @@ function ProfileTab({
   const handleForgotPassword = () => {
     const raw = loginEmail.trim().toLowerCase();
     if (!raw.includes('@') || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw)) {
-      setLookupError(t('errors.invalidEmail'));
+      // Message dédié : explique qu'il faut un email (pas un téléphone) pour
+      // recevoir le lien de réinit. Évite la confusion « j'ai tapé mon numéro
+      // pour me connecter, pourquoi on me dit que c'est invalide ? ».
+      setLookupError(t('errors.forgotPasswordNeedsEmail'));
       return;
     }
     setLookupError(null);
@@ -3376,6 +3379,10 @@ function ProfileTab({
     requestClientPasswordReset(raw).then(() => {
       setLookupPending(false);
       setResetSent(true);
+    }).catch(() => {
+      // Réseau / timeout : on évite de laisser le bouton bloqué sur « Vérification… ».
+      setLookupPending(false);
+      setLookupError(t('errors.unexpected'));
     });
   };
 

@@ -52,6 +52,10 @@ interface TokenPayload {
   p: string;
   /** Timestamp d'expiration en secondes UTC. */
   e: number;
+  /** Purpose tag (defense-in-depth) : 'login' / 'reset' / 'magic'.
+   *  Optionnel pour rester compatible avec les tokens émis avant cette
+   *  introduction (cookies de session, magic links déjà en circulation). */
+  u?: string;
 }
 
 /** Encode une chaîne UTF-8 en base64url (sans padding). */
@@ -94,6 +98,7 @@ export function createClientToken(
   tenantId: string,
   phone: string,
   expiryMs: number = DEFAULT_EXPIRY_MS,
+  purpose?: 'login' | 'reset' | 'magic',
 ): string {
   if (!tenantId || !phone) throw new Error('tenantId + phone required');
   const payload: TokenPayload = {
@@ -101,6 +106,7 @@ export function createClientToken(
     p: phone,
     e: Math.floor((Date.now() + expiryMs) / 1000),
   };
+  if (purpose) payload.u = purpose;
   const payloadB64 = base64UrlEncode(JSON.stringify(payload));
   const sig = sign(payloadB64);
   return `${payloadB64}.${sig}`;
@@ -118,6 +124,9 @@ export function createClientToken(
 export function verifyClientToken(
   token: string,
   expectedTenantId?: string,
+  /** Si fourni, rejette les tokens dont le purpose ne matche pas — un cookie
+   *  de session volé NE peut PAS servir de token de reset, etc. */
+  expectedPurpose?: 'login' | 'reset' | 'magic',
 ): { phone: string; tenantId: string } | null {
   if (!token || typeof token !== 'string') return null;
   const dotIdx = token.lastIndexOf('.');
@@ -152,6 +161,10 @@ export function verifyClientToken(
   if (payload.e * 1000 < Date.now()) return null;
   // Cross-tenant guard
   if (expectedTenantId && payload.t !== expectedTenantId) return null;
+  // Purpose guard (defense-in-depth) : si on attend un purpose précis, le
+  // token DOIT le porter explicitement. Bloque l'utilisation d'un cookie
+  // de session comme reset token (ou vice-versa).
+  if (expectedPurpose && payload.u !== expectedPurpose) return null;
   return { phone: payload.p, tenantId: payload.t };
 }
 

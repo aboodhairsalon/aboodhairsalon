@@ -1294,6 +1294,7 @@
         "dobRequired": "Date of birth is required.",
         "dobInvalid": "Invalid date of birth.",
         "phoneAlreadyLinked": "This phone is already linked to an account ({email}). Please sign in with that email instead.",
+        "forgotPasswordNeedsEmail": "To reset your password, enter your email address (not your phone number).",
         "unexpected": "Unexpected error."
       },
       "fallbackSalonName": "Your salon",
@@ -1314,6 +1315,20 @@
         "submit": "Sign in",
         "demoMode": "Demo mode — sign in not available.",
         "firstVisitHint": "First visit? Enter your email or phone — we'll create your profile if needed."
+      },
+      "setPassword": {
+        "roleLabel": "Client Space",
+        "title": "Your password",
+        "subtitle": "Choose a password to secure access to your account (bookings, cashback).",
+        "newPasswordLabel": "New password",
+        "confirmPasswordLabel": "Confirm password",
+        "submit": "Save password",
+        "errors": {
+          "linkInvalid": "Invalid or expired link. Request a new reset email.",
+          "tooShort": "Password must be at least 8 characters.",
+          "mismatch": "Passwords don't match.",
+          "generic": "An error occurred. Please try again."
+        }
       },
       "create": {
         "backLink": "Change email",

@@ -7,11 +7,13 @@
  */
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { AuthField, AuthButton } from '../../_components/auth-ui';
 import { setClientPassword } from '../auth-actions';
 
 export function SetPasswordForm({ token }: { token: string }) {
   const router = useRouter();
+  const t = useTranslations('client.setPassword');
   const [pw, setPw] = useState('');
   const [confirm, setConfirm] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -21,38 +23,44 @@ export function SetPasswordForm({ token }: { token: string }) {
     e.preventDefault();
     setError(null);
     if (!token) {
-      setError('Lien invalide ou expiré. Redemandez un email de réinitialisation.');
+      setError(t('errors.linkInvalid'));
       return;
     }
     if (pw.length < 8) {
-      setError('Le mot de passe doit contenir au moins 8 caractères.');
+      setError(t('errors.tooShort'));
       return;
     }
     if (pw !== confirm) {
-      setError('Les deux mots de passe ne correspondent pas.');
+      setError(t('errors.mismatch'));
       return;
     }
     setLoading(true);
-    const res = await setClientPassword(token, pw);
-    setLoading(false);
-    if (res.ok) {
-      router.push('/client');
-      router.refresh();
-      return;
+    try {
+      const res = await setClientPassword(token, pw);
+      setLoading(false);
+      if (res.ok) {
+        router.push('/client');
+        router.refresh();
+        return;
+      }
+      setError(
+        res.code === 'invalidToken'
+          ? t('errors.linkInvalid')
+          : res.code === 'weakPassword'
+            ? t('errors.tooShort')
+            : t('errors.generic'),
+      );
+    } catch {
+      // Réseau / timeout : on évite de laisser le bouton bloqué sur loading.
+      setLoading(false);
+      setError(t('errors.generic'));
     }
-    setError(
-      res.code === 'invalidToken'
-        ? 'Lien invalide ou expiré. Redemandez un email de réinitialisation.'
-        : res.code === 'weakPassword'
-          ? 'Mot de passe trop faible (au moins 8 caractères).'
-          : 'Une erreur est survenue. Réessayez.',
-    );
   };
 
   return (
     <form onSubmit={submit} className="space-y-4">
       <AuthField
-        label="Nouveau mot de passe"
+        label={t('newPasswordLabel')}
         type="password"
         autoComplete="new-password"
         value={pw}
@@ -63,7 +71,7 @@ export function SetPasswordForm({ token }: { token: string }) {
         placeholder="••••••••"
       />
       <AuthField
-        label="Confirmer le mot de passe"
+        label={t('confirmPasswordLabel')}
         type="password"
         autoComplete="new-password"
         value={confirm}
@@ -75,7 +83,7 @@ export function SetPasswordForm({ token }: { token: string }) {
         error={error ?? undefined}
       />
       <AuthButton type="submit" loading={loading} disabled={!pw || !confirm}>
-        Enregistrer le mot de passe
+        {t('submit')}
       </AuthButton>
     </form>
   );

@@ -134,7 +134,7 @@ export async function requestClientPasswordReset(email: string): Promise<Request
   // Compte trouvé → envoi du lien (best-effort). Sinon on ne fait rien mais on
   // renvoie quand même ok (anti-énumération).
   if (row?.phone) {
-    const token = createClientToken(SALON.tenantUuid, row.phone, RESET_TOKEN_TTL_MS);
+    const token = createClientToken(SALON.tenantUuid, row.phone, RESET_TOKEN_TTL_MS, 'reset');
     const link = `${SALON.spaces.book}/client/set-password?rt=${encodeURIComponent(token)}`;
     await sendResetEmail(normalizedEmail, link);
   }
@@ -204,7 +204,9 @@ export async function setClientPassword(
   resetToken: string,
   newPassword: string,
 ): Promise<SetPasswordResult> {
-  const verified = verifyClientToken(resetToken, SALON.tenantUuid);
+  // expectedPurpose='reset' : seul un token émis par requestClientPasswordReset
+  // peut servir ici. Un cookie de session volé est rejeté.
+  const verified = verifyClientToken(resetToken, SALON.tenantUuid, 'reset');
   if (!verified?.phone) return { ok: false, code: 'invalidToken' };
   if (!isPasswordStrongEnough(newPassword)) return { ok: false, code: 'weakPassword' };
 

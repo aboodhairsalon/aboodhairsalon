@@ -4,7 +4,9 @@
  *
  * Server Component : lit le token de l'URL + le logo, rend la coquille d'auth
  * (AuthShell, même DA que les pages de connexion) avec le formulaire client.
+ * Localisé FR/EN/AR via next-intl/server.
  */
+import { getTranslations } from 'next-intl/server';
 import { AuthShell } from '../../_components/auth-ui';
 import { fetchSalonLogo } from '../../_data/tenant-brand';
 import { SetPasswordForm } from './SetPasswordForm';
@@ -18,13 +20,16 @@ export default async function ClientSetPasswordPage({
 }) {
   const sp = await searchParams;
   const token = typeof sp['rt'] === 'string' ? sp['rt'] : '';
-  const logoUrl = await fetchSalonLogo();
+  const [logoUrl, t] = await Promise.all([
+    fetchSalonLogo(),
+    getTranslations('client.setPassword'),
+  ]);
 
   return (
     <AuthShell
-      roleLabel="Espace Client"
-      title="Votre mot de passe"
-      subtitle="Choisissez un mot de passe pour sécuriser l'accès à votre compte (rendez-vous, cashback)."
+      roleLabel={t('roleLabel')}
+      title={t('title')}
+      subtitle={t('subtitle')}
       logoUrl={logoUrl}
     >
       <SetPasswordForm token={token} />
