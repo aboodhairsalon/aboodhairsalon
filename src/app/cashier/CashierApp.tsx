@@ -1038,6 +1038,39 @@ function CashierPOS({
     setSurplusAmount('');
   };
 
+  // ── Remise libre (« discount ») ──────────────────────────────────────────
+  // Miroir du surplus, mais avec montant NÉGATIF côté ligne. Le total cumule
+  // priceCents × qty (cf. ligne ~981), donc une ligne négative soustrait
+  // naturellement. On cap à `total` courant pour ne jamais passer le ticket
+  // en négatif. Persisté en sale_item.unit_price_cents — la migration 0005
+  // déclare la colonne « signée : remise = négatif » (intention d'origine).
+  const [discountDesc, setDiscountDesc] = useState('');
+  const [discountAmount, setDiscountAmount] = useState('');
+  const discountAmountCents = Math.max(
+    0,
+    Math.round((parseFloat(discountAmount.replace(',', '.')) || 0) * 100),
+  );
+  const discountExceedsTotal = discountAmountCents > total;
+  const discountValid =
+    discountDesc.trim().length > 0 && discountAmountCents > 0 && !discountExceedsTotal;
+  const addDiscount = () => {
+    if (!discountValid) return;
+    const k = `discount-${Date.now()}`;
+    setCart((c) => [
+      ...c,
+      {
+        k,
+        type: 'service',
+        id: k, // ID local, pas de service_id en DB (comme le surplus).
+        name: `${t('discountLinePrefix')}: ${discountDesc.trim()}`,
+        priceCents: -discountAmountCents,
+        qty: 1,
+      },
+    ]);
+    setDiscountDesc('');
+    setDiscountAmount('');
+  };
+
   // ── Chargement d'un RDV dans le ticket (depuis ClientsToCheckoutSection) ─
   //
   // Le parent CashierApp envoie un signal via prop `bookingToLoadInTicket`.
@@ -1430,6 +1463,52 @@ function CashierPOS({
               {t('surplusAddBtn')}
             </button>
           </div>
+        </div>
+
+        {/* Remise libre — description + montant → SOUSTRAIT du ticket à droite.
+            Miroir du surplus avec amount négatif (sale_items.unit_price_cents
+            est signé, cf. migration 0005). Cap = total courant : impossible
+            de passer le ticket en négatif. */}
+        <div className="bg-surface border-line mt-3 rounded-sm border p-4">
+          <h3 className="display text-base leading-tight">{t('discountHeader')}</h3>
+          <p className="text-ink-soft mt-0.5 text-[11px]">{t('discountSubheader')}</p>
+          <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_140px_auto]">
+            <input
+              type="text"
+              value={discountDesc}
+              onChange={(e) => setDiscountDesc(e.target.value)}
+              placeholder={t('discountDescPlaceholder')}
+              className="border-line bg-bg-soft text-ink placeholder:text-ink-soft focus:border-brand-primary rounded-sm border px-3 py-2 text-sm outline-none"
+            />
+            <input
+              type="number"
+              inputMode="decimal"
+              min={0}
+              step="0.01"
+              value={discountAmount}
+              onChange={(e) => setDiscountAmount(e.target.value)}
+              placeholder={t('discountAmountPlaceholder')}
+              className="border-line bg-bg-soft text-ink placeholder:text-ink-soft focus:border-brand-primary mono rounded-sm border px-3 py-2 text-sm outline-none"
+            />
+            <button
+              type="button"
+              onClick={addDiscount}
+              disabled={!discountValid}
+              className={`btn-press inline-flex items-center justify-center gap-1.5 rounded-sm px-4 py-2 text-xs font-semibold transition-colors ${
+                discountValid
+                  ? 'border-brand-primary/60 bg-brand-primary/5 text-brand-primary hover:bg-brand-primary/10 border'
+                  : 'border-line text-ink-soft cursor-not-allowed border opacity-50'
+              }`}
+            >
+              <Minus className="h-3.5 w-3.5" strokeWidth={2} />
+              {t('discountAddBtn')}
+            </button>
+          </div>
+          {discountExceedsTotal && (
+            <p className="mt-2 text-[11px] font-medium" style={{ color: '#B91C1C' }}>
+              {t('discountExceedsTotal')}
+            </p>
+          )}
         </div>
 
         <Divider label={t('servicesDivider')} />
