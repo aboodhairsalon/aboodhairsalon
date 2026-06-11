@@ -13,8 +13,15 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import type { Database } from '@/db';
+import { createAdminClient } from '@/db';
 import { requireTenant } from '../_data/auth-server';
-import { getServerSupabase } from '../_data/supabase-server';
+
+// FIX critique : les CRUD (staff, services, products) tournaient sur
+// getServerSupabase() (session, RLS-enforced). En single-tenant Aboodhairsalon
+// le JWT manager n'a pas (ou plus) le claim `tenant_id` dans app_metadata →
+// la policy RLS bloquait silencieusement les UPDATE (0 ligne affectée, pas
+// d'erreur PG) → modifs prix/durée ne prenaient pas effet. Symétrique du
+// fix booking-actions.ts. Sécurité conservée via requireTenant().
 
 // @supabase/ssr v0.5.x a des trous d'inférence quand le schéma est volumineux :
 // `.from(table).insert(obj)` infère le paramètre comme `never` au lieu du type
@@ -102,7 +109,7 @@ export type StaffInput = z.input<typeof StaffSchema>;
 
 export async function createStaff(input: StaffInput): Promise<MutationResult> {
   const ctx = await requireTenant();
-  const supabase = await getServerSupabase();
+  const supabase = createAdminClient();
   const parsed = StaffSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, errorKey: zodMessageToCode(parsed.error.errors[0]?.message) };
@@ -135,7 +142,7 @@ export async function createStaff(input: StaffInput): Promise<MutationResult> {
 
 export async function updateStaff(id: string, input: StaffInput): Promise<MutationResult> {
   await requireTenant();
-  const supabase = await getServerSupabase();
+  const supabase = createAdminClient();
   const parsed = StaffSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, errorKey: zodMessageToCode(parsed.error.errors[0]?.message) };
@@ -164,7 +171,7 @@ export async function updateStaff(id: string, input: StaffInput): Promise<Mutati
 
 export async function setStaffActive(id: string, isActive: boolean): Promise<MutationResult> {
   await requireTenant();
-  const supabase = await getServerSupabase();
+  const supabase = createAdminClient();
   const { error } = await supabase
     .from('staff')
     .update({ is_active: isActive } as never)
@@ -176,7 +183,7 @@ export async function setStaffActive(id: string, isActive: boolean): Promise<Mut
 
 export async function deleteStaff(id: string): Promise<MutationResult> {
   await requireTenant();
-  const supabase = await getServerSupabase();
+  const supabase = createAdminClient();
   const { error } = await supabase.from('staff').delete().eq('id', id);
   if (error) return { ok: false, errorKey: 'dbError', errorValues: { message: error.message } };
   revalidatePath('/manager');
@@ -210,7 +217,7 @@ export type ServiceInput = z.input<typeof ServiceSchema>;
 
 export async function createService(input: ServiceInput): Promise<MutationResult> {
   const ctx = await requireTenant();
-  const supabase = await getServerSupabase();
+  const supabase = createAdminClient();
   const parsed = ServiceSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, errorKey: zodMessageToCode(parsed.error.errors[0]?.message) };
@@ -237,7 +244,7 @@ export async function createService(input: ServiceInput): Promise<MutationResult
 
 export async function updateService(id: string, input: ServiceInput): Promise<MutationResult> {
   await requireTenant();
-  const supabase = await getServerSupabase();
+  const supabase = createAdminClient();
   const parsed = ServiceSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, errorKey: zodMessageToCode(parsed.error.errors[0]?.message) };
@@ -261,7 +268,7 @@ export async function updateService(id: string, input: ServiceInput): Promise<Mu
 
 export async function deleteService(id: string): Promise<MutationResult> {
   await requireTenant();
-  const supabase = await getServerSupabase();
+  const supabase = createAdminClient();
   const { error } = await supabase.from('services').delete().eq('id', id);
   if (error) return { ok: false, errorKey: 'dbError', errorValues: { message: error.message } };
   revalidatePath('/manager');
@@ -286,7 +293,7 @@ export type ProductInput = z.input<typeof ProductSchema>;
 
 export async function createProduct(input: ProductInput): Promise<MutationResult> {
   const ctx = await requireTenant();
-  const supabase = await getServerSupabase();
+  const supabase = createAdminClient();
   const parsed = ProductSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, errorKey: zodMessageToCode(parsed.error.errors[0]?.message) };
@@ -318,7 +325,7 @@ export async function createProduct(input: ProductInput): Promise<MutationResult
 
 export async function updateProduct(id: string, input: ProductInput): Promise<MutationResult> {
   await requireTenant();
-  const supabase = await getServerSupabase();
+  const supabase = createAdminClient();
   const parsed = ProductSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, errorKey: zodMessageToCode(parsed.error.errors[0]?.message) };
@@ -347,7 +354,7 @@ export async function updateProduct(id: string, input: ProductInput): Promise<Mu
 
 export async function deleteProduct(id: string): Promise<MutationResult> {
   await requireTenant();
-  const supabase = await getServerSupabase();
+  const supabase = createAdminClient();
   const { error } = await supabase.from('products').delete().eq('id', id);
   if (error) return { ok: false, errorKey: 'dbError', errorValues: { message: error.message } };
   revalidatePath('/manager');
