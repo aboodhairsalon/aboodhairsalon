@@ -20,6 +20,7 @@
 import { createHmac } from 'crypto';
 import { createAdminClient } from '@/db';
 import { rlSalesIp, rlSalesPhone } from '../_lib/rate-limit';
+import { getAuthedClientPhone } from './client-session';
 import type { ClientErrorCode, ClientErrorValues } from './review-actions';
 
 export type DownloadPdfResult =
@@ -141,13 +142,20 @@ export async function downloadReceiptPdfServer(
   phone: string,
   locale: 'fr' | 'en' | 'ar' = 'fr',
 ): Promise<DownloadPdfResult> {
-  if (!tenantId || !saleId || !phone?.trim()) {
+  // 🔒 Source de vérité : téléphone du COOKIE de session vérifié, jamais du
+  // paramètre `phone` (un attaquant pourrait télécharger le reçu d'autrui en
+  // forgeant le numéro). Le paramètre est ignoré — gardé pour compat de
+  // signature avec les call-sites existants.
+  void phone;
+  const authedPhone = await getAuthedClientPhone();
+  if (!authedPhone) return { ok: false, errorKey: 'authRequired' };
+  if (!tenantId || !saleId) {
     return { ok: false, errorKey: 'missingParams' };
   }
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(saleId)) {
     return { ok: false, errorKey: 'missingParams' };
   }
-  const normalizedPhone = phone.trim();
+  const normalizedPhone = authedPhone;
 
   // Rate limit (mêmes buckets que getClientSales / snapshot).
   let ip = 'unknown';

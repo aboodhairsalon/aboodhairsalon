@@ -245,7 +245,9 @@ export async function updateSalonProfile(input: SalonProfileInput): Promise<Salo
   // Update tenant_settings (tous les champs profil étendus)
   const sUpdate: SettingsUpdate = {
     legal_name: data.legal_name ?? null,
-    legal_address: data.legal_address ?? null,
+    // FIX silent-null wipe : pas de champ UI pour legal_address → on ne
+    // l'inclut PAS dans l'UPDATE pour ne pas écraser la valeur DB existante.
+    // (Avant : data.legal_address indéfini → null écrit en DB à chaque save.)
     tagline: data.tagline ?? null,
     address_street: data.address_street ?? null,
     address_city: data.address_city ?? null,

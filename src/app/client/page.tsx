@@ -3354,6 +3354,11 @@ function ProfileTab({
                 ? t('errors.rateLimited')
                 : t('errors.unexpected'),
       );
+    }).catch(() => {
+      // FIX : un rejet (réseau, timeout) laissait lookupPending=true à vie →
+      // bouton bloqué sur « Vérification… » jusqu'au rechargement de la page.
+      setLookupPending(false);
+      setLookupError(t('errors.unexpected'));
     });
   };
 

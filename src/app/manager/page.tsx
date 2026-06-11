@@ -3311,6 +3311,7 @@ function ManagerSettings() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
 
   // Resync quand le contexte serveur change (après revalidatePath).
   // `stored` est mémoïsé → identité stable tant que tenantSession/localProfile ne bougent pas.
@@ -3336,8 +3337,12 @@ function ManagerSettings() {
 
   const save = () => {
     setSaveError(null);
-    // Toujours sauvegarder en localStorage pour le mode démo et le cache UI.
-    writeSalonProfile(draft);
+    // FIX bug « ma modif se réinitialise » : on N'ÉCRIT PLUS en localStorage
+    // en mode tenant. L'écriture déclenchait un PROFILE_CHANGED event →
+    // recalcul de la useMemo `stored` → useEffect → setDraft(stored)
+    // écrasait le brouillon du gérant pendant le startTransition.
+    // En mode démo (sans tenantSession) on garde le cache localStorage.
+    if (!tenantSession) writeSalonProfile(draft);
 
     if (tenantSession) {
       // Mode tenant authentifié : persiste en DB via Server Action.
@@ -3367,6 +3372,11 @@ function ManagerSettings() {
         setSaving(false);
         if (result.ok) {
           setSaved(true);
+          // revalidatePath('/manager') marque le cache serveur stale mais ne
+          // re-rend pas le client → tenantSession garde les ANCIENNES valeurs
+          // jusqu'à navigation. router.refresh() force le re-fetch des Server
+          // Components → tenantSession est à jour immédiatement.
+          router.refresh();
           setTimeout(() => setSaved(false), 2500);
         } else {
           setSaveError(tErrors(result.errorKey, result.errorValues));
