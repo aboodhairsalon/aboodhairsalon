@@ -9,10 +9,21 @@
  * — tous ont `tenant_id` dans app_metadata (posé par le hook + createCashierAccess).
  */
 import { revalidatePath } from 'next/cache';
+import { createAdminClient } from '@/db';
 import { requireTenant } from '../_data/auth-server';
-import { getServerSupabase } from '../_data/supabase-server';
 import { fallbackTimezoneFromLocale, zonedToUtcIso } from '../_lib/timezone';
 import { notifyClientOfCancellation } from './booking-cancel-email';
+
+// FIX critique : ces actions tournaient sur getServerSupabase() (session,
+// RLS-enforced). En prod le JWT cashier d'Aboodhairsalon n'a pas (ou plus)
+// le claim `tenant_id` dans app_metadata → la policy RLS bloquait l'INSERT
+// dans `sales` silencieusement (l'action retournait saleCreateFailed mais
+// le toast d'erreur était imperceptible). Résultat observé : 0 vente
+// enregistrée dans la DB depuis le déploiement single-tenant.
+// Solution : passer en admin client (bypass RLS), comme tous les autres
+// writes du manager (cf. commentaire dans manager/actions.ts). La sécurité
+// reste assurée par `requireTenant()` qui vérifie en amont que l'appelant
+// est authentifié sur ce tenant.
 
 // @supabase/ssr v0.5.x has type-inference gaps when chaining .insert().select()
 // — cast to any at call sites to preserve strict typing everywhere else.
@@ -57,7 +68,7 @@ export interface CreateBookingInput {
 
 export async function createBooking(input: CreateBookingInput): Promise<MutationResult> {
   const ctx = await requireTenant();
-  const supabase = await getServerSupabase();
+  const supabase = createAdminClient() as AnySupabase;
 
   // Composer le créneau dans le TZ du salon (cf. _lib/timezone). `ctx.tenant.timezone`
   // est l'IANA name déjà chargé par requireTenant. Fallback locale si NULL.
@@ -110,7 +121,7 @@ export async function updateBookingStatus(
   status: 'in_chair' | 'done' | 'cancelled' | 'no_show',
 ): Promise<MutationResult> {
   const ctx = await requireTenant();
-  const supabase = await getServerSupabase();
+  const supabase = createAdminClient() as AnySupabase;
 
   // Garde de cohérence : on ne marque no_show / cancelled QUE sur un RDV non
   // encore facturé. Un RDV `done` payé ne peut pas être « no_show » a
@@ -191,7 +202,7 @@ export interface PayBookingInput {
 
 export async function payBooking(input: PayBookingInput): Promise<MutationResult> {
   const ctx = await requireTenant();
-  const supabase = await getServerSupabase();
+  const supabase = createAdminClient() as AnySupabase;
 
   const db = supabase as AnySupabase;
 
@@ -399,7 +410,7 @@ export interface CreateDirectSaleInput {
 
 export async function createDirectSale(input: CreateDirectSaleInput): Promise<MutationResult> {
   const ctx = await requireTenant();
-  const db = (await getServerSupabase()) as AnySupabase;
+  const db = createAdminClient() as AnySupabase;
 
   // subtotal = BRUT, total = NET cash (subtotal − cashback). Tip à part.
   const itemsTotal = input.items.reduce((s, i) => s + i.priceCents * i.qty, 0);
@@ -542,7 +553,7 @@ export async function setBookingExtras(
 ): Promise<MutationResult> {
   // requireTenant() exécuté pour ses effets de bord (auth + redirect si non-manager).
   await requireTenant();
-  const db = (await getServerSupabase()) as AnySupabase;
+  const db = createAdminClient() as AnySupabase;
 
   // Validation defense-in-depth : un appel malicieux pourrait pousser des
   // extras avec prix négatif ou qty bizarre. On clamp et on tronque les
