@@ -1492,7 +1492,12 @@ function ClientBookingFlow({
       if (fromH === undefined || fromM === undefined || toH === undefined || toM === undefined)
         continue;
       let cursor = fromH * 60 + fromM;
-      const end = toH * 60 + toM;
+      // `to: "00:00"` (= minuit / fin de journée) → traité comme 24:00 (1440 min).
+      // Sinon end=0 < cursor → la boucle ne s'exécute jamais → 0 créneau, et la
+      // grille reste vide alors que le gérant a configuré « ouvert jusqu'à minuit ».
+      // Bug réel : ré-encodage d'horaires 10:00–00:00 côté manager → 0 créneau client.
+      let end = toH * 60 + toM;
+      if (end === 0) end = 24 * 60;
       while (cursor < end) {
         const h = Math.floor(cursor / 60);
         const m = cursor % 60;
