@@ -67,7 +67,9 @@ export interface CreateBookingInput {
 }
 
 export async function createBooking(input: CreateBookingInput): Promise<MutationResult> {
-  const ctx = await requireTenant();
+  // allowCashier: true → la caisse appelle ces actions ; sinon requireTenant
+  // ferait redirect('/cashier') qui aborte l'INSERT silencieusement.
+  const ctx = await requireTenant({ allowCashier: true });
   const supabase = createAdminClient() as AnySupabase;
 
   // Composer le créneau dans le TZ du salon (cf. _lib/timezone). `ctx.tenant.timezone`
@@ -120,7 +122,9 @@ export async function updateBookingStatus(
   id: string,
   status: 'in_chair' | 'done' | 'cancelled' | 'no_show',
 ): Promise<MutationResult> {
-  const ctx = await requireTenant();
+  // allowCashier: true → la caisse appelle ces actions ; sinon requireTenant
+  // ferait redirect('/cashier') qui aborte l'INSERT silencieusement.
+  const ctx = await requireTenant({ allowCashier: true });
   const supabase = createAdminClient() as AnySupabase;
 
   // Garde de cohérence : on ne marque no_show / cancelled QUE sur un RDV non
@@ -201,7 +205,9 @@ export interface PayBookingInput {
 }
 
 export async function payBooking(input: PayBookingInput): Promise<MutationResult> {
-  const ctx = await requireTenant();
+  // allowCashier: true → la caisse appelle ces actions ; sinon requireTenant
+  // ferait redirect('/cashier') qui aborte l'INSERT silencieusement.
+  const ctx = await requireTenant({ allowCashier: true });
   const supabase = createAdminClient() as AnySupabase;
 
   const db = supabase as AnySupabase;
@@ -409,7 +415,9 @@ export interface CreateDirectSaleInput {
 }
 
 export async function createDirectSale(input: CreateDirectSaleInput): Promise<MutationResult> {
-  const ctx = await requireTenant();
+  // allowCashier: true → la caisse appelle ces actions ; sinon requireTenant
+  // ferait redirect('/cashier') qui aborte l'INSERT silencieusement.
+  const ctx = await requireTenant({ allowCashier: true });
   const db = createAdminClient() as AnySupabase;
 
   // subtotal = BRUT, total = NET cash (subtotal − cashback). Tip à part.

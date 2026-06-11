@@ -159,12 +159,19 @@ export async function requireAuth(redirectPath?: string): Promise<User> {
  * @deprecated Le nom "requireTenant" est legacy — devrait être renommé
  *   `requireManager` dans un cleanup pass. Gardé pour minimiser le diff.
  */
-export async function requireTenant(): Promise<TenantContext> {
+export async function requireTenant(opts?: {
+  /** Server Actions partagées (booking-actions.ts) : laisser passer aussi
+   *  les caissiers, sinon `redirect('/cashier')` aborte l'action avant
+   *  l'INSERT → vente silencieusement perdue (bug observé sur la caisse
+   *  Aboodhairsalon). Pour les pages `/manager/*`, garder le défaut (false). */
+  allowCashier?: boolean;
+}): Promise<TenantContext> {
   const user = await requireAuth();
 
-  // Garde de rôle : /manager est réservé aux gérants. Caissier → /cashier.
+  // Garde de rôle : /manager est réservé aux gérants. Caissier → /cashier
+  // SAUF quand l'appelant a explicitement opt-in (actions partagées).
   const role = user.app_metadata?.['role'] as string | undefined;
-  if (role === 'cashier') {
+  if (role === 'cashier' && !opts?.allowCashier) {
     redirect('/cashier');
   }
 
