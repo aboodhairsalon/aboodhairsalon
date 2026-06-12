@@ -1425,10 +1425,16 @@ function CashierPOS({
           highlightBookingId={highlightBookingId}
         />
 
-        {/* Surplus libre — description + montant → ajout instantané au ticket
-            à droite. Évite à la caissière d'ouvrir PaymentModal juste pour
-            entrer une ligne ad hoc (ex. forfait, prestation perso). */}
-        <div className="bg-surface border-line mt-5 rounded-sm border p-4">
+        {/* Surplus + Remise sur la MÊME ligne (lg+) — l'un AJOUTE au ticket,
+            l'autre SOUSTRAIT. Différenciés par un trait de couleur à gauche
+            (vert = ajoute, rouge = retire) pour qu'on ne se trompe pas même
+            sous pression. Sur tablette/mobile (<lg), les blocs s'empilent. */}
+        <div className="mt-5 grid grid-cols-1 gap-3 lg:grid-cols-2">
+          {/* Surplus libre (AJOUT) — accent vert. */}
+          <div
+            className="bg-surface border-line rounded-sm border p-4"
+            style={{ borderLeftWidth: '3px', borderLeftColor: '#10B981' }}
+          >
           <h3 className="display text-base leading-tight">{t('surplusHeader')}</h3>
           <p className="text-ink-soft mt-0.5 text-[11px]">{t('surplusSubheader')}</p>
           <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_140px_auto]">
@@ -1465,11 +1471,13 @@ function CashierPOS({
           </div>
         </div>
 
-        {/* Remise libre — description + montant → SOUSTRAIT du ticket à droite.
-            Miroir du surplus avec amount négatif (sale_items.unit_price_cents
-            est signé, cf. migration 0005). Cap = total courant : impossible
-            de passer le ticket en négatif. */}
-        <div className="bg-surface border-line mt-3 rounded-sm border p-4">
+          {/* Remise libre (SOUSTRACTION) — accent rouge. Miroir du surplus
+              avec amount négatif (sale_items.unit_price_cents signée, cf.
+              migration 0005). Cap = total courant : pas de ticket négatif. */}
+          <div
+            className="bg-surface border-line rounded-sm border p-4"
+            style={{ borderLeftWidth: '3px', borderLeftColor: '#DC2626' }}
+          >
           <h3 className="display text-base leading-tight">{t('discountHeader')}</h3>
           <p className="text-ink-soft mt-0.5 text-[11px]">{t('discountSubheader')}</p>
           <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_140px_auto]">
@@ -1509,6 +1517,7 @@ function CashierPOS({
               {t('discountExceedsTotal')}
             </p>
           )}
+          </div>
         </div>
 
         <Divider label={t('servicesDivider')} />
