@@ -1546,6 +1546,10 @@ function ClientBookingFlow({
       );
       return;
     }
+    // Vide la liste AVANT le fetch : sinon, au changement de barbier/date, la
+    // grille garde les créneaux pris de l'ancien barbier ~100-300ms → un tap
+    // rapide pouvait sélectionner un slot en fait pris (rejet serveur). Audit.
+    setTakenSlots(new Set());
     let alive = true;
     void getTakenSlots(tid, barberId, date).then((r) => {
       if (!alive || !r.ok) return;

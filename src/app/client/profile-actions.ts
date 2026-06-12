@@ -12,6 +12,7 @@
  */
 import { createAdminClient } from '@/db';
 import { SALON } from '@/config/salon';
+import { utcIsoToZonedParts } from '../_lib/timezone';
 import { clearClientSession, getAuthedClientPhone } from './client-session';
 import { getCurrentUser } from '../_data/auth-server';
 import { rlSalesIp, rlSalesPhone } from '../_lib/rate-limit';
@@ -137,39 +138,25 @@ export async function getClientProfile(tenantId: string, phone: string): Promise
   // mais paid=true est suffisant). Pour les sales on EXCLUT explicitement les
   // ventes en statut `refunded`/`voided` — sinon une vente remboursée
   // continuerait à créditer des points fidélité (faille comptable).
-  const [bookingsRes, salesRes] = await Promise.all([
-    admin
-      .from('bookings')
-      .select('amount_cents')
-      
-      .eq('client_phone', normalizedPhone)
-      .eq('paid', true),
+  // FORMULE UNIFIÉE avec la caisse (cashback-actions.computeEarnedCashbackCents) :
+  // `Σ max(0, subtotal_cents − refunded_cents)` sur les ventes `completed` du
+  // client. Depuis que payBooking écrit `client_phone`, TOUTES les ventes (RDV
+  // payés + ventes directes) sont capturées par cette seule source.
+  // L'ancienne formule (bookings.amount_cents + sales directes) DIVERGEAIT du
+  // calcul caisse : elle ratait les extras facturés sur les RDV et utilisait
+  // une base différente → le client voyait un solde ≠ de celui appliqué en
+  // caisse (audit tracing — BLOCKER cohérence cashback).
+  const [salesRes] = await Promise.all([
     admin
       .from('sales')
-      .select('total_cents, booking_id, status')
-      
+      .select('subtotal_cents, refunded_cents')
       .eq('client_phone', normalizedPhone)
       .eq('status', 'completed'), // exclut refunded / voided
   ]);
 
-  // Toutes les bookings payés (peu importe que la vente associée ait été
-  // remboursée par la suite — dans ce cas le trigger DB a déjà rétro-débité
-  // les compteurs côté `clients`). On reste cohérent : on compte le credit
-  // de fidélité au même endroit que le total dépensé.
-  const bookingsCents = ((bookingsRes.data as { amount_cents: number }[] | null) ?? []).reduce(
-    (acc, r) => acc + (r.amount_cents ?? 0),
-    0,
-  );
-  // Ne compter que les ventes directes (sans booking_id) — sinon les RDV
-  // déjà comptés via `bookings.amount_cents` seraient doublonnés (payBooking
-  // crée à la fois `bookings.paid=true` et un row dans `sales`).
-  const directSalesCents = (
-    (salesRes.data as { total_cents: number; booking_id: string | null }[] | null) ?? []
-  )
-    .filter((r) => !r.booking_id)
-    .reduce((acc, r) => acc + (r.total_cents ?? 0), 0);
-
-  const totalSpentCents = bookingsCents + directSalesCents;
+  const totalSpentCents = (
+    (salesRes.data as { subtotal_cents: number; refunded_cents: number | null }[] | null) ?? []
+  ).reduce((acc, r) => acc + Math.max(0, (r.subtotal_cents ?? 0) - (r.refunded_cents ?? 0)), 0);
   const points = Math.floor(totalSpentCents / 100);
   // Cashback gagné = total dépensé × taux du tenant (en basis points).
   // Round() pour éviter les flottants. Le solde DISPONIBLE = earned - redeemed
@@ -842,11 +829,12 @@ export async function getClientSales(
         }[]
       | null) ?? []
   ).map((r) => {
-    const d = new Date(r.created_at);
+    // Date + heure en timezone salon (Le Caire) — cohérent avec caisse/manager.
+    const zoned = utcIsoToZonedParts(r.created_at as string, SALON.timezone);
     return {
       id: r.id,
-      date: r.created_at.split('T')[0]!,
-      time: `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`,
+      date: zoned.date,
+      time: zoned.time,
       totalCents: r.total_cents ?? 0,
       // Fallback `total_cents` si `subtotal_cents` est NULL (sales pré-T1.2
       // qui n'avaient pas la colonne).
@@ -993,10 +981,8 @@ export async function getSaleReceiptSnapshot(
     contact_website: string | null;
   };
 
-  const date = new Date(sale.created_at);
-  const time = `${String(date.getUTCHours()).padStart(2, '0')}:${String(
-    date.getUTCMinutes(),
-  ).padStart(2, '0')}`;
+  // Heure locale salon (Le Caire) — cohérent avec caisse/manager (audit TZ).
+  const time = utcIsoToZonedParts(sale.created_at as string, SALON.timezone).time;
 
   const method: 'card' | 'cash' | 'mobile' =
     sale.method === 'card' || sale.method === 'cash' || sale.method === 'mobile'

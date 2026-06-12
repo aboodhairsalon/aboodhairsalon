@@ -25,6 +25,7 @@ import { z } from 'zod';
 import { createAdminClient } from '@/db';
 import { SALON } from '@/config/salon';
 import { ReceiptEmail, type ReceiptEmailItem } from '@/emails';
+import { utcIsoToZonedParts } from '../_lib/timezone';
 import { getCurrentUser } from '../_data/auth-server';
 import { createClientToken } from '../_lib/client-token';
 import { resolveFromHeader } from '../_lib/email-sender';
@@ -304,14 +305,16 @@ export async function sendReceiptEmail(input: SendReceiptEmailInput): Promise<Se
   ).map((si) => ({ name: si.name, qty: si.qty ?? 1, priceCents: si.unit_price_cents ?? 0 }));
 
   const dateObj = new Date(sale.created_at);
+  // Date + heure en timezone salon (Le Caire) — sur Vercel le serveur tourne
+  // en UTC, donc sans timeZone l'heure du reçu était décalée de −2/−3h et
+  // contredisait l'affichage caisse/client. Audit TZ.
   const dateLong = new Intl.DateTimeFormat(labels.bcp47, {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
+    timeZone: SALON.timezone,
   }).format(dateObj);
-  const time = `${String(dateObj.getUTCHours()).padStart(2, '0')}:${String(
-    dateObj.getUTCMinutes(),
-  ).padStart(2, '0')}`;
+  const time = utcIsoToZonedParts(sale.created_at as string, SALON.timezone).time;
 
   const methodLabel =
     sale.method === 'card'

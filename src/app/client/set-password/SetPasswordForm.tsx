@@ -13,7 +13,7 @@ import { setClientPassword } from '../auth-actions';
 
 export function SetPasswordForm({ token }: { token: string }) {
   const router = useRouter();
-  const t = useTranslations('client.setPassword');
+  const t = useTranslations('client.profile.setPassword');
   const [pw, setPw] = useState('');
   const [confirm, setConfirm] = useState('');
   const [error, setError] = useState<string | null>(null);

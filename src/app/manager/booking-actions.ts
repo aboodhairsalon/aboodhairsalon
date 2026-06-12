@@ -13,6 +13,7 @@ import { createAdminClient } from '@/db';
 import { requireTenant } from '../_data/auth-server';
 import { fallbackTimezoneFromLocale, zonedToUtcIso } from '../_lib/timezone';
 import { notifyClientOfCancellation } from './booking-cancel-email';
+import { sendPushToTenant } from './push-actions';
 
 // FIX critique : ces actions tournaient sur getServerSupabase() (session,
 // RLS-enforced). En prod le JWT cashier d'Aboodhairsalon n'a pas (ou plus)
@@ -175,6 +176,19 @@ export async function updateBookingStatus(
       tenantId: ctx.tenant.id,
       bookingId: id,
     });
+    // Push aux AUTRES appareils du salon : un slot vient de se libérer. Le
+    // cancel CLIENT poussait déjà manager+caisse ; le cancel STAFF ne poussait
+    // rien → un 2e poste / le tél du gérant restait dans l'ignorance (audit
+    // tracing). Le tag dédoublonne → pas de pile de notifs. Best-effort.
+    void (async () => {
+      const payload = {
+        title: 'RDV annulé',
+        body: 'Un rendez-vous vient d\'être annulé.',
+        tag: 'booking-cancelled',
+      };
+      await sendPushToTenant(ctx.tenant.id, { ...payload, url: '/manager?tab=reserv' }, { role: 'manager' });
+      await sendPushToTenant(ctx.tenant.id, { ...payload, url: '/cashier' }, { role: 'cashier' });
+    })();
   }
 
   revalidatePath('/cashier');

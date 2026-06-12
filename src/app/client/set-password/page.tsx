@@ -22,7 +22,7 @@ export default async function ClientSetPasswordPage({
   const token = typeof sp['rt'] === 'string' ? sp['rt'] : '';
   const [logoUrl, t] = await Promise.all([
     fetchSalonLogo(),
-    getTranslations('client.setPassword'),
+    getTranslations('client.profile.setPassword'),
   ]);
 
   return (

@@ -279,12 +279,17 @@ export default function ManagerPage() {
     isRealTenant,
     SERVICE_OPS,
     handlePersistError,
+    // Idem staff : remplacer l'id temporaire par le vrai UUID après création,
+    // sinon un reorder/drag-drop juste après un ajout envoie 's-1234…' à
+    // z.string().uuid() → invalidData + rollback silencieux. (Audit tracing.)
+    isRealTenant ? () => router.refresh() : undefined,
   );
   const [products, setProducts] = usePersistedCollection(
     initialProducts,
     isRealTenant,
     PRODUCT_OPS,
     handlePersistError,
+    isRealTenant ? () => router.refresh() : undefined,
   );
   const [bookings, setBookings] = useState<Booking[]>(isRealTenant ? [] : INITIAL_BOOKINGS);
   const [sales] = useState<Sale[]>(isRealTenant ? [] : INITIAL_SALES);

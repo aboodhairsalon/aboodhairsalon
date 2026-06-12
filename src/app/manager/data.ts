@@ -10,9 +10,8 @@ import 'server-only';
  * + centimes) attendus par les composants existants — évite de refactorer
  * tout `/manager/page.tsx`.
  */
-import type { Database } from '@/db';
+import { createAdminClient, type Database } from '@/db';
 import type { CashierShift, Product, Service, Staff, StaffRole } from '../_data/mock';
-import { getServerSupabase } from '../_data/supabase-server';
 
 type StaffRow = Database['public']['Tables']['staff']['Row'];
 type ServiceRow = Database['public']['Tables']['services']['Row'];
@@ -40,7 +39,11 @@ export type ManagerCollections = {
  * `tenantId` est passé explicitement (déjà résolu par requireTenant()).
  */
 export async function getManagerCollections(_tenantId: string): Promise<ManagerCollections> {
-  const supabase = await getServerSupabase();
+  // Admin client (pas la session) : sinon les policies RLS *_public_read ne
+  // remontent QUE les lignes is_active=true → les prestations/produits
+  // DÉSACTIVÉS disparaissaient de l'admin (impossible de les réactiver).
+  // Symétrique du fix crud-actions.ts. requireTenant() en amont gate l'accès.
+  const supabase = createAdminClient();
 
   const staffRes = await supabase
     .from('staff')
