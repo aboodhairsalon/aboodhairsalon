@@ -1328,7 +1328,8 @@
         "submitting": "Vérification…",
         "submit": "Se connecter",
         "demoMode": "Mode démo — connexion non disponible.",
-        "firstVisitHint": "Première connexion ? Entrez votre email ou téléphone, puis touchez « Créer ou réinitialiser mon mot de passe » : un lien vous sera envoyé par email pour définir votre mot de passe."
+        "firstVisitHint": "Déjà réservé ? Entrez votre email ou téléphone, puis « Créer ou réinitialiser mon mot de passe » : un lien sera envoyé à l'email de votre réservation. Pas encore de compte ? Réservez d'abord — votre compte est créé avec l'email que vous indiquez.",
+        "bookFirstCta": "Réserver un rendez-vous"
       },
       "setPassword": {
         "roleLabel": "Espace Client",

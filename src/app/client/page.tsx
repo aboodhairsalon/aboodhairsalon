@@ -713,7 +713,13 @@ export default function ClientPage() {
         />
       )}
       {tab === 'info' && <SalonInfoTab />}
-      {tab === 'profile' && <ProfileTab phone={phone} onPhoneChange={savePhone} />}
+      {tab === 'profile' && (
+        <ProfileTab
+          phone={phone}
+          onPhoneChange={savePhone}
+          onNavigateToBook={() => setTab('book')}
+        />
+      )}
 
       {/* ── Barre de navigation mobile — design pro avec FAB central ──────
           Layout : [Accueil] [Mes RDV] [ FAB + ] [Le Salon] [Profil]
@@ -3131,11 +3137,15 @@ function ProfileTab({
   phone,
   onPhoneChange,
   onBack,
+  onNavigateToBook,
 }: {
   phone: string;
   onPhoneChange: (p: string) => void;
   /** Callback optionnel pour revenir à l'app (utilisé en mode plein écran sans header). */
   onBack?: () => void;
+  /** Bascule vers l'onglet Réserver — pour le client sans compte (il doit
+   *  réserver d'abord, c'est ce qui crée son compte avec son email). */
+  onNavigateToBook?: () => void;
 }) {
   const t = useTranslations('client.profile');
   const tErrors = useTranslations('client.errors');
@@ -3739,9 +3749,22 @@ function ProfileTab({
           </form>
 
           <div className="my-6 border-t" style={{ borderColor: C.separator }} />
+          {/* Bloc « pas encore de compte » : le compte se crée en RÉSERVANT
+              (l'email y est demandé). On l'explique + CTA Réserver pour ne
+              pas laisser le client deviner. */}
           <p className="text-center text-xs" style={{ color: C.footer }}>
             {t('login.firstVisitHint')}
           </p>
+          {onNavigateToBook && (
+            <button
+              type="button"
+              onClick={onNavigateToBook}
+              className="btn-press mt-3 w-full rounded-xl border py-3 text-sm font-semibold transition-opacity"
+              style={{ borderColor: C.btn, color: C.btn, background: 'transparent' }}
+            >
+              {t('login.bookFirstCta')}
+            </button>
+          )}
         </div>
       </div>
     );

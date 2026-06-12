@@ -1328,7 +1328,8 @@
         "submitting": "Checking…",
         "submit": "Sign in",
         "demoMode": "Demo mode — sign in not available.",
-        "firstVisitHint": "First time signing in? Enter your email or phone, then tap \"Create or reset my password\": a link will be emailed to you to set your password."
+        "firstVisitHint": "Already booked? Enter your email or phone, then \"Create or reset my password\": a link will be sent to your booking email. No account yet? Book first — your account is created with the email you provide.",
+        "bookFirstCta": "Book an appointment"
       },
       "setPassword": {
         "roleLabel": "Client Space",
