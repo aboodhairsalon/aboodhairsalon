@@ -7,7 +7,9 @@
  * Auth : requireCashier() — redirection automatique si pas de session caissier.
  */
 import { createAdminClient } from '@/db';
+import { SALON } from '@/config/salon';
 import { requireCashier } from '../_data/auth-server';
+import { utcIsoToZonedParts } from '../_lib/timezone';
 import type {
   Booking,
   BookingSource,
@@ -53,7 +55,10 @@ function toBookingSource(raw: unknown): BookingSource | undefined {
 // DB booking row (étendu pour le champ `service_id` qui peut remonter null avant 0012)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mapBooking(row: any): Booking {
-  const starts = new Date(row.starts_at as string);
+  // Heure AFFICHÉE = heure locale du salon (Le Caire), pas UTC. Les rows sont
+  // stockés en UTC vrai (zonedToUtcIso à la création) ; les afficher en
+  // getUTCHours décalait de −2/−3h. Audit timezone.
+  const zoned = utcIsoToZonedParts(row.starts_at as string, SALON.timezone);
   // Extras persistés en DB (JSONB) — survivent au refresh + cross-device
   // (audit T2.9). Format strict côté front : { key, kind, refId, name,
   // priceCents, qty }. On filtre les entrées malformées (defense-in-depth
@@ -81,8 +86,8 @@ function mapBooking(row: any): Booking {
     clientPhone: (row.client_phone as string | null) ?? undefined,
     serviceId: (row.service_id as string) ?? '',
     barberId: (row.barber_id as string) ?? '',
-    date: (row.starts_at as string).split('T')[0]!,
-    time: `${String(starts.getUTCHours()).padStart(2, '0')}:${String(starts.getUTCMinutes()).padStart(2, '0')}`,
+    date: zoned.date,
+    time: zoned.time,
     status:
       row.status === 'in_chair' ? 'in-chair' : (row.status as 'upcoming' | 'done' | 'cancelled'),
     paid: (row.paid as boolean) ?? false,
@@ -95,11 +100,12 @@ function mapBooking(row: any): Booking {
 // DB sale row (avec sale_items eager-loaded)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mapSale(row: any): Sale {
-  const created = new Date(row.created_at as string);
+  // Heure locale salon (cf. mapBooking) — pas UTC.
+  const zoned = utcIsoToZonedParts(row.created_at as string, SALON.timezone);
   return {
     id: row.id as string,
-    date: (row.created_at as string).split('T')[0]!,
-    time: `${String(created.getUTCHours()).padStart(2, '0')}:${String(created.getUTCMinutes()).padStart(2, '0')}`,
+    date: zoned.date,
+    time: zoned.time,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     items: ((row.sale_items as any[]) ?? []).map((si) => ({
       type: si.kind === 'product' ? ('product' as const) : ('service' as const),

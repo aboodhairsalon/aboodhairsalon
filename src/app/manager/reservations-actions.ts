@@ -10,7 +10,9 @@
  * tenantId arbitraire ne fasse fuiter les RDV d'un autre salon.
  */
 import { createAdminClient } from '@/db';
+import { SALON } from '@/config/salon';
 import { requireTenant } from '../_data/auth-server';
+import { utcIsoToZonedParts } from '../_lib/timezone';
 import type { Booking } from '../_data/mock';
 import type { ManagerErrorCode, ManagerErrorValues } from './actions';
 
@@ -58,14 +60,15 @@ export async function getManagerReservations(tenantId: string): Promise<GetReser
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mapBookingRow(row: any): Booking {
-  const starts = new Date(row.starts_at as string);
+  // Heure locale salon (Le Caire), pas UTC — cf. audit timezone.
+  const zoned = utcIsoToZonedParts(row.starts_at as string, SALON.timezone);
   return {
     id: row.id as string,
     clientName: (row.client_display_name as string) ?? '',
     serviceId: (row.service_id as string) ?? '',
     barberId: (row.barber_id as string) ?? '',
-    date: (row.starts_at as string).split('T')[0]!,
-    time: `${String(starts.getUTCHours()).padStart(2, '0')}:${String(starts.getUTCMinutes()).padStart(2, '0')}`,
+    date: zoned.date,
+    time: zoned.time,
     status:
       row.status === 'in_chair' ? 'in-chair' : (row.status as 'upcoming' | 'done' | 'cancelled'),
     paid: (row.paid as boolean) ?? false,

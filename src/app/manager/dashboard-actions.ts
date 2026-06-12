@@ -17,7 +17,9 @@
  * requireTenant() ici pour qu'un tenantId arbitraire ne fuite jamais de data.
  */
 import { createAdminClient } from '@/db';
+import { SALON } from '@/config/salon';
 import { requireTenant } from '../_data/auth-server';
+import { utcIsoToZonedParts } from '../_lib/timezone';
 import { rlManagerRead } from '../_lib/rate-limit';
 import type { Booking, Sale } from '../_data/mock';
 import { DASHBOARD_WINDOW_DAYS, type GetDashboardSeriesResult } from './dashboard-types';
@@ -26,16 +28,16 @@ import { DASHBOARD_WINDOW_DAYS, type GetDashboardSeriesResult } from './dashboar
 // `date` ISO `YYYY-MM-DD`, `time` `HH:mm` en UTC, statut `in_chair`→`in-chair`).
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mapBooking(row: any): Booking {
-  const starts = new Date(row.starts_at as string);
+  // Date + heure locale salon (Le Caire) — pas UTC. Sinon le groupement
+  // par jour du dashboard décale les RDV de fin/début de journée. Audit TZ.
+  const zoned = utcIsoToZonedParts(row.starts_at as string, SALON.timezone);
   return {
     id: row.id as string,
     clientName: (row.client_display_name as string) ?? '',
     serviceId: (row.service_id as string) ?? '',
     barberId: (row.barber_id as string) ?? '',
-    date: (row.starts_at as string).split('T')[0]!,
-    time: `${String(starts.getUTCHours()).padStart(2, '0')}:${String(
-      starts.getUTCMinutes(),
-    ).padStart(2, '0')}`,
+    date: zoned.date,
+    time: zoned.time,
     status:
       row.status === 'in_chair' ? 'in-chair' : (row.status as 'upcoming' | 'done' | 'cancelled'),
     paid: (row.paid as boolean) ?? false,
@@ -48,13 +50,11 @@ function mapBooking(row: any): Booking {
 // /cashier — `completed_at` peut être null pour les ventes encore en cours).
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mapSale(row: any): Sale {
-  const created = new Date(row.created_at as string);
+  const zoned = utcIsoToZonedParts(row.created_at as string, SALON.timezone);
   return {
     id: row.id as string,
-    date: (row.created_at as string).split('T')[0]!,
-    time: `${String(created.getUTCHours()).padStart(2, '0')}:${String(
-      created.getUTCMinutes(),
-    ).padStart(2, '0')}`,
+    date: zoned.date,
+    time: zoned.time,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     items: ((row.sale_items as any[]) ?? []).map((si) => ({
       type: si.kind === 'product' ? ('product' as const) : ('service' as const),

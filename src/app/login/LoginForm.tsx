@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { AUTH_C, AuthButton, AuthField, AuthShell } from '../_components/auth-ui';
-import { getBrowserClient } from '../_data/supabase';
+import { loginManager } from './login-actions';
 
 type Status = { kind: 'idle' } | { kind: 'submitting' } | { kind: 'error'; message: string };
 
@@ -25,17 +25,24 @@ export function LoginForm({ logoUrl }: LoginFormProps) {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setStatus({ kind: 'submitting' });
-    const supabase = getBrowserClient();
-    const { error } = await supabase.auth.signInWithPassword({
-      email: email.trim().toLowerCase(),
-      password,
-    });
-    if (error) {
+    // Server action : rate-limit (email + IP) + signIn server-side (cookie posé).
+    try {
+      const res = await loginManager(email, password);
+      if (!res.ok) {
+        setStatus({
+          kind: 'error',
+          message:
+            res.code === 'rateLimited'
+              ? tCommon('rateLimited')
+              : t('errorInvalidCredentials'),
+        });
+        return;
+      }
+      // Single-tenant : pas de préfixe slug — toujours /manager.
+      window.location.href = '/manager';
+    } catch {
       setStatus({ kind: 'error', message: t('errorInvalidCredentials') });
-      return;
     }
-    // Single-tenant : pas de préfixe slug — toujours /manager.
-    window.location.href = '/manager';
   };
 
   return (

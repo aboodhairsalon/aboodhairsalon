@@ -1430,10 +1430,11 @@ function CashierPOS({
             (vert = ajoute, rouge = retire) pour qu'on ne se trompe pas même
             sous pression. Sur tablette/mobile (<lg), les blocs s'empilent. */}
         <div className="mt-5 grid grid-cols-1 gap-3 lg:grid-cols-2">
-          {/* Surplus libre (AJOUT) — accent vert. */}
+          {/* Surplus libre (AJOUT) — accent vert. borderInlineStart (logique)
+              au lieu de borderLeft → l'accent reste du bon côté en RTL (ar). */}
           <div
             className="bg-surface border-line rounded-sm border p-4"
-            style={{ borderLeftWidth: '3px', borderLeftColor: '#10B981' }}
+            style={{ borderInlineStartWidth: '3px', borderInlineStartColor: '#10B981' }}
           >
           <h3 className="display text-base leading-tight">{t('surplusHeader')}</h3>
           <p className="text-ink-soft mt-0.5 text-[11px]">{t('surplusSubheader')}</p>
@@ -1479,7 +1480,7 @@ function CashierPOS({
               migration 0005). Cap = total courant : pas de ticket négatif. */}
           <div
             className="bg-surface border-line rounded-sm border p-4"
-            style={{ borderLeftWidth: '3px', borderLeftColor: '#DC2626' }}
+            style={{ borderInlineStartWidth: '3px', borderInlineStartColor: '#DC2626' }}
           >
           <h3 className="display text-base leading-tight">{t('discountHeader')}</h3>
           <p className="text-ink-soft mt-0.5 text-[11px]">{t('discountSubheader')}</p>
@@ -1508,10 +1509,14 @@ function CashierPOS({
             type="button"
             onClick={addDiscount}
             disabled={!discountValid}
-            className={`btn-press mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-sm px-4 py-2 text-xs font-semibold transition-colors ${
+            // Teinte rouge (vs vert/brand du surplus) — renforce « je retire ».
+            style={
               discountValid
-                ? 'border-brand-primary/60 bg-brand-primary/5 text-brand-primary hover:bg-brand-primary/10 border'
-                : 'border-line text-ink-soft cursor-not-allowed border opacity-50'
+                ? { borderColor: 'rgba(220,38,38,0.5)', backgroundColor: 'rgba(220,38,38,0.06)', color: '#B91C1C' }
+                : undefined
+            }
+            className={`btn-press mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-sm border px-4 py-2 text-xs font-semibold transition-colors ${
+              discountValid ? '' : 'border-line text-ink-soft cursor-not-allowed opacity-50'
             }`}
           >
             <Minus className="h-3.5 w-3.5" strokeWidth={2} />

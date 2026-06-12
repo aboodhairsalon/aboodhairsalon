@@ -37,7 +37,8 @@
     "common": {
       "secured": "Connexion sécurisée",
       "logoutAria": "Quitter l'espace",
-      "submitting": "Connexion…"
+      "submitting": "Connexion…",
+      "rateLimited": "Trop de tentatives. Patientez quelques minutes avant de réessayer."
     },
     "direction": {
       "roleLabel": "Espace Direction",
@@ -1209,6 +1210,7 @@
       "step1Header": "— Étape 1 / Prestation",
       "step2Header": "— Étape 2 / Choisir un barbier",
       "step3Header": "— Étape 3 / Date & heure",
+      "noSlots": "Aucun créneau disponible ce jour. Choisissez une autre date.",
       "step4Header": "— Étape 4 / Vos coordonnées & confirmation",
       "modifyService": "Modifier la prestation",
       "modifyBarber": "Modifier le barbier",

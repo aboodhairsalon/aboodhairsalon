@@ -64,7 +64,8 @@ export const viewport: Viewport = {
   viewportFit: 'cover',
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
+  // Pas de maximumScale : bloquer le pinch-zoom viole WCAG 1.4.4 (un client
+  // malvoyant doit pouvoir zoomer sur les prix / horaires).
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {

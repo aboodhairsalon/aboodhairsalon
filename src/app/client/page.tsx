@@ -1508,6 +1508,23 @@ function ClientBookingFlow({
     return out;
   }, [dateDayKey, weekSchedule, tenantSession]);
 
+  // Créneaux RÉELLEMENT proposables : on retire ceux déjà passés quand la date
+  // sélectionnée est aujourd'hui (sinon le client choisit un horaire écoulé,
+  // remplit tout le formulaire, et le serveur le rejette à la toute fin —
+  // `dateOutOfRange`). Marge de 15 min pour ne pas proposer un créneau imminent.
+  // Hypothèse TZ : client en Égypte (= salon) — même base que le no_show caisse.
+  const visibleSlots = useMemo(() => {
+    if (!date) return allSlots;
+    const now = new Date();
+    const todayIso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    if (date !== todayIso) return allSlots;
+    const cutoff = now.getHours() * 60 + now.getMinutes() + 15;
+    return allSlots.filter((slot) => {
+      const [h, m] = slot.split(':').map(Number);
+      return (h ?? 0) * 60 + (m ?? 0) >= cutoff;
+    });
+  }, [allSlots, date]);
+
   // ─── takenSlots fetched depuis la DB (audit pre-launch) ────────────────────
   // AVANT : computed depuis `bookings` local qui est vide pour tenant connecté
   // (jamais fetched) → tous les slots affichés disponibles → DOUBLE-BOOKING
@@ -2140,8 +2157,16 @@ function ClientBookingFlow({
                 </button>
               ))}
             </div>
+            {visibleSlots.length === 0 && (
+              <div
+                className="rounded-2xl border py-8 text-center text-sm"
+                style={{ background: LC.card, borderColor: LC.cardBorder, color: LC.back }}
+              >
+                {t('noSlots')}
+              </div>
+            )}
             <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
-              {allSlots.map((t) => {
+              {visibleSlots.map((t) => {
                 const taken = takenSlots.has(t);
                 return (
                   <button

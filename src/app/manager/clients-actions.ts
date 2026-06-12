@@ -19,7 +19,9 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createAdminClient } from '@/db';
+import { SALON } from '@/config/salon';
 import { requireTenant } from '../_data/auth-server';
+import { utcIsoToZonedParts } from '../_lib/timezone';
 import { rlManagerRead } from '../_lib/rate-limit';
 import type { ManagerErrorCode, ManagerErrorValues } from './actions';
 
@@ -370,13 +372,12 @@ export async function getClientHistory(
   };
 
   const visits: ClientVisit[] = ((data as BookingRow[]) ?? []).map((row) => {
-    const starts = new Date(row.starts_at);
+    // Heure locale salon (Le Caire), pas UTC — cf. audit timezone.
+    const zoned = utcIsoToZonedParts(row.starts_at, SALON.timezone);
     return {
       id: row.id,
-      date: row.starts_at.split('T')[0]!,
-      time: `${String(starts.getUTCHours()).padStart(2, '0')}:${String(
-        starts.getUTCMinutes(),
-      ).padStart(2, '0')}`,
+      date: zoned.date,
+      time: zoned.time,
       serviceName: row.services?.name ?? 'Prestation',
       barberName: row.staff?.name ?? 'Barbier',
       status: row.status ?? 'upcoming',

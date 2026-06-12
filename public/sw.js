@@ -13,7 +13,7 @@
 //
 // Stratégie : cache-first pour les statiques, network pour le reste.
 
-const CACHE_VERSION = 'sa-v2'; // bump après ajout du handler push
+const CACHE_VERSION = 'sa-v3'; // v3 : invalide le cache /brand/ après l'audit (logos/UI obsolètes)
 const STATIC_CACHE = CACHE_VERSION + '-static';
 
 self.addEventListener('install', () => {

@@ -106,11 +106,24 @@
     font-family: inherit;
   }
 
-  input:focus,
-  textarea:focus,
-  select:focus,
-  button:focus {
+  /* On retire l'outline UNIQUEMENT au focus souris (:focus sans
+     :focus-visible). Au clavier (:focus-visible), on rend un anneau net —
+     sans ça la navigation Tab était totalement invisible (WCAG 2.4.7). */
+  input:focus:not(:focus-visible),
+  textarea:focus:not(:focus-visible),
+  select:focus:not(:focus-visible),
+  button:focus:not(:focus-visible) {
     outline: none;
+  }
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible,
+  button:focus-visible,
+  a:focus-visible,
+  [tabindex]:focus-visible {
+    outline: 2px solid var(--color-brand-primary, #9aa0a6);
+    outline-offset: 2px;
+    border-radius: 2px;
   }
 
   /* FAQ accordion native */

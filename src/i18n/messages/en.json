@@ -37,7 +37,8 @@
     "common": {
       "secured": "Secure connection",
       "logoutAria": "Leave space",
-      "submitting": "Signing in…"
+      "submitting": "Signing in…",
+      "rateLimited": "Too many attempts. Please wait a few minutes before trying again."
     },
     "direction": {
       "roleLabel": "Management Space",
@@ -1209,6 +1210,7 @@
       "step1Header": "— Step 1 / Service",
       "step2Header": "— Step 2 / Choose a barber",
       "step3Header": "— Step 3 / Date & time",
+      "noSlots": "No slots available on this day. Please pick another date.",
       "step4Header": "— Step 4 / Your details & confirmation",
       "modifyService": "Change service",
       "modifyBarber": "Change barber",
