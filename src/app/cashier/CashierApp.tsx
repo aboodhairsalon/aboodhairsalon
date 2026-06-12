@@ -1437,7 +1437,10 @@ function CashierPOS({
           >
           <h3 className="display text-base leading-tight">{t('surplusHeader')}</h3>
           <p className="text-ink-soft mt-0.5 text-[11px]">{t('surplusSubheader')}</p>
-          <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_140px_auto]">
+          {/* Layout en 2 lignes pour rester lisible même en demi-largeur :
+              ligne 1 = description + montant (grid 2 cols), ligne 2 = bouton
+              pleine largeur. Sur mobile c'est aussi un gros tap target. */}
+          <div className="mt-3 grid grid-cols-[1fr_110px] gap-2">
             <input
               type="text"
               value={surplusDesc}
@@ -1455,20 +1458,20 @@ function CashierPOS({
               placeholder={t('surplusAmountPlaceholder')}
               className="border-line bg-bg-soft text-ink placeholder:text-ink-soft focus:border-brand-primary mono rounded-sm border px-3 py-2 text-sm outline-none"
             />
-            <button
-              type="button"
-              onClick={addSurplus}
-              disabled={!surplusValid}
-              className={`btn-press inline-flex items-center justify-center gap-1.5 rounded-sm px-4 py-2 text-xs font-semibold transition-colors ${
-                surplusValid
-                  ? 'border-brand-primary/60 bg-brand-primary/5 text-brand-primary hover:bg-brand-primary/10 border'
-                  : 'border-line text-ink-soft cursor-not-allowed border opacity-50'
-              }`}
-            >
-              <Plus className="h-3.5 w-3.5" strokeWidth={2} />
-              {t('surplusAddBtn')}
-            </button>
           </div>
+          <button
+            type="button"
+            onClick={addSurplus}
+            disabled={!surplusValid}
+            className={`btn-press mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-sm px-4 py-2 text-xs font-semibold transition-colors ${
+              surplusValid
+                ? 'border-brand-primary/60 bg-brand-primary/5 text-brand-primary hover:bg-brand-primary/10 border'
+                : 'border-line text-ink-soft cursor-not-allowed border opacity-50'
+            }`}
+          >
+            <Plus className="h-3.5 w-3.5" strokeWidth={2} />
+            {t('surplusAddBtn')}
+          </button>
         </div>
 
           {/* Remise libre (SOUSTRACTION) — accent rouge. Miroir du surplus
@@ -1480,7 +1483,9 @@ function CashierPOS({
           >
           <h3 className="display text-base leading-tight">{t('discountHeader')}</h3>
           <p className="text-ink-soft mt-0.5 text-[11px]">{t('discountSubheader')}</p>
-          <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_140px_auto]">
+          {/* Même layout 2-lignes que le surplus pour rester compact en
+              demi-largeur. */}
+          <div className="mt-3 grid grid-cols-[1fr_110px] gap-2">
             <input
               type="text"
               value={discountDesc}
@@ -1498,20 +1503,20 @@ function CashierPOS({
               placeholder={t('discountAmountPlaceholder')}
               className="border-line bg-bg-soft text-ink placeholder:text-ink-soft focus:border-brand-primary mono rounded-sm border px-3 py-2 text-sm outline-none"
             />
-            <button
-              type="button"
-              onClick={addDiscount}
-              disabled={!discountValid}
-              className={`btn-press inline-flex items-center justify-center gap-1.5 rounded-sm px-4 py-2 text-xs font-semibold transition-colors ${
-                discountValid
-                  ? 'border-brand-primary/60 bg-brand-primary/5 text-brand-primary hover:bg-brand-primary/10 border'
-                  : 'border-line text-ink-soft cursor-not-allowed border opacity-50'
-              }`}
-            >
-              <Minus className="h-3.5 w-3.5" strokeWidth={2} />
-              {t('discountAddBtn')}
-            </button>
           </div>
+          <button
+            type="button"
+            onClick={addDiscount}
+            disabled={!discountValid}
+            className={`btn-press mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-sm px-4 py-2 text-xs font-semibold transition-colors ${
+              discountValid
+                ? 'border-brand-primary/60 bg-brand-primary/5 text-brand-primary hover:bg-brand-primary/10 border'
+                : 'border-line text-ink-soft cursor-not-allowed border opacity-50'
+            }`}
+          >
+            <Minus className="h-3.5 w-3.5" strokeWidth={2} />
+            {t('discountAddBtn')}
+          </button>
           {discountExceedsTotal && (
             <p className="mt-2 text-[11px] font-medium" style={{ color: '#B91C1C' }}>
               {t('discountExceedsTotal')}
