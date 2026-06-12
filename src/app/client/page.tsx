@@ -3391,16 +3391,15 @@ function ProfileTab({
     });
   };
 
-  // ── Mot de passe oublié / première définition ────────────────────────────
-  // Envoie un lien signé par email (l'identifiant doit être un email — le SMS
-  // n'est pas branché). Réponse toujours « envoyé » côté UI (anti-énumération).
+  // ── Créer / réinitialiser le mot de passe ────────────────────────────────
+  // Accepte un EMAIL **ou un TÉLÉPHONE** : le serveur retrouve l'email du compte
+  // (saisi à la réservation) et lui envoie le lien. Le client n'a donc pas à
+  // retaper son email s'il s'est identifié par téléphone. Réponse toujours
+  // « envoyé » côté UI (anti-énumération).
   const handleForgotPassword = () => {
-    const raw = loginEmail.trim().toLowerCase();
-    if (!raw.includes('@') || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw)) {
-      // Message dédié : explique qu'il faut un email (pas un téléphone) pour
-      // recevoir le lien de réinit. Évite la confusion « j'ai tapé mon numéro
-      // pour me connecter, pourquoi on me dit que c'est invalide ? ».
-      setLookupError(t('errors.forgotPasswordNeedsEmail'));
+    const raw = loginEmail.trim();
+    if (!raw) {
+      setLookupError(t('errors.emailOrPhoneRequired'));
       return;
     }
     setLookupError(null);

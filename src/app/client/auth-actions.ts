@@ -106,37 +106,61 @@ export async function loginClient(identifier: string, password: string): Promise
 export type RequestResetResult = { ok: true } | { ok: false; code: 'missingParams' | 'rateLimited' };
 
 /**
- * Envoie un lien « définir / réinitialiser le mot de passe » à l'email du
- * compte. Réponse TOUJOURS `{ ok: true }` quand l'email est bien formé (qu'un
- * compte existe ou non) → pas d'énumération d'emails. Sert aussi de « première
- * définition » pour les clients historiques sans mot de passe.
+ * Envoie un lien « créer / réinitialiser le mot de passe » à l'EMAIL du compte.
+ *
+ * L'identifiant fourni peut être un EMAIL **ou un TÉLÉPHONE** : l'email du
+ * compte est de toute façon retrouvé en base (saisi à la réservation) et c'est
+ * lui qui reçoit le lien. Un client qui se connecte avec son numéro n'a donc
+ * PAS à retaper son email — cohérent avec le champ de login « email ou
+ * téléphone ». L'envoi par email reste indispensable côté sécurité : il prouve
+ * la propriété du compte (sinon quiconque connaît un numéro pourrait définir un
+ * mot de passe sur le compte d'autrui).
+ *
+ * Réponse TOUJOURS `{ ok: true }` quand l'identifiant est bien formé (compte
+ * existant ou non) → pas d'énumération.
  */
-export async function requestClientPasswordReset(email: string): Promise<RequestResetResult> {
-  const normalizedEmail = (email ?? '').trim().toLowerCase();
-  if (!normalizedEmail || !EMAIL_RE.test(normalizedEmail)) {
+export async function requestClientPasswordReset(identifier: string): Promise<RequestResetResult> {
+  const raw = (identifier ?? '').trim();
+  if (!raw) return { ok: false, code: 'missingParams' };
+  const isEmail = raw.includes('@');
+  // Si c'est un email il doit être bien formé ; un téléphone passe tel quel.
+  if (isEmail && !EMAIL_RE.test(raw.toLowerCase())) {
     return { ok: false, code: 'missingParams' };
   }
 
   const ip = await callerIp();
-  const [ipOk, idOk] = await Promise.all([rlLoginIp(ip), rlLoginEmail(normalizedEmail)]);
+  const [ipOk, idOk] = await Promise.all([rlLoginIp(ip), rlLoginEmail(raw.toLowerCase())]);
   if (!ipOk || !idOk) return { ok: false, code: 'rateLimited' };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const admin = createAdminClient() as any;
-  const { data } = await admin
-    .from('client_profiles')
-    .select('phone, email')
-    .ilike('email', normalizedEmail)
-    .order('created_at', { ascending: false })
-    .limit(1);
-  const row = ((data as { phone: string; email: string | null }[]) ?? [])[0] ?? null;
+  type Row = { phone: string; email: string | null };
+  let row: Row | null = null;
+  if (isEmail) {
+    const { data } = await admin
+      .from('client_profiles')
+      .select('phone, email')
+      .ilike('email', raw.toLowerCase())
+      .order('created_at', { ascending: false })
+      .limit(1);
+    row = ((data as Row[]) ?? [])[0] ?? null;
+  } else {
+    // Entrée = téléphone → on retrouve l'email enregistré du compte.
+    const { data } = await admin
+      .from('client_profiles')
+      .select('phone, email')
+      .eq('phone', raw)
+      .maybeSingle();
+    row = (data as Row | null) ?? null;
+  }
 
-  // Compte trouvé → envoi du lien (best-effort). Sinon on ne fait rien mais on
-  // renvoie quand même ok (anti-énumération).
-  if (row?.phone) {
+  // Compte trouvé AVEC un email → envoi du lien (best-effort). Sans email en
+  // fiche on ne peut rien envoyer (cas improbable : l'email est requis à la
+  // réservation). On renvoie quand même ok (anti-énumération).
+  if (row?.phone && row.email) {
     const token = createClientToken(SALON.tenantUuid, row.phone, RESET_TOKEN_TTL_MS, 'reset');
     const link = `${SALON.spaces.book}/client/set-password?rt=${encodeURIComponent(token)}`;
-    await sendResetEmail(normalizedEmail, link);
+    await sendResetEmail(row.email, link);
   }
   return { ok: true };
 }

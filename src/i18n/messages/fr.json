@@ -1302,14 +1302,13 @@
         "emailOrPhoneRequired": "Entrez votre email ou votre numéro de téléphone.",
         "passwordRequired": "Entrez votre mot de passe.",
         "invalidCredentials": "Identifiant ou mot de passe incorrect.",
-        "mustSetPassword": "Vous n'avez pas encore de mot de passe. Touchez « Mot de passe oublié ou première connexion ? » pour en créer un.",
+        "mustSetPassword": "Vous n'avez pas encore de mot de passe. Touchez « Créer mon mot de passe » ci-dessous pour en définir un.",
         "accountNotFound": "Aucun compte trouvé. Réservez d'abord, ou vérifiez votre saisie.",
         "rateLimited": "Trop de tentatives. Réessayez dans quelques minutes.",
         "firstNameRequired": "Votre prénom est obligatoire.",
         "dobRequired": "Date de naissance obligatoire.",
         "dobInvalid": "Date de naissance invalide.",
         "phoneAlreadyLinked": "Ce numéro est déjà associé à un compte ({email}). Connectez-vous avec cette adresse email à la place.",
-        "forgotPasswordNeedsEmail": "Pour réinitialiser votre mot de passe, entrez votre adresse email (pas votre numéro de téléphone).",
         "unexpected": "Erreur inattendue."
       },
       "fallbackSalonName": "Votre salon",
@@ -1324,12 +1323,12 @@
         "identifierPlaceholder": "vous@exemple.com ou 01XXXXXXXXX",
         "passwordLabel": "Mot de passe",
         "passwordPlaceholder": "••••••••",
-        "forgotLink": "Mot de passe oublié ou première connexion ?",
-        "resetSent": "Si un compte existe, un lien pour définir votre mot de passe vient d'être envoyé par email.",
+        "forgotLink": "Créer ou réinitialiser mon mot de passe",
+        "resetSent": "Si un compte existe, un lien pour définir votre mot de passe vient d'être envoyé à l'adresse email de votre compte. Pensez à vérifier vos spams.",
         "submitting": "Vérification…",
         "submit": "Se connecter",
         "demoMode": "Mode démo — connexion non disponible.",
-        "firstVisitHint": "Première visite ? Entrez votre email ou téléphone — nous créerons votre profil si nécessaire."
+        "firstVisitHint": "Première connexion ? Entrez votre email ou téléphone, puis touchez « Créer ou réinitialiser mon mot de passe » : un lien vous sera envoyé par email pour définir votre mot de passe."
       },
       "setPassword": {
         "roleLabel": "Espace Client",

@@ -1302,14 +1302,13 @@
         "emailOrPhoneRequired": "Enter your email or phone number.",
         "passwordRequired": "Enter your password.",
         "invalidCredentials": "Incorrect identifier or password.",
-        "mustSetPassword": "You don't have a password yet. Tap \"Forgot password or first time?\" to create one.",
+        "mustSetPassword": "You don't have a password yet. Tap \"Create or reset my password\" below to set one.",
         "accountNotFound": "No account found. Book first, or check your entry.",
         "rateLimited": "Too many attempts. Try again in a few minutes.",
         "firstNameRequired": "Your first name is required.",
         "dobRequired": "Date of birth is required.",
         "dobInvalid": "Invalid date of birth.",
         "phoneAlreadyLinked": "This phone is already linked to an account ({email}). Please sign in with that email instead.",
-        "forgotPasswordNeedsEmail": "To reset your password, enter your email address (not your phone number).",
         "unexpected": "Unexpected error."
       },
       "fallbackSalonName": "Your salon",
@@ -1324,12 +1323,12 @@
         "identifierPlaceholder": "you@example.com or 01XXXXXXXXX",
         "passwordLabel": "Password",
         "passwordPlaceholder": "••••••••",
-        "forgotLink": "Forgot password or first time?",
-        "resetSent": "If an account exists, a link to set your password has just been emailed to you.",
+        "forgotLink": "Create or reset my password",
+        "resetSent": "If an account exists, a link to set your password has just been sent to your account's email address. Don't forget to check your spam folder.",
         "submitting": "Checking…",
         "submit": "Sign in",
         "demoMode": "Demo mode — sign in not available.",
-        "firstVisitHint": "First visit? Enter your email or phone — we'll create your profile if needed."
+        "firstVisitHint": "First time signing in? Enter your email or phone, then tap \"Create or reset my password\": a link will be emailed to you to set your password."
       },
       "setPassword": {
         "roleLabel": "Client Space",
