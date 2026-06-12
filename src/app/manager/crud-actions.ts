@@ -306,8 +306,28 @@ export async function reorderServices(serviceIds: string[]): Promise<MutationRes
 export async function deleteService(id: string): Promise<MutationResult> {
   await requireTenant();
   const supabase = createAdminClient();
+  // Suppression intelligente : on tente le DELETE réel. Si le service est
+  // référencé par des RDV (bookings.service_id), Postgres lève une violation
+  // de clé étrangère (23503) — on bascule alors en ARCHIVAGE (is_active=false).
+  // Le service disparaît du booking client, de la caisse ET de l'admin, mais
+  // les RDV historiques gardent leur référence intacte. Empêche l'erreur DB
+  // brute « violates foreign key constraint bookings_service_id_fkey ».
   const { error } = await supabase.from('services').delete().eq('id', id);
-  if (error) return { ok: false, errorKey: 'dbError', errorValues: { message: error.message } };
+  if (error) {
+    const isFk =
+      (error as { code?: string }).code === '23503' || /foreign key|violates/i.test(error.message ?? '');
+    if (isFk) {
+      const { error: archErr } = await supabase
+        .from('services')
+        .update({ is_active: false } as never)
+        .eq('id', id);
+      if (archErr)
+        return { ok: false, errorKey: 'dbError', errorValues: { message: archErr.message } };
+      revalidatePath('/manager');
+      return { ok: true };
+    }
+    return { ok: false, errorKey: 'dbError', errorValues: { message: error.message } };
+  }
   revalidatePath('/manager');
   return { ok: true };
 }
@@ -392,8 +412,25 @@ export async function updateProduct(id: string, input: ProductInput): Promise<Mu
 export async function deleteProduct(id: string): Promise<MutationResult> {
   await requireTenant();
   const supabase = createAdminClient();
+  // Idem deleteService : DELETE réel, sinon ARCHIVAGE (is_active=false) si le
+  // produit est référencé (sale_items / product_movements). L'historique des
+  // ventes reste intact.
   const { error } = await supabase.from('products').delete().eq('id', id);
-  if (error) return { ok: false, errorKey: 'dbError', errorValues: { message: error.message } };
+  if (error) {
+    const isFk =
+      (error as { code?: string }).code === '23503' || /foreign key|violates/i.test(error.message ?? '');
+    if (isFk) {
+      const { error: archErr } = await supabase
+        .from('products')
+        .update({ is_active: false } as never)
+        .eq('id', id);
+      if (archErr)
+        return { ok: false, errorKey: 'dbError', errorValues: { message: archErr.message } };
+      revalidatePath('/manager');
+      return { ok: true };
+    }
+    return { ok: false, errorKey: 'dbError', errorValues: { message: error.message } };
+  }
   revalidatePath('/manager');
   return { ok: true };
 }

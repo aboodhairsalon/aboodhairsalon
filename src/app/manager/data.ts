@@ -52,17 +52,21 @@ export async function getManagerCollections(_tenantId: string): Promise<ManagerC
     .order('sort_order', { ascending: true })
     .order('created_at', { ascending: true });
 
+  // is_active=true uniquement : un service/produit « supprimé » avec
+  // historique est archivé (is_active=false) côté deleteService/deleteProduct
+  // — il ne doit plus apparaître dans l'admin (cohérent avec « supprimé »),
+  // tout en restant en DB pour préserver les références RDV/ventes.
   const servicesRes = await supabase
     .from('services')
     .select('*')
-    
+    .eq('is_active', true)
     .order('sort_order', { ascending: true })
     .order('created_at', { ascending: true });
 
   const productsRes = await supabase
     .from('products')
     .select('*')
-    
+    .eq('is_active', true)
     .order('created_at', { ascending: true });
 
   const galleryRes = await supabase
