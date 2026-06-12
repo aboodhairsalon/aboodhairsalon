@@ -2818,6 +2818,51 @@ function ManagerServices({ services, setServices }: ServicesProps) {
   // l'ordre intra-groupe). DOIT être déclaré APRÈS `sections`.
   const dndEnabled = (sections?.length ?? 0) > 0;
 
+  // Réordonnance les SECTIONS (chevrons ⬆⬇ sur le header). Quand l'ordre des
+  // sections change, on réordonne aussi les services en DB pour que la caisse
+  // (qui groupe par catégorie) voie le même ordre que le manager.
+  const moveSection = (name: string, direction: 'up' | 'down') => {
+    const idx = sections.indexOf(name);
+    if (idx < 0) return;
+    const newIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (newIdx < 0 || newIdx >= sections.length) return;
+
+    // 1. Nouvel ordre des sections (localStorage via setSections).
+    const nextSections = [...sections];
+    const [moved] = nextSections.splice(idx, 1);
+    if (!moved) return;
+    nextSections.splice(newIdx, 0, moved);
+
+    // 2. Réordonne services pour qu'ils suivent le nouvel ordre des sections.
+    //    On itère les sections dans leur nouvel ordre + on append les
+    //    unassigned à la fin (cohérent avec l'affichage manager + cashier).
+    const orderedServices: Service[] = [];
+    for (const sec of nextSections) {
+      orderedServices.push(...services.filter((s) => s.category?.trim() === sec));
+    }
+    orderedServices.push(
+      ...services.filter((s) => {
+        const cat = s.category?.trim() ?? '';
+        return !cat || !nextSections.includes(cat);
+      }),
+    );
+
+    // 3. Optimistic UI (sections + services).
+    setSections(nextSections);
+    setServices(orderedServices);
+
+    // 4. Push le nouvel ordre de services en DB (sort_order = index).
+    startTransition(async () => {
+      const res = await reorderServices(orderedServices.map((s) => s.id));
+      if (!res.ok) {
+        toast.error(tErrors(res.errorKey as 'dbError', res.errorValues));
+        // Rollback les deux.
+        setSections(sections);
+        setServices(services);
+      }
+    });
+  };
+
   const handleDropOnCategory = (target: string | undefined) => {
     if (!draggingId) return;
     const service = services.find((s) => s.id === draggingId);
@@ -3011,23 +3056,47 @@ function ManagerServices({ services, setServices }: ServicesProps) {
       {/* Vue sectionée */}
       {sections.length > 0 && (
         <>
-          {sections.map((sectionName) => {
+          {sections.map((sectionName, sectionIdx) => {
             const items = grouped.bySection.get(sectionName) ?? [];
+            const isFirstSection = sectionIdx === 0;
+            const isLastSection = sectionIdx === sections.length - 1;
             return (
               <div key={sectionName} className="mb-10 last:mb-0">
                 <div className="border-line/60 mb-4 flex items-center justify-between border-b pb-2">
                   <span className="mono text-brand-primary text-[10px] uppercase tracking-[0.3em]">
                     {sectionName}
                   </span>
-                  {items.length === 0 && (
+                  <div className="flex items-center gap-1">
                     <button
                       type="button"
-                      onClick={() => deleteSection(sectionName)}
-                      className="btn-press mono text-ink-soft hover:text-red text-[10px] uppercase tracking-wider"
+                      onClick={() => moveSection(sectionName, 'up')}
+                      disabled={isFirstSection}
+                      title={t('moveUpBtn')}
+                      aria-label={t('moveUpBtn')}
+                      className="btn-press text-ink-mute hover:text-ink rounded-sm p-1 disabled:cursor-not-allowed disabled:opacity-30"
                     >
-                      {t('deleteSectionBtn')}
+                      <ChevronUp className="h-3.5 w-3.5" />
                     </button>
-                  )}
+                    <button
+                      type="button"
+                      onClick={() => moveSection(sectionName, 'down')}
+                      disabled={isLastSection}
+                      title={t('moveDownBtn')}
+                      aria-label={t('moveDownBtn')}
+                      className="btn-press text-ink-mute hover:text-ink rounded-sm p-1 disabled:cursor-not-allowed disabled:opacity-30"
+                    >
+                      <ChevronDown className="h-3.5 w-3.5" />
+                    </button>
+                    {items.length === 0 && (
+                      <button
+                        type="button"
+                        onClick={() => deleteSection(sectionName)}
+                        className="btn-press mono text-ink-soft hover:text-red text-[10px] uppercase tracking-wider ms-2"
+                      >
+                        {t('deleteSectionBtn')}
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <div
                   className={`grid gap-3 sm:grid-cols-2 lg:grid-cols-3 rounded-sm transition-colors ${
