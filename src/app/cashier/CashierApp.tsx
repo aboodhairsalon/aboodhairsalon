@@ -1512,22 +1512,46 @@ function CashierPOS({
         </div>
 
         <Divider label={t('servicesDivider')} />
-        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-          {services.map((s) => (
-            <button
-              key={s.id}
-              type="button"
-              onClick={() => add({ id: s.id, name: s.name, priceCents: s.priceCents }, 'service')}
-              className="btn-press tile-hover border-line bg-surface rounded-sm border p-4 text-start"
-            >
-              <div className="text-brand-primary mb-2">
-                <ServiceIcon iconKey={s.icon} className="h-5 w-5" />
+        {/* Groupé par categorie : reflète l'organisation faite par le gérant
+            côté Manager (drag-and-drop entre sections). Si aucun service n'a
+            de catégorie, on rend une seule grille plate (aucun header). */}
+        {(() => {
+          const grouped: Array<[string, typeof services]> = [];
+          for (const s of services) {
+            const cat = s.category?.trim() ?? '';
+            let entry = grouped.find(([c]) => c === cat);
+            if (!entry) {
+              entry = [cat, []];
+              grouped.push(entry);
+            }
+            entry[1].push(s);
+          }
+          return grouped.map(([cat, items]) => (
+            <div key={cat || '__none__'} className={cat ? 'mt-3' : ''}>
+              {cat && (
+                <div className="mono text-ink-soft mb-2 text-[10px] uppercase tracking-wider">
+                  {cat}
+                </div>
+              )}
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                {items.map((s) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => add({ id: s.id, name: s.name, priceCents: s.priceCents }, 'service')}
+                    className="btn-press tile-hover border-line bg-surface rounded-sm border p-4 text-start"
+                  >
+                    <div className="text-brand-primary mb-2">
+                      <ServiceIcon iconKey={s.icon} className="h-5 w-5" />
+                    </div>
+                    <div className="display mb-1 text-base">{s.name}</div>
+                    <div className="mono text-ink text-sm">{fmt(s.priceCents)}</div>
+                  </button>
+                ))}
               </div>
-              <div className="display mb-1 text-base">{s.name}</div>
-              <div className="mono text-ink text-sm">{fmt(s.priceCents)}</div>
-            </button>
-          ))}
-        </div>
+            </div>
+          ));
+        })()}
 
         <Divider label={t('productsDivider')} />
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">

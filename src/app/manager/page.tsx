@@ -2755,6 +2755,7 @@ function ManagerServices({ services, setServices }: ServicesProps) {
   const currency = tenantSession?.tenant.currency ?? localProfile.currency;
   const [editing, setEditing] = useState<Service | null>(null);
   const [, startTransition] = useTransition();
+  const [draggingId, setDraggingId] = useState<string | null>(null);
 
   // Réordonnancement : déplace une carte d'un cran dans son groupe (vue plate
   // OU section). On reconstitue l'ordre GLOBAL à partir de l'ordre local et on
@@ -2810,6 +2811,45 @@ function ManagerServices({ services, setServices }: ServicesProps) {
   // problème "Prestations vide + toutes les prestations sous Sans section".
   const [sections, setSections] = useLocalSections('systema:service-sections');
   const [creatingSection, setCreatingSection] = useState(false);
+
+  // DnD : drag depuis une carte → drop sur une section change la catégorie
+  // du service en DB. Activé SEULEMENT quand des sections existent (en vue
+  // plate il n'y a rien sur quoi droper, on garde les chevrons pour
+  // l'ordre intra-groupe). DOIT être déclaré APRÈS `sections`.
+  const dndEnabled = (sections?.length ?? 0) > 0;
+
+  const handleDropOnCategory = (target: string | undefined) => {
+    if (!draggingId) return;
+    const service = services.find((s) => s.id === draggingId);
+    setDraggingId(null);
+    if (!service) return;
+    const currentCat = service.category?.trim() || undefined;
+    const newCat = target?.trim() || undefined;
+    if (currentCat === newCat) return;
+
+    // Optimistic : on bouge la carte dans le state.
+    setServices((prev) =>
+      prev.map((s) => (s.id === service.id ? { ...s, category: newCat } : s)),
+    );
+
+    startTransition(async () => {
+      const res = await updateService(service.id, {
+        name: service.name,
+        duration: service.duration,
+        priceCents: service.priceCents,
+        icon: service.icon,
+        desc: service.desc ?? '',
+        category: newCat,
+      });
+      if (!res.ok) {
+        toast.error(tErrors(res.errorKey as 'dbError', res.errorValues));
+        // Rollback de l'optimistic update.
+        setServices((prev) =>
+          prev.map((s) => (s.id === service.id ? { ...s, category: currentCat } : s)),
+        );
+      }
+    });
+  };
   const [newSectionName, setNewSectionName] = useState('');
 
   const grouped = useMemo(() => {
@@ -2843,7 +2883,17 @@ function ManagerServices({ services, setServices }: ServicesProps) {
     const isFirst = idx === 0;
     const isLast = idx === siblings.length - 1;
     return (
-    <Card key={s.id} className="group p-5">
+    <div
+      key={s.id}
+      draggable={dndEnabled}
+      onDragStart={(e) => {
+        setDraggingId(s.id);
+        e.dataTransfer.effectAllowed = 'move';
+      }}
+      onDragEnd={() => setDraggingId(null)}
+      className={`transition-opacity ${draggingId === s.id ? 'opacity-40' : ''} ${dndEnabled ? 'cursor-grab active:cursor-grabbing' : ''}`}
+    >
+    <Card className="group p-5">
       <div className="mb-3 flex items-start justify-between">
         <div className="text-brand-primary">
           <ServiceIcon iconKey={s.icon} className="h-6 w-6" />
@@ -2895,6 +2945,7 @@ function ManagerServices({ services, setServices }: ServicesProps) {
         <span className="display text-brand-primary mono text-xl">{fmt(s.priceCents)}</span>
       </div>
     </Card>
+    </div>
     );
   };
 
@@ -2978,7 +3029,15 @@ function ManagerServices({ services, setServices }: ServicesProps) {
                     </button>
                   )}
                 </div>
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                <div
+                  className={`grid gap-3 sm:grid-cols-2 lg:grid-cols-3 rounded-sm transition-colors ${
+                    dndEnabled && draggingId ? 'bg-brand-primary/5 outline outline-dashed outline-2 outline-brand-primary/30 -outline-offset-4 p-2' : ''
+                  }`}
+                  onDragOver={(e) => {
+                    if (dndEnabled && draggingId) e.preventDefault();
+                  }}
+                  onDrop={() => handleDropOnCategory(sectionName)}
+                >
                   {items.map((s) => renderServiceCard(s, items))}
                   <button
                     type="button"
@@ -3004,7 +3063,15 @@ function ManagerServices({ services, setServices }: ServicesProps) {
               <div className="mono text-ink-soft border-line/60 mb-4 border-b pb-2 text-[10px] uppercase tracking-[0.3em]">
                 {t('noSection')}
               </div>
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <div
+                className={`grid gap-3 sm:grid-cols-2 lg:grid-cols-3 rounded-sm transition-colors ${
+                  dndEnabled && draggingId ? 'bg-brand-primary/5 outline outline-dashed outline-2 outline-brand-primary/30 -outline-offset-4 p-2' : ''
+                }`}
+                onDragOver={(e) => {
+                  if (dndEnabled && draggingId) e.preventDefault();
+                }}
+                onDrop={() => handleDropOnCategory(undefined)}
+              >
                 {grouped.unassigned.map((s) => renderServiceCard(s, grouped.unassigned))}
               </div>
             </div>
