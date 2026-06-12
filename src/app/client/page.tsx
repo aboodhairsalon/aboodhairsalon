@@ -1959,55 +1959,92 @@ function ClientBookingFlow({
             >
               {t('step1Header')}
             </h3>
-            {/* Grid 2 colonnes même sur mobile — cards carré arrondi.
-                Sur sm+, le ratio reste mais le contenu respire un peu plus. */}
-            <div className="grid grid-cols-2 gap-3">
-              {services.map((s, i) => (
-                <button
-                  key={s.id}
-                  type="button"
-                  onClick={() => {
-                    setServiceId(s.id);
-                    setStep(2);
-                  }}
-                  className={`btn-press fade-up flex cursor-pointer flex-col rounded-2xl border p-3.5 text-start transition-all delay-${(i % 6) + 1}`}
-                  style={{
-                    background: LC.card,
-                    borderColor: serviceId === s.id ? LC.btn : LC.cardBorder,
-                    boxShadow:
-                      serviceId === s.id
-                        ? '0 0 28px rgba(40,35,28,0.24), 0 0 2px rgba(40,35,28,0.16)'
-                        : '0 0 20px rgba(40,35,28,0.14), 0 0 1px rgba(40,35,28,0.10)',
-                    aspectRatio: '1 / 1',
-                    minHeight: 160,
-                  }}
-                >
-                  <div className="flex flex-1 items-center justify-center py-3">
-                    <div
-                      className="flex h-16 w-16 items-center justify-center rounded-2xl"
-                      style={{ background: LC.inputBg, color: LC.btn }}
-                    >
-                      <ServiceIcon iconKey={s.icon} className="h-8 w-8" />
+            {/* Services GROUPÉS par catégorie (reflète l'organisation faite
+                par le gérant côté Manager). Chaque catégorie = un en-tête
+                « NOM ──────── » + sa grille 2 colonnes. Les services sans
+                catégorie restent en tête, sans en-tête. Si aucune catégorie
+                n'est définie → rendu plat identique à avant (pas de header). */}
+            {(() => {
+              const groups: Array<[string, typeof services]> = [];
+              for (const s of services) {
+                const cat = s.category?.trim() ?? '';
+                let entry = groups.find(([c]) => c === cat);
+                if (!entry) {
+                  entry = [cat, []];
+                  groups.push(entry);
+                }
+                entry[1].push(s);
+              }
+              return groups.map(([cat, items], gi) => (
+                <div key={cat || '__none__'} className={gi > 0 ? 'mt-7' : ''}>
+                  {cat && (
+                    <div className="mb-3 flex items-center gap-3">
+                      <span
+                        className="mono text-[11px] font-semibold uppercase tracking-[0.25em]"
+                        style={{ color: LC.btn }}
+                      >
+                        {cat}
+                      </span>
+                      <div className="h-px flex-1" style={{ background: LC.cardBorder }} />
                     </div>
+                  )}
+                  {/* Grid 2 colonnes même sur mobile — cards carré arrondi. */}
+                  <div className="grid grid-cols-2 gap-3">
+                    {items.map((s, i) => (
+                      <button
+                        key={s.id}
+                        type="button"
+                        onClick={() => {
+                          setServiceId(s.id);
+                          setStep(2);
+                        }}
+                        className={`btn-press fade-up flex cursor-pointer flex-col rounded-2xl border p-3.5 text-start transition-all delay-${(i % 6) + 1}`}
+                        style={{
+                          background: LC.card,
+                          borderColor: serviceId === s.id ? LC.btn : LC.cardBorder,
+                          boxShadow:
+                            serviceId === s.id
+                              ? '0 0 28px rgba(40,35,28,0.24), 0 0 2px rgba(40,35,28,0.16)'
+                              : '0 0 20px rgba(40,35,28,0.14), 0 0 1px rgba(40,35,28,0.10)',
+                          aspectRatio: '1 / 1',
+                          minHeight: 160,
+                        }}
+                      >
+                        <div className="flex flex-1 items-center justify-center py-3">
+                          <div
+                            className="flex h-16 w-16 items-center justify-center rounded-2xl"
+                            style={{ background: LC.inputBg, color: LC.btn }}
+                          >
+                            <ServiceIcon iconKey={s.icon} className="h-8 w-8" />
+                          </div>
+                        </div>
+                        <div
+                          className="display text-base leading-tight"
+                          style={{ color: LC.title }}
+                        >
+                          {s.name}
+                        </div>
+                        <div className="mt-1.5 flex items-end justify-between">
+                          <div
+                            className="mono text-[9px] uppercase tracking-[0.2em]"
+                            style={{ color: LC.back }}
+                          >
+                            <Clock className="me-1 inline h-3 w-3" />
+                            {s.duration} min
+                          </div>
+                          <span
+                            className="mono text-[13px] font-semibold"
+                            style={{ color: LC.title }}
+                          >
+                            {fmt(s.priceCents)}
+                          </span>
+                        </div>
+                      </button>
+                    ))}
                   </div>
-                  <div className="display text-base leading-tight" style={{ color: LC.title }}>
-                    {s.name}
-                  </div>
-                  <div className="mt-1.5 flex items-end justify-between">
-                    <div
-                      className="mono text-[9px] uppercase tracking-[0.2em]"
-                      style={{ color: LC.back }}
-                    >
-                      <Clock className="me-1 inline h-3 w-3" />
-                      {s.duration} min
-                    </div>
-                    <span className="mono text-[13px] font-semibold" style={{ color: LC.title }}>
-                      {fmt(s.priceCents)}
-                    </span>
-                  </div>
-                </button>
-              ))}
-            </div>
+                </div>
+              ));
+            })()}
           </div>
         )}
 

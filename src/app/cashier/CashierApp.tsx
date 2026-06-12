@@ -1627,7 +1627,6 @@ function CashierPOS({
           style={{ borderInlineStartWidth: '3px', borderInlineStartColor: '#10B981' }}
         >
           <h3 className="display text-base leading-tight">{t('surplusHeader')}</h3>
-          <p className="text-ink-soft mt-0.5 text-[11px]">{t('surplusSubheader')}</p>
           <div className="mt-3 grid grid-cols-[1fr_110px] gap-2">
             <input
               type="text"
@@ -1668,7 +1667,6 @@ function CashierPOS({
           style={{ borderInlineStartWidth: '3px', borderInlineStartColor: '#DC2626' }}
         >
           <h3 className="display text-base leading-tight">{t('discountHeader')}</h3>
-          <p className="text-ink-soft mt-0.5 text-[11px]">{t('discountSubheader')}</p>
           <div className="mt-3 grid grid-cols-[1fr_110px] gap-2">
             <input
               type="text"
