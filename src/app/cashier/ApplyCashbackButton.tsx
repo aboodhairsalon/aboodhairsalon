@@ -21,6 +21,47 @@ import { useFmtMoney } from '../_data/local-state';
 import { useToast } from '../_components/Toast';
 import { getCashbackBalance, redeemCashbackForSale } from './cashback-actions';
 
+/**
+ * CashbackHint — indicateur LECTURE SEULE du solde cashback d'un client,
+ * à afficher dès qu'un client est rattaché au ticket (avant l'encaissement).
+ *
+ * Répond au besoin : « le caissier doit voir le cashback du client quand il
+ * clique sur son nom ». L'APPLICATION réelle (débit) reste dans la modale de
+ * paiement via ApplyCashbackButton (on ne peut appliquer qu'une fois le total
+ * connu). Ici on informe seulement.
+ */
+export function CashbackHint({ tenantId, phone }: { tenantId: string; phone: string }) {
+  const t = useTranslations('cashier.cashback');
+  const fmt = useFmtMoney();
+  const [availableCents, setAvailableCents] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!tenantId || !phone) {
+      setAvailableCents(null);
+      return;
+    }
+    let alive = true;
+    void getCashbackBalance(tenantId, phone).then((res) => {
+      if (!alive) return;
+      setAvailableCents(res.ok ? res.availableCents : 0);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [tenantId, phone]);
+
+  if (!availableCents || availableCents <= 0) return null;
+  return (
+    <div
+      className="mt-2 flex items-center gap-2 rounded-sm border px-3 py-2 text-xs"
+      style={{ borderColor: 'rgba(224,162,61,0.4)', background: 'rgba(224,162,61,0.08)' }}
+    >
+      <Wallet className="h-4 w-4 shrink-0" strokeWidth={1.8} style={{ color: '#E0A23D' }} />
+      <span className="text-ink">{t('availableHint', { amount: fmt(availableCents) })}</span>
+    </div>
+  );
+}
+
 interface ApplyCashbackButtonProps {
   tenantId: string;
   phone: string;

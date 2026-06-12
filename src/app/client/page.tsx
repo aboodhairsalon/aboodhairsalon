@@ -3575,7 +3575,12 @@ function ProfileTab({
       comment: pendingComments[visit.id],
     })
       .then((r) => {
-        if (r.ok) {
+        // `alreadyReviewed` = l'avis EXISTE déjà en base (contrainte UNIQUE).
+        // On traite ça comme un succès : on retire la visite de la liste au
+        // lieu d'afficher une erreur. Sans ça, un avis re-proposé après une
+        // race/refresh affichait « déjà noté » en rouge et laissait le
+        // formulaire — le client croyait qu'on lui redemandait sans fin.
+        if (r.ok || r.errorKey === 'alreadyReviewed') {
           markVisitSubmitted(visit.id);
           setVisits((v) => v.filter((x) => x.id !== visit.id));
         } else {

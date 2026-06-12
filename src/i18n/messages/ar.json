@@ -881,6 +881,7 @@
     },
     "cashback": {
       "availableLabel": "الاسترداد النقدي المتاح",
+      "availableHint": "رصيد استرداد متاح: {amount} — قابل للتطبيق عند الدفع",
       "applyBtn": "تطبيق {amount}",
       "appliedLabel": "تم تطبيق الاسترداد: {amount}",
       "appliedToast": "تم تطبيق {amount} من الاسترداد النقدي."

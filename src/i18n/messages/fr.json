@@ -880,6 +880,7 @@
     },
     "cashback": {
       "availableLabel": "Cashback disponible",
+      "availableHint": "Cashback disponible : {amount} — applicable à l'encaissement",
       "applyBtn": "Appliquer {amount}",
       "appliedLabel": "Cashback appliqué : {amount}",
       "appliedToast": "{amount} de cashback appliqué."

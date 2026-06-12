@@ -45,7 +45,7 @@ import {
   setBookingExtras,
 } from '../manager/booking-actions';
 import { ClientSelector, type SelectedClient } from './ClientSelector';
-import { ApplyCashbackButton } from './ApplyCashbackButton';
+import { ApplyCashbackButton, CashbackHint } from './ApplyCashbackButton';
 import { ClientsToCheckoutSection } from './ClientsToCheckoutSection';
 import { ReceiptQRModal, type ReceiptQRClient } from './ReceiptQRModal';
 import { RefundModal } from './RefundModal';
@@ -1361,6 +1361,12 @@ function CashierPOS({
             </span>
           </span>
           <ClientSelector tenantId={tenantId} value={client} onChange={setClient} />
+          {/* Solde cashback du client dès qu'il est rattaché — le caissier le
+              voit immédiatement (avant le paiement). L'application réelle se
+              fait dans la modale d'encaissement. */}
+          {tenantId && client?.phone && (
+            <CashbackHint tenantId={tenantId} phone={client.phone} />
+          )}
         </div>
 
         {/* Clients en attente d'encaissement — RDV en cours ou terminés non
