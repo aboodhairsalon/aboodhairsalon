@@ -1425,111 +1425,6 @@ function CashierPOS({
           highlightBookingId={highlightBookingId}
         />
 
-        {/* Surplus + Remise sur la MÊME ligne (lg+) — l'un AJOUTE au ticket,
-            l'autre SOUSTRAIT. Différenciés par un trait de couleur à gauche
-            (vert = ajoute, rouge = retire) pour qu'on ne se trompe pas même
-            sous pression. Sur tablette/mobile (<lg), les blocs s'empilent. */}
-        <div className="mt-5 grid grid-cols-1 gap-3 lg:grid-cols-2">
-          {/* Surplus libre (AJOUT) — accent vert. borderInlineStart (logique)
-              au lieu de borderLeft → l'accent reste du bon côté en RTL (ar). */}
-          <div
-            className="bg-surface border-line rounded-sm border p-4"
-            style={{ borderInlineStartWidth: '3px', borderInlineStartColor: '#10B981' }}
-          >
-          <h3 className="display text-base leading-tight">{t('surplusHeader')}</h3>
-          <p className="text-ink-soft mt-0.5 text-[11px]">{t('surplusSubheader')}</p>
-          {/* Layout en 2 lignes pour rester lisible même en demi-largeur :
-              ligne 1 = description + montant (grid 2 cols), ligne 2 = bouton
-              pleine largeur. Sur mobile c'est aussi un gros tap target. */}
-          <div className="mt-3 grid grid-cols-[1fr_110px] gap-2">
-            <input
-              type="text"
-              value={surplusDesc}
-              onChange={(e) => setSurplusDesc(e.target.value)}
-              placeholder={t('surplusDescPlaceholder')}
-              className="border-line bg-bg-soft text-ink placeholder:text-ink-soft focus:border-brand-primary rounded-sm border px-3 py-2 text-sm outline-none"
-            />
-            <input
-              type="number"
-              inputMode="decimal"
-              min={0}
-              step="0.01"
-              value={surplusAmount}
-              onChange={(e) => setSurplusAmount(e.target.value)}
-              placeholder={t('surplusAmountPlaceholder')}
-              className="border-line bg-bg-soft text-ink placeholder:text-ink-soft focus:border-brand-primary mono rounded-sm border px-3 py-2 text-sm outline-none"
-            />
-          </div>
-          <button
-            type="button"
-            onClick={addSurplus}
-            disabled={!surplusValid}
-            className={`btn-press mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-sm px-4 py-2 text-xs font-semibold transition-colors ${
-              surplusValid
-                ? 'border-brand-primary/60 bg-brand-primary/5 text-brand-primary hover:bg-brand-primary/10 border'
-                : 'border-line text-ink-soft cursor-not-allowed border opacity-50'
-            }`}
-          >
-            <Plus className="h-3.5 w-3.5" strokeWidth={2} />
-            {t('surplusAddBtn')}
-          </button>
-        </div>
-
-          {/* Remise libre (SOUSTRACTION) — accent rouge. Miroir du surplus
-              avec amount négatif (sale_items.unit_price_cents signée, cf.
-              migration 0005). Cap = total courant : pas de ticket négatif. */}
-          <div
-            className="bg-surface border-line rounded-sm border p-4"
-            style={{ borderInlineStartWidth: '3px', borderInlineStartColor: '#DC2626' }}
-          >
-          <h3 className="display text-base leading-tight">{t('discountHeader')}</h3>
-          <p className="text-ink-soft mt-0.5 text-[11px]">{t('discountSubheader')}</p>
-          {/* Même layout 2-lignes que le surplus pour rester compact en
-              demi-largeur. */}
-          <div className="mt-3 grid grid-cols-[1fr_110px] gap-2">
-            <input
-              type="text"
-              value={discountDesc}
-              onChange={(e) => setDiscountDesc(e.target.value)}
-              placeholder={t('discountDescPlaceholder')}
-              className="border-line bg-bg-soft text-ink placeholder:text-ink-soft focus:border-brand-primary rounded-sm border px-3 py-2 text-sm outline-none"
-            />
-            <input
-              type="number"
-              inputMode="decimal"
-              min={0}
-              step="0.01"
-              value={discountAmount}
-              onChange={(e) => setDiscountAmount(e.target.value)}
-              placeholder={t('discountAmountPlaceholder')}
-              className="border-line bg-bg-soft text-ink placeholder:text-ink-soft focus:border-brand-primary mono rounded-sm border px-3 py-2 text-sm outline-none"
-            />
-          </div>
-          <button
-            type="button"
-            onClick={addDiscount}
-            disabled={!discountValid}
-            // Teinte rouge (vs vert/brand du surplus) — renforce « je retire ».
-            style={
-              discountValid
-                ? { borderColor: 'rgba(220,38,38,0.5)', backgroundColor: 'rgba(220,38,38,0.06)', color: '#B91C1C' }
-                : undefined
-            }
-            className={`btn-press mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-sm border px-4 py-2 text-xs font-semibold transition-colors ${
-              discountValid ? '' : 'border-line text-ink-soft cursor-not-allowed opacity-50'
-            }`}
-          >
-            <Minus className="h-3.5 w-3.5" strokeWidth={2} />
-            {t('discountAddBtn')}
-          </button>
-          {discountExceedsTotal && (
-            <p className="mt-2 text-[11px] font-medium" style={{ color: '#B91C1C' }}>
-              {t('discountExceedsTotal')}
-            </p>
-          )}
-          </div>
-        </div>
-
         <Divider label={t('servicesDivider')} />
         {/* Groupé par categorie : reflète l'organisation faite par le gérant
             côté Manager (drag-and-drop entre sections). Si aucun service n'a
@@ -1603,7 +1498,10 @@ function CashierPOS({
         </div>
       </div>
 
-      <Card className="self-start p-5 lg:sticky lg:top-32">
+      {/* Colonne droite : ticket + ajustements (Surplus / Remise) empilés
+          DESSOUS le ticket. Le tout sticky comme un seul panneau. */}
+      <div className="self-start space-y-4 lg:sticky lg:top-32">
+      <Card className="p-5">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="display text-2xl">{t('ticket')}</h3>
           {cart.length > 0 && (
@@ -1719,6 +1617,101 @@ function CashierPOS({
           {t('collect')}
         </Btn>
       </Card>
+
+      {/* Ajustements libres — Surplus (ajoute) + Remise (soustrait), empilés
+          SOUS le ticket. Accent vert/rouge + bouton, pour ne jamais confondre. */}
+      <div className="space-y-3">
+        {/* Surplus libre (AJOUT) — accent vert (borderInlineStart = RTL-safe). */}
+        <div
+          className="bg-surface border-line rounded-sm border p-4"
+          style={{ borderInlineStartWidth: '3px', borderInlineStartColor: '#10B981' }}
+        >
+          <h3 className="display text-base leading-tight">{t('surplusHeader')}</h3>
+          <p className="text-ink-soft mt-0.5 text-[11px]">{t('surplusSubheader')}</p>
+          <div className="mt-3 grid grid-cols-[1fr_110px] gap-2">
+            <input
+              type="text"
+              value={surplusDesc}
+              onChange={(e) => setSurplusDesc(e.target.value)}
+              placeholder={t('surplusDescPlaceholder')}
+              className="border-line bg-bg-soft text-ink placeholder:text-ink-soft focus:border-brand-primary rounded-sm border px-3 py-2 text-sm outline-none"
+            />
+            <input
+              type="number"
+              inputMode="decimal"
+              min={0}
+              step="0.01"
+              value={surplusAmount}
+              onChange={(e) => setSurplusAmount(e.target.value)}
+              placeholder={t('surplusAmountPlaceholder')}
+              className="border-line bg-bg-soft text-ink placeholder:text-ink-soft focus:border-brand-primary mono rounded-sm border px-3 py-2 text-sm outline-none"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={addSurplus}
+            disabled={!surplusValid}
+            className={`btn-press mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-sm px-4 py-2 text-xs font-semibold transition-colors ${
+              surplusValid
+                ? 'border-brand-primary/60 bg-brand-primary/5 text-brand-primary hover:bg-brand-primary/10 border'
+                : 'border-line text-ink-soft cursor-not-allowed border opacity-50'
+            }`}
+          >
+            <Plus className="h-3.5 w-3.5" strokeWidth={2} />
+            {t('surplusAddBtn')}
+          </button>
+        </div>
+
+        {/* Remise libre (SOUSTRACTION) — accent rouge. Cap = total courant. */}
+        <div
+          className="bg-surface border-line rounded-sm border p-4"
+          style={{ borderInlineStartWidth: '3px', borderInlineStartColor: '#DC2626' }}
+        >
+          <h3 className="display text-base leading-tight">{t('discountHeader')}</h3>
+          <p className="text-ink-soft mt-0.5 text-[11px]">{t('discountSubheader')}</p>
+          <div className="mt-3 grid grid-cols-[1fr_110px] gap-2">
+            <input
+              type="text"
+              value={discountDesc}
+              onChange={(e) => setDiscountDesc(e.target.value)}
+              placeholder={t('discountDescPlaceholder')}
+              className="border-line bg-bg-soft text-ink placeholder:text-ink-soft focus:border-brand-primary rounded-sm border px-3 py-2 text-sm outline-none"
+            />
+            <input
+              type="number"
+              inputMode="decimal"
+              min={0}
+              step="0.01"
+              value={discountAmount}
+              onChange={(e) => setDiscountAmount(e.target.value)}
+              placeholder={t('discountAmountPlaceholder')}
+              className="border-line bg-bg-soft text-ink placeholder:text-ink-soft focus:border-brand-primary mono rounded-sm border px-3 py-2 text-sm outline-none"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={addDiscount}
+            disabled={!discountValid}
+            style={
+              discountValid
+                ? { borderColor: 'rgba(220,38,38,0.5)', backgroundColor: 'rgba(220,38,38,0.06)', color: '#B91C1C' }
+                : undefined
+            }
+            className={`btn-press mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-sm border px-4 py-2 text-xs font-semibold transition-colors ${
+              discountValid ? '' : 'border-line text-ink-soft cursor-not-allowed opacity-50'
+            }`}
+          >
+            <Minus className="h-3.5 w-3.5" strokeWidth={2} />
+            {t('discountAddBtn')}
+          </button>
+          {discountExceedsTotal && (
+            <p className="mt-2 text-[11px] font-medium" style={{ color: '#B91C1C' }}>
+              {t('discountExceedsTotal')}
+            </p>
+          )}
+        </div>
+      </div>
+      </div>
 
       <PaymentModal
         open={paying}
