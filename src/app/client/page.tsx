@@ -3186,6 +3186,7 @@ function ProfileTab({
 }) {
   const t = useTranslations('client.profile');
   const tErrors = useTranslations('client.errors');
+  const toast = useToast();
   // Formatter monnaie selon la devise du tenant — utilisé pour afficher le
   // wallet cashback avec la bonne devise (EGP / EUR / USD…).
   const fmtMoney = useFmtMoney();
@@ -3543,6 +3544,11 @@ function ProfileTab({
       });
       if (result.ok) {
         setSaved(true);
+        // Toast EXPLICITE en plus du ✓ sur le bouton : le seul changement de
+        // libellé (Save → Saved, 3s) passait inaperçu → le client croyait
+        // que « rien ne se passe ». Le toast est une confirmation sans
+        // ambiguïté (retour utilisateur QR).
+        toast.success(t('edit.saved'));
         setTimeout(() => setSaved(false), 3000);
       } else {
         setFormError(tErrors(result.errorKey as 'dbError', result.errorValues));

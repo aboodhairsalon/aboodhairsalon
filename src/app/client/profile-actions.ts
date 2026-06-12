@@ -396,8 +396,12 @@ export async function upsertClientProfile(input: UpsertProfileInput): Promise<Sa
       actor_id: null,
       table_name: 'client_profiles',
       row_id: phone.trim(),
-      operation: 'email_changed_by_self',
-      diff: { from: oldEmail, to: newEmail },
+      // CHECK DB : operation IN ('INSERT','UPDATE','DELETE'). L'ancienne
+      // valeur 'email_changed_by_self' violait la contrainte → l'insert
+      // (void) échouait silencieusement → trace perdue. Le type d'événement
+      // vit dans diff.event.
+      operation: 'UPDATE',
+      diff: { event: 'email_changed_by_self', from: oldEmail, to: newEmail },
     });
 
     // Nom du tenant pour la notif — on le lookup à part. Pas critique si
