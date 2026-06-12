@@ -851,6 +851,10 @@
     "errors": {
       "unknownError": "Unknown error.",
       "slotTaken": "This slot was just taken. Please choose another time.",
+      "dateOutOfRange": "This slot is already past or too far ahead. Please pick another time.",
+      "dobRequired": "Date of birth is required.",
+      "dobInvalid": "Invalid date of birth.",
+      "discountExceedsTotal": "The discount exceeds the ticket total.",
       "bookingNotFound": "Booking not found.",
       "bookingUpdateFailed": "Booking update failed: {message}",
       "saleCreateFailed": "Sale creation failed: {message}",

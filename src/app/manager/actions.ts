@@ -12,8 +12,10 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createAdminClient, type Database } from '@/db';
+import { SALON } from '@/config/salon';
 import { requireTenant } from '../_data/auth-server';
 import { getServerSupabase } from '../_data/supabase-server';
+import { clearFromAddressCache } from '../_lib/email-sender';
 import { rlCashierAdmin } from '../_lib/rate-limit';
 
 type TenantsUpdate = Database['public']['Tables']['tenants']['Update'];
@@ -274,6 +276,10 @@ export async function updateSalonProfile(input: SalonProfileInput): Promise<Salo
     return { ok: false, errorKey: 'settingsRowMissing' };
   }
 
+  // L'adresse d'expéditeur email est mise en cache 60 s — on l'invalide pour
+  // que `email_from_address` fraîchement modifié prenne effet immédiatement.
+  clearFromAddressCache();
+
   revalidatePath('/manager');
   return { ok: true };
 }
@@ -402,7 +408,11 @@ export async function createCashierAccess(input: CashierAccessInput): Promise<Ca
     email,
     password,
     email_confirm: true,
-    app_metadata: { role: 'cashier', staff_id: staffId },
+    // tenant_id : requis par les policies RLS (current_tenant_id()) pour que
+    // les lectures session du compte caissier passent. Son absence sur les
+    // comptes historiques a causé toute une famille de bugs silencieux
+    // (réglages par défaut, TVA fantôme…) — backfillée le 2026-06-12.
+    app_metadata: { role: 'cashier', staff_id: staffId, tenant_id: SALON.tenantUuid },
   });
   if (userErr || !userData?.user) {
     return {

@@ -851,6 +851,10 @@
     "errors": {
       "unknownError": "Erreur inconnue.",
       "slotTaken": "Ce créneau vient d'être pris. Veuillez choisir un autre horaire.",
+      "dateOutOfRange": "Ce créneau est déjà passé ou trop lointain. Choisissez un autre horaire.",
+      "dobRequired": "Date de naissance obligatoire.",
+      "dobInvalid": "Date de naissance invalide.",
+      "discountExceedsTotal": "La remise dépasse le total du ticket.",
       "bookingNotFound": "Réservation introuvable.",
       "bookingUpdateFailed": "Erreur mise à jour réservation : {message}",
       "saleCreateFailed": "Erreur création vente : {message}",

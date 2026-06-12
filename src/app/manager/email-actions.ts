@@ -23,6 +23,7 @@ import { Resend } from 'resend';
 import * as React from 'react';
 import { z } from 'zod';
 import { createAdminClient } from '@/db';
+import { SALON } from '@/config/salon';
 import { ReceiptEmail, type ReceiptEmailItem } from '@/emails';
 import { getCurrentUser } from '../_data/auth-server';
 import { createClientToken } from '../_lib/client-token';
@@ -47,9 +48,15 @@ async function requireAnyTenantRole(): Promise<
 > {
   const user = await getCurrentUser();
   if (!user) return { ok: false, errorKey: 'directionOnly' as const };
-  const tenantId = user.app_metadata?.['tenant_id'] as string | undefined;
-  if (!tenantId) return { ok: false, errorKey: 'tenantMissing' as const };
-  return { ok: true, userId: user.id, tenantId };
+  // Single-tenant : staff authentifié (manager/cashier) suffit. L'ancien
+  // check exigeait app_metadata.tenant_id — absent des comptes caissier
+  // historiques → l'envoi du reçu par email échouait depuis la caisse
+  // (tenantMissing silencieux). Audit. Même garde que refund-actions.
+  const role = user.app_metadata?.['role'] as string | undefined;
+  if (role && role !== 'manager' && role !== 'cashier') {
+    return { ok: false, errorKey: 'tenantMissing' as const };
+  }
+  return { ok: true, userId: user.id, tenantId: SALON.tenantUuid };
 }
 
 const SendReceiptEmailSchema = z.object({
@@ -318,13 +325,11 @@ export async function sendReceiptEmail(input: SendReceiptEmailInput): Promise<Se
   // Resend, le destinataire, son client mail, archivé indéfiniment…).
   // Le token contient {tenant, phone, exp 90j} et le serveur le vérifie
   // à l'arrivée (cf. client/page.tsx — verifyClientToken).
-  const appUrl =
-    process.env['NEXT_PUBLIC_APP_URL']?.replace(/\/$/, '') ||
-    process.env['VERCEL_URL']?.replace(/\/$/, '');
-  const spaceUrl =
-    appUrl && tenant.slug
-      ? `${appUrl.startsWith('http') ? appUrl : `https://${appUrl}`}/${tenant.slug}/client?t=${encodeURIComponent(createClientToken(guard.tenantId, sale.client_phone))}`
-      : null;
+  // URL canonique de l'espace client : host-based (book.aboodhairsalon.com),
+  // PAS de route path-slug `/{slug}/client` (elle n'existe pas → 404). Audit.
+  const spaceUrl = `${SALON.spaces.book}/client?t=${encodeURIComponent(
+    createClientToken(SALON.tenantUuid, sale.client_phone),
+  )}`;
 
   // 4. Rendu HTML + envoi
   const subject = labels.subject.replace('{salon}', tenant.name);

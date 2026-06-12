@@ -55,12 +55,16 @@ async function requireAnyTenantRole(): Promise<
 > {
   const user = await getCurrentUser();
   if (!user) return { ok: false, errorKey: 'directionOnly' as const };
-  const tenantId = user.app_metadata?.['tenant_id'] as string | undefined;
-  if (!tenantId) return { ok: false, errorKey: 'tenantMissing' as const };
+  // Single-tenant : staff authentifié suffit. L'ancien check sur le claim
+  // app_metadata.tenant_id bloquait l'abonnement push des comptes caissier
+  // historiques (tenantMissing). Audit.
   const rawRole = user.app_metadata?.['role'] as string | undefined;
   const role: 'manager' | 'cashier' | 'unknown' =
     rawRole === 'cashier' ? 'cashier' : rawRole === 'manager' ? 'manager' : 'unknown';
-  return { ok: true, userId: user.id, tenantId, role };
+  if (rawRole && role === 'unknown') {
+    return { ok: false, errorKey: 'tenantMissing' as const };
+  }
+  return { ok: true, userId: user.id, tenantId: SALON.tenantUuid, role };
 }
 
 // =============================================================================

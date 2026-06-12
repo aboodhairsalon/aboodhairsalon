@@ -223,7 +223,13 @@ export async function getCashbackBalance(
   }
   const user = await getCurrentUser();
   if (!user) return { ok: false, errorKey: 'authRequired' };
-  if ((user.app_metadata?.['tenant_id'] as string | undefined) !== tenantId) {
+  // Single-tenant : tout staff authentifié (manager/cashier) est autorisé —
+  // même garde que redeemCashbackForSale. L'ancien check sur le claim
+  // app_metadata.tenant_id bloquait l'AFFICHAGE du solde en caisse
+  // (bouton « Appliquer cashback » invisible) alors que la redemption
+  // elle-même avait déjà été corrigée. Audit.
+  const role = user.app_metadata?.['role'] as string | undefined;
+  if (role && role !== 'manager' && role !== 'cashier') {
     return { ok: false, errorKey: 'tenantNotAuthorized' };
   }
 
@@ -234,7 +240,7 @@ export async function getCashbackBalance(
   const profileRes = await admin
     .from('client_profiles')
     .select('cashback_redeemed_cents')
-    
+
     .eq('phone', normalizedPhone)
     .maybeSingle();
 

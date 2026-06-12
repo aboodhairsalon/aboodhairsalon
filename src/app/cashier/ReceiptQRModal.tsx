@@ -22,6 +22,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import QRCode from 'qrcode';
 import { useEffect, useState, useTransition } from 'react';
 import { Btn, Modal } from '@/components';
+import { SALON } from '@/config/salon';
 import { useFmtMoney } from '../_data/local-state';
 import { useTenantOrNull } from '../_components/TenantProvider';
 import { useToast } from '../_components/Toast';
@@ -55,7 +56,6 @@ export function ReceiptQRModal({
   saleId,
   method,
   tipCents,
-  slug,
 }: {
   open: boolean;
   onClose: () => void;
@@ -71,8 +71,9 @@ export function ReceiptQRModal({
   method: 'card' | 'cash' | 'mobile';
   /** Pourboire éventuel — ajouté au total dans le PDF. */
   tipCents?: number;
-  /** Slug du tenant — sert à composer l'URL du QR. */
-  slug: string;
+  /** @deprecated Slug du tenant — l'URL du QR utilise désormais
+   *  SALON.spaces.book (host-based). Prop conservée pour compat appelant. */
+  slug?: string;
 }) {
   const t = useTranslations('cashier.receiptQR');
   const tPdf = useTranslations('cashier.receiptPdf');
@@ -93,21 +94,23 @@ export function ReceiptQRModal({
   // logs / referrers. Le serveur signe `{tenant, phone, exp 90j}`, le client
   // ne peut PAS forger un token sans le secret. Fallback `?p=` retiré.
   useEffect(() => {
-    if (!open || !client || !slug) {
+    if (!open || !client) {
       setTokenUrl(null);
       return;
     }
     let alive = true;
     void issueClientToken(client.phone).then((res) => {
       if (!alive) return;
-      if (res.ok && typeof window !== 'undefined') {
-        setTokenUrl(`${window.location.origin}/${slug}/client?t=${encodeURIComponent(res.token)}`);
+      if (res.ok) {
+        // URL canonique host-based (book.aboodhairsalon.com/client) — la forme
+        // `/{slug}/client` n'a JAMAIS existé en routing → le QR 404ait. Audit.
+        setTokenUrl(`${SALON.spaces.book}/client?t=${encodeURIComponent(res.token)}`);
       }
     });
     return () => {
       alive = false;
     };
-  }, [open, client, slug]);
+  }, [open, client]);
   const url = tokenUrl ?? '';
 
   // Génère le QR à chaque ouverture (et nettoie à la fermeture pour libérer
@@ -169,14 +172,17 @@ export function ReceiptQRModal({
         tipCents,
         method,
         methodLabel,
-        currency: session?.tenant.currency ?? 'EUR',
+        currency: session?.tenant.currency ?? SALON.currency,
         clientName: displayName || null,
         qrDataUrl,
         qrCaption: url || null,
       },
       {
-        name: session?.tenant.name ?? '',
-        logoDataUrl: session?.branding.logo_url ?? null,
+        // La caisse ne monte pas de TenantProvider → session est null ici.
+        // Fallback sur les constantes SALON pour que le PDF porte bien
+        // l'identité du salon (au lieu de nom vide + EUR). Audit.
+        name: session?.tenant.name ?? SALON.name,
+        logoDataUrl: session?.branding.logo_url ?? SALON.logoUrl,
         addressStreet: session?.settings.address_street ?? null,
         addressCity: session?.settings.address_city ?? null,
         addressZip: session?.settings.address_zip ?? null,

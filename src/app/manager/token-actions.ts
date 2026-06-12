@@ -8,6 +8,7 @@
  * (le caissier connecté doit avoir un client_phone qui matche dans une
  * vente du tenant), puis émet un token avec exp 90 jours.
  */
+import { SALON } from '@/config/salon';
 import { getCurrentUser } from '../_data/auth-server';
 import { createClientToken } from '../_lib/client-token';
 import type { ManagerErrorCode, ManagerErrorValues } from './actions';
@@ -24,8 +25,14 @@ export type IssueTokenResult =
 export async function issueClientToken(phone: string): Promise<IssueTokenResult> {
   const user = await getCurrentUser();
   if (!user) return { ok: false, errorKey: 'directionOnly' };
-  const tenantId = user.app_metadata?.['tenant_id'] as string | undefined;
-  if (!tenantId) return { ok: false, errorKey: 'tenantMissing' };
+  // Single-tenant : staff authentifié suffit + le tenant du token est TOUJOURS
+  // la constante SALON (le vérificateur attend SALON.tenantUuid). L'ancien
+  // code exigeait le claim app_metadata.tenant_id (absent des caissiers →
+  // QR fidélité jamais émis) ET signait avec la valeur du claim (≠ vérif).
+  const role = user.app_metadata?.['role'] as string | undefined;
+  if (role && role !== 'manager' && role !== 'cashier') {
+    return { ok: false, errorKey: 'tenantMissing' };
+  }
 
   const normalized = phone?.trim();
   if (!normalized || normalized.length < 3) {
@@ -33,7 +40,7 @@ export async function issueClientToken(phone: string): Promise<IssueTokenResult>
   }
 
   try {
-    const token = createClientToken(tenantId, normalized);
+    const token = createClientToken(SALON.tenantUuid, normalized);
     return { ok: true, token };
   } catch {
     return { ok: false, errorKey: 'dbError' };

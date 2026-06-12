@@ -12,7 +12,7 @@
  */
 import { createAdminClient } from '@/db';
 import { SALON } from '@/config/salon';
-import { getAuthedClientPhone } from './client-session';
+import { clearClientSession, getAuthedClientPhone } from './client-session';
 import { getCurrentUser } from '../_data/auth-server';
 import { rlSalesIp, rlSalesPhone } from '../_lib/rate-limit';
 import type { ClientErrorCode, ClientErrorValues } from './review-actions';
@@ -1080,12 +1080,13 @@ export async function deleteClientAccount(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const admin = createAdminClient() as any;
 
-  // On charge le profil ciblé par le téléphone de la session pour récupérer
-  // son `user_id` (étape optionnelle de suppression du compte Auth).
+  // On charge le profil ciblé par le téléphone de la session. NB : l'ancien
+  // code sélectionnait `user_id` et mettait à null `push_subscription` —
+  // deux colonnes qui N'EXISTENT PAS sur client_profiles → Postgres 42703 →
+  // la suppression RGPD échouait à 100% avec « profil introuvable ». Audit.
   const { data: profile, error: loadErr } = await admin
     .from('client_profiles')
-    .select('id, email, user_id')
-
+    .select('id, email')
     .eq('phone', normalizedPhone)
     .maybeSingle();
 
@@ -1093,7 +1094,7 @@ export async function deleteClientAccount(
     return { ok: false, errorKey: 'profileNotFound' };
   }
 
-  const profileRow = profile as { id: string; email: string | null; user_id: string | null };
+  const profileRow = profile as { id: string; email: string | null };
 
   // Anonymisation : on remplace phone par un placeholder unique pour
   // libérer la valeur (un autre client peut reprendre ce numéro plus tard)
@@ -1107,8 +1108,9 @@ export async function deleteClientAccount(
       first_name: null,
       last_name: null,
       date_of_birth: null,
-      push_subscription: null,
-      user_id: null,
+      // Le mot de passe aussi : un compte anonymisé ne doit plus être
+      // connectable, même en devinant le placeholder.
+      password_hash: null,
     })
     .eq('id', profileRow.id)
     ;
@@ -1121,15 +1123,10 @@ export async function deleteClientAccount(
     };
   }
 
-  // Suppression du compte Auth — best effort, on continue si ça échoue
-  // (le profil est déjà anonymisé, donc le client perd l'accès même si
-  // auth.users persiste).
-  const authUserId = profileRow.user_id;
-  if (authUserId) {
-    await admin.auth.admin.deleteUser(authUserId).catch(() => {
-      // Silent fail — log côté Sentry plus tard si besoin.
-    });
-  }
+  // Invalide la session côté serveur immédiatement : sans ça, le cookie
+  // httpOnly restait valide 90 jours sur un compte supprimé si le navigateur
+  // plantait avant le logoutClient() côté UI.
+  await clearClientSession();
 
   // Audit log : on trace l'action pour conformité RGPD (registre des
   // suppressions sur demande, art. 30 RGPD).

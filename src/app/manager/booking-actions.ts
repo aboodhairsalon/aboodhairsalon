@@ -30,6 +30,14 @@ import { notifyClientOfCancellation } from './booking-cancel-email';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnySupabase = any;
 
+/** Les lignes libres de la caisse (Surplus/Remise) portent un refId local
+ *  (`surplus-<ts>` / `discount-<ts>`) qui ne doit JAMAIS atteindre les FK
+ *  service_id/product_id (uuid) — sinon Postgres 22P02 « invalid input
+ *  syntax for type uuid » → l'INSERT sale_items échoue → la vente entière
+ *  est rollback par la compensation. C'était LA cause des ventes invisibles. */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const isUuid = (v: string): boolean => UUID_RE.test(v);
+
 /** Codes d'erreur émis par les actions booking — résolus côté client via
  *  `useTranslations('cashier.errors.*')` pour rester i18n-friendly. */
 export type BookingErrorCode =
@@ -40,6 +48,7 @@ export type BookingErrorCode =
   | 'bookingUpdateFailed'
   | 'saleCreateFailed'
   | 'saleItemsFailed'
+  | 'discountExceedsTotal'
   // Pré-checks cross-tenant côté booking public (cf. booking-public-action.ts)
   | 'serviceMismatch'
   | 'barberMismatch';
@@ -215,7 +224,7 @@ export async function payBooking(input: PayBookingInput): Promise<MutationResult
   // 1. Charger le booking
   const { data: booking, error: fetchErr } = await db
     .from('bookings')
-    .select('id, amount_cents, barber_id, service_id, client_display_name')
+    .select('id, amount_cents, barber_id, service_id, client_display_name, client_phone')
     .eq('id', input.bookingId)
     
     .single();
@@ -230,6 +239,7 @@ export async function payBooking(input: PayBookingInput): Promise<MutationResult
     barber_id: string | null;
     service_id: string | null;
     client_display_name: string | null;
+    client_phone: string | null;
   };
 
   // 2. Calculer le subtotal BRUT (articles + extras + supplément). Le tip
@@ -242,6 +252,13 @@ export async function payBooking(input: PayBookingInput): Promise<MutationResult
   // bornait déjà mais on revérifie côté serveur.
   const cashbackApplied = Math.max(0, Math.min(input.cashbackAppliedCents ?? 0, subtotal));
   const total = subtotal - cashbackApplied;
+  // Garde anti-négatif : une Remise (extra à montant négatif) ne peut pas
+  // dépasser le ticket. L'UI borne à l'ajout, mais retirer une ligne ensuite
+  // peut repasser sous zéro — on refuse proprement AVANT le paid=true plutôt
+  // que de laisser le CHECK Postgres exploser en plein encaissement.
+  if (subtotal < 0 || total < 0) {
+    return { ok: false, errorKey: 'discountExceedsTotal' };
+  }
   // TVA — modèle TTC : les prix affichés (services, produits) sont déjà
   // toutes taxes comprises. On extrait la part de TVA incluse dans le
   // subtotal pour la traçabilité comptable et l'affichage sur reçu.
@@ -285,6 +302,11 @@ export async function payBooking(input: PayBookingInput): Promise<MutationResult
       barber_id: bookingRow.barber_id ?? null,
       booking_id: input.bookingId,
       client_name: bookingRow.client_display_name ?? null,
+      // Sans client_phone, les encaissements de RDV n'alimentaient JAMAIS le
+      // wallet cashback du client (le calcul filtre sur sales.client_phone).
+      client_phone: bookingRow.client_phone ?? null,
+      // Traçabilité : qui a encaissé (auth.users.id — manager ou caissier).
+      cashier_id: ctx.user.id,
       method: input.method,
       subtotal_cents: subtotal,
       total_cents: total,
@@ -323,8 +345,8 @@ export async function payBooking(input: PayBookingInput): Promise<MutationResult
       sale_id: saleRow.id,
       tenant_id: ctx.tenant.id,
       kind: e.kind,
-      service_id: e.kind === 'service' ? e.refId : null,
-      product_id: e.kind === 'product' ? e.refId : null,
+      service_id: e.kind === 'service' && isUuid(e.refId) ? e.refId : null,
+      product_id: e.kind === 'product' && isUuid(e.refId) ? e.refId : null,
       name: e.name,
       qty: e.qty,
       unit_price_cents: e.priceCents,
@@ -365,22 +387,9 @@ export async function payBooking(input: PayBookingInput): Promise<MutationResult
     };
   }
 
-  // Décrément du stock pour les produits vendus (extras kind='product').
-  // Best-effort comme côté refund : un mouvement raté n'annule pas la vente
-  // (déjà comptabilisée), le stock reste ajustable manuellement.
-  const stockMovements = (input.extras ?? [])
-    .filter((e) => e.kind === 'product')
-    .map((e) => ({
-      tenant_id: ctx.tenant.id,
-      product_id: e.refId,
-      kind: 'sale' as const,
-      qty_delta: -Math.abs(e.qty),
-      reference_id: saleRow.id,
-      reason: 'Vente',
-    }));
-  if (stockMovements.length > 0) {
-    await db.from('product_movements').insert(stockMovements);
-  }
+  // Stock : décrément géré par le trigger DB `sale_items_record_movement`
+  // (migration 0005) à l'INSERT de chaque sale_item kind='product'. Les
+  // inserts manuels qui vivaient ici DOUBLAIENT le décrément — retirés (audit).
 
   revalidatePath('/cashier');
   revalidatePath('/manager');
@@ -430,6 +439,10 @@ export async function createDirectSale(input: CreateDirectSaleInput): Promise<Mu
   const subtotal = itemsTotal + extra;
   const cashbackApplied = Math.max(0, Math.min(input.cashbackAppliedCents ?? 0, subtotal));
   const total = subtotal - cashbackApplied;
+  // Garde anti-négatif (cf. payBooking) : remise > ticket → refus propre.
+  if (subtotal < 0 || total < 0) {
+    return { ok: false, errorKey: 'discountExceedsTotal' };
+  }
   // TVA TTC : extraction depuis subtotal. Cf. payBooking pour la formule.
   // Audit T5.25.
   const taxRateBp = Math.max(0, ctx.settings.tax_rate_bp ?? 0);
@@ -442,6 +455,7 @@ export async function createDirectSale(input: CreateDirectSaleInput): Promise<Mu
       barber_id: input.barberId ?? null,
       client_phone: input.clientPhone?.trim() || null,
       client_name: input.clientName?.trim() || null,
+      cashier_id: ctx.user.id,
       method: input.method,
       subtotal_cents: subtotal,
       total_cents: total,
@@ -469,8 +483,8 @@ export async function createDirectSale(input: CreateDirectSaleInput): Promise<Mu
       sale_id: saleRow.id,
       tenant_id: ctx.tenant.id,
       kind: i.kind,
-      service_id: i.kind === 'service' ? i.refId : null,
-      product_id: i.kind === 'product' ? i.refId : null,
+      service_id: i.kind === 'service' && isUuid(i.refId) ? i.refId : null,
+      product_id: i.kind === 'product' && isUuid(i.refId) ? i.refId : null,
       name: i.name,
       qty: i.qty,
       unit_price_cents: i.priceCents,
@@ -504,20 +518,8 @@ export async function createDirectSale(input: CreateDirectSaleInput): Promise<Mu
     };
   }
 
-  // Décrément du stock pour les produits vendus (best-effort).
-  const stockMovements = input.items
-    .filter((i) => i.kind === 'product')
-    .map((i) => ({
-      tenant_id: ctx.tenant.id,
-      product_id: i.refId,
-      kind: 'sale' as const,
-      qty_delta: -Math.abs(i.qty),
-      reference_id: saleRow.id,
-      reason: 'Vente',
-    }));
-  if (stockMovements.length > 0) {
-    await db.from('product_movements').insert(stockMovements);
-  }
+  // Stock : décrément géré par le trigger DB `sale_items_record_movement`
+  // (migration 0005). Les inserts manuels doublaient le décrément — retirés.
 
   // Enregistrement best-effort du profil client (clé tenant_id + phone).
   // insert-or-ignore : un nouveau client est créé, un profil existant non écrasé.
@@ -564,8 +566,10 @@ export async function setBookingExtras(
   bookingId: string,
   extras: BookingExtraInput[],
 ): Promise<MutationResult> {
-  // requireTenant() exécuté pour ses effets de bord (auth + redirect si non-manager).
-  await requireTenant();
+  // allowCashier : la caisse appelle setBookingExtras (ajout d'extras sur un
+  // RDV avant encaissement) — sans l'opt-in, requireTenant redirige le
+  // caissier vers /cashier et les extras ne sont JAMAIS persistés (audit).
+  await requireTenant({ allowCashier: true });
   const db = createAdminClient() as AnySupabase;
 
   // Validation defense-in-depth : un appel malicieux pourrait pousser des

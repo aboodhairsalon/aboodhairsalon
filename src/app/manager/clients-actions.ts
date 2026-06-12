@@ -226,8 +226,12 @@ export async function updateClientProfile(
       actor_id: ctx.user.id,
       table_name: 'client_profiles',
       row_id: d.id,
-      operation: 'email_changed',
-      diff: { from: oldEmail, to: newEmail },
+      // CHECK DB : operation IN ('INSERT','UPDATE','DELETE') — l'ancienne
+      // valeur 'email_changed' violait la contrainte et l'insert (void)
+      // échouait silencieusement → AUCUNE trace d'audit. Le type d'événement
+      // vit dans diff.event à la place.
+      operation: 'UPDATE',
+      diff: { event: 'email_changed', from: oldEmail, to: newEmail },
     });
 
     // Notif à l'ancienne adresse — sans bloquer la réponse. Si Resend pas

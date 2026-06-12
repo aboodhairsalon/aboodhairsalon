@@ -177,11 +177,16 @@ export async function requireTenant(opts?: {
 
   // Source unique de vérité : tenant_settings + tenant_branding (les tables
   // éditées par le manager > Paramètres). Filtrées par SALON.tenantUuid (le
-  // seul tenant). On lit les deux en parallèle.
-  const supabase = await getServerSupabase();
+  // seul tenant). Lecture via ADMIN client : la session est déjà authentifiée
+  // + role-checkée juste au-dessus, et la lecture RLS échouait silencieusement
+  // pour les JWT sans claim tenant_id (comptes caissier) → ctx.settings
+  // retombait sur les DÉFAUTS (TVA 1400bp fantôme sur les ventes caisse,
+  // brouillon Paramètres pré-rempli de défauts → save écrasait les vraies
+  // valeurs). Audit critique.
+  const adminDb = createAdminClient();
   const [{ data: settingsRow }, { data: brandingRow }] = await Promise.all([
-    supabase.from('tenant_settings').select('*').eq('tenant_id', SALON.tenantUuid).maybeSingle(),
-    supabase
+    adminDb.from('tenant_settings').select('*').eq('tenant_id', SALON.tenantUuid).maybeSingle(),
+    adminDb
       .from('tenant_branding')
       .select('logo_url')
       .eq('tenant_id', SALON.tenantUuid)

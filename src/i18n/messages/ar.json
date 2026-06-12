@@ -852,6 +852,10 @@
     "errors": {
       "unknownError": "خطأ غير معروف.",
       "slotTaken": "تمّ حجز هذا الموعد للتو. الرجاء اختيار وقت آخر.",
+      "dateOutOfRange": "هذا الموعد قد مضى أو بعيد جدًا. الرجاء اختيار وقت آخر.",
+      "dobRequired": "تاريخ الميلاد مطلوب.",
+      "dobInvalid": "تاريخ ميلاد غير صالح.",
+      "discountExceedsTotal": "الخصم يتجاوز إجمالي الفاتورة.",
       "bookingNotFound": "الحجز غير موجود.",
       "bookingUpdateFailed": "فشل تحديث الحجز: {message}",
       "saleCreateFailed": "فشل إنشاء البيع: {message}",
