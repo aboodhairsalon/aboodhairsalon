@@ -128,7 +128,8 @@
       "services": "Services",
       "stock": "Stock",
       "clients": "Clients",
-      "settings": "Settings"
+      "settings": "Settings",
+      "report": "Report"
     },
     "trial": {
       "expired": "Your free trial has ended. Contact us to keep using Aboodhairsalon.",
@@ -252,9 +253,9 @@
         "total": "Total",
         "refunded": "Refunded",
         "net": "Net",
-        "methodCard": "Card",
+        "methodCard": "Visa",
         "methodCash": "Cash",
-        "methodMobile": "Mobile"
+        "methodMobile": "InstaPay"
       },
       "period": {
         "day": "day",
@@ -829,8 +830,8 @@
       "kpiTips": "Tips",
       "methodsHeader": "Transactions by payment method",
       "methodCash": "Cash",
-      "methodCard": "Card",
-      "methodMobile": "Mobile",
+      "methodCard": "Visa",
+      "methodMobile": "InstaPay",
       "saleCountOne": "{count} sale",
       "saleCountMany": "{count} sales",
       "refundedCountOne": "{count} sale refunded today",
@@ -850,6 +851,71 @@
       "csvTotal": "Total",
       "csvRefunded": "Refunded",
       "csvNet": "Net"
+    },
+    "report": {
+      "title": "Accounting report",
+      "subtitle": "Detailed accounting summary by period",
+      "period": {
+        "day": "Day",
+        "week": "Week",
+        "month": "Month"
+      },
+      "refreshing": "Refreshing…",
+      "kpi": {
+        "revenueNet": "Net revenue",
+        "sales": "Sales",
+        "avgTicket": "Average ticket",
+        "bookingsDone": "Appointments done"
+      },
+      "payments": {
+        "title": "Payment methods",
+        "visa": "Visa",
+        "cash": "Cash",
+        "instapay": "InstaPay",
+        "other": "Other",
+        "share": "Share"
+      },
+      "byService": {
+        "title": "Sales by service",
+        "topBadge": "Top seller"
+      },
+      "byProduct": {
+        "title": "Sales by product"
+      },
+      "cols": {
+        "name": "Item",
+        "qty": "Qty",
+        "revenue": "Revenue",
+        "amount": "Amount"
+      },
+      "accounting": {
+        "title": "Accounting detail",
+        "gross": "Gross revenue",
+        "discount": "Discounts",
+        "surplus": "Surcharges",
+        "cashback": "Cashback used",
+        "refunded": "Refunds",
+        "net": "Net revenue",
+        "tips": "Tips",
+        "tax": "Taxes",
+        "tipsNote": "Paid to staff (excluded from revenue)"
+      },
+      "bookings": {
+        "title": "Appointments",
+        "done": "Completed",
+        "noShow": "No-shows",
+        "cancelled": "Cancelled",
+        "upcoming": "Upcoming",
+        "total": "Total"
+      },
+      "exportCsv": "Export CSV",
+      "exportPdf": "Export PDF",
+      "empty": "No sales in this period.",
+      "error": "Could not load the report.",
+      "pdf": {
+        "generatedOn": "Generated on",
+        "period": "Period"
+      }
     }
   },
   "cashier": {
@@ -1063,9 +1129,9 @@
       "amountDue": "To pay",
       "grossLabel": "Subtotal",
       "cashbackLabel": "Cashback applied",
-      "methodCard": "Card",
+      "methodCard": "Visa",
       "methodCash": "Cash",
-      "methodMobile": "Contactless",
+      "methodMobile": "InstaPay",
       "selectMethodFirst": "Select a payment method",
       "confirmCollect": "Collect {amount} · {method}"
     },
@@ -1404,9 +1470,9 @@
       "invoices": {
         "header": "My invoices",
         "empty": "No invoices yet.",
-        "methodCard": "Card",
+        "methodCard": "Visa",
         "methodCash": "Cash",
-        "methodMobile": "Mobile",
+        "methodMobile": "InstaPay",
         "downloadPdf": "Download",
         "downloadPdfAria": "Download invoice as PDF",
         "refundedTag": "Refunded"

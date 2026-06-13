@@ -129,7 +129,8 @@
       "services": "الخدمات",
       "stock": "المخزون",
       "clients": "العملاء",
-      "settings": "الإعدادات"
+      "settings": "الإعدادات",
+      "report": "التقرير"
     },
     "trial": {
       "expired": "انتهت فترتك التجريبية المجانية. تواصل معنا للاستمرار في استخدام Aboodhairsalon.",
@@ -253,9 +254,9 @@
         "total": "الإجمالي",
         "refunded": "المسترد",
         "net": "الصافي",
-        "methodCard": "بطاقة",
-        "methodCash": "نقدي",
-        "methodMobile": "جوال"
+        "methodCard": "فيزا",
+        "methodCash": "كاش",
+        "methodMobile": "إنستاباي"
       },
       "period": {
         "day": "اليوم",
@@ -829,9 +830,9 @@
       "kpiAvgTicket": "متوسط الفاتورة",
       "kpiTips": "الإكراميات",
       "methodsHeader": "المعاملات حسب طريقة الدفع",
-      "methodCash": "نقدي",
-      "methodCard": "بطاقة",
-      "methodMobile": "جوال",
+      "methodCash": "كاش",
+      "methodCard": "فيزا",
+      "methodMobile": "إنستاباي",
       "saleCountOne": "{count} عملية بيع",
       "saleCountMany": "{count} عمليات بيع",
       "refundedCountOne": "{count} عملية بيع مردودة اليوم",
@@ -851,6 +852,71 @@
       "csvTotal": "الإجمالي",
       "csvRefunded": "المسترد",
       "csvNet": "الصافي"
+    },
+    "report": {
+      "title": "التقرير المحاسبي",
+      "subtitle": "ملخص محاسبي مفصل حسب الفترة",
+      "period": {
+        "day": "اليوم",
+        "week": "الأسبوع",
+        "month": "الشهر"
+      },
+      "refreshing": "جارٍ التحديث…",
+      "kpi": {
+        "revenueNet": "صافي الإيرادات",
+        "sales": "المبيعات",
+        "avgTicket": "متوسط الفاتورة",
+        "bookingsDone": "المواعيد المنجزة"
+      },
+      "payments": {
+        "title": "طرق الدفع",
+        "visa": "فيزا",
+        "cash": "كاش",
+        "instapay": "إنستاباي",
+        "other": "أخرى",
+        "share": "النسبة"
+      },
+      "byService": {
+        "title": "المبيعات حسب الخدمة",
+        "topBadge": "الأكثر مبيعًا"
+      },
+      "byProduct": {
+        "title": "المبيعات حسب المنتج"
+      },
+      "cols": {
+        "name": "البيان",
+        "qty": "الكمية",
+        "revenue": "الإيراد",
+        "amount": "المبلغ"
+      },
+      "accounting": {
+        "title": "التفاصيل المحاسبية",
+        "gross": "إجمالي الإيرادات",
+        "discount": "الخصومات",
+        "surplus": "الإضافات",
+        "cashback": "الكاش باك المستخدم",
+        "refunded": "المبالغ المستردة",
+        "net": "صافي الإيرادات",
+        "tips": "الإكراميات",
+        "tax": "الضرائب",
+        "tipsNote": "تُدفع للموظفين (خارج الإيراد)"
+      },
+      "bookings": {
+        "title": "المواعيد",
+        "done": "منجزة",
+        "noShow": "الغياب",
+        "cancelled": "ملغاة",
+        "upcoming": "قادمة",
+        "total": "الإجمالي"
+      },
+      "exportCsv": "تصدير CSV",
+      "exportPdf": "تصدير PDF",
+      "empty": "لا توجد مبيعات في هذه الفترة.",
+      "error": "تعذّر تحميل التقرير.",
+      "pdf": {
+        "generatedOn": "Generated on",
+        "period": "Period"
+      }
     }
   },
   "cashier": {
@@ -1064,9 +1130,9 @@
       "amountDue": "المستحق",
       "grossLabel": "المجموع الفرعي",
       "cashbackLabel": "تم تطبيق الاسترداد النقدي",
-      "methodCard": "بطاقة بنكية",
-      "methodCash": "نقدي",
-      "methodMobile": "بدون تلامس",
+      "methodCard": "فيزا",
+      "methodCash": "كاش",
+      "methodMobile": "إنستاباي",
       "selectMethodFirst": "اختر طريقة الدفع",
       "confirmCollect": "تحصيل {amount} · {method}"
     },
@@ -1405,9 +1471,9 @@
       "invoices": {
         "header": "فواتيري",
         "empty": "لا توجد فواتير بعد.",
-        "methodCard": "بطاقة",
-        "methodCash": "نقدي",
-        "methodMobile": "جوال",
+        "methodCard": "فيزا",
+        "methodCash": "كاش",
+        "methodMobile": "إنستاباي",
         "downloadPdf": "تحميل",
         "downloadPdfAria": "تحميل الفاتورة بصيغة PDF",
         "refundedTag": "مردود"

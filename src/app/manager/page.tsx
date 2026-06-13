@@ -16,6 +16,7 @@ import {
   Download,
   Edit3,
   ExternalLink,
+  FileText,
   History,
   Image as ImageIcon,
   KeyRound,
@@ -57,6 +58,7 @@ import { AuditLogModal } from './AuditLogModal';
 import { CashierAccessModal } from './CashierAccessModal';
 import { BirthdayWidget } from './BirthdayWidget';
 import { ManagerClients } from './ManagerClients';
+import { ManagerReport } from './ManagerReport';
 import { ManagerReviews } from './ManagerReviews';
 import { GalleryEditor } from './GalleryEditor';
 import { ProductStatsCard } from './ProductStatsCard';
@@ -115,6 +117,7 @@ import {
  *  rester réactifs au changement de langue (cf. construction dans ManagerApp). */
 const MANAGER_TAB_KEYS = [
   'dash',
+  'report',
   'team',
   'avis',
   'reserv',
@@ -125,6 +128,7 @@ const MANAGER_TAB_KEYS = [
 ] as const;
 const MANAGER_TAB_ICONS: Record<(typeof MANAGER_TAB_KEYS)[number], LucideIcon> = {
   dash: BarChart3,
+  report: FileText,
   team: Users,
   avis: Star,
   reserv: Calendar,
@@ -340,6 +344,7 @@ export default function ManagerPage() {
           onJumpToClients={() => setTab('clients')}
         />
       )}
+      {tab === 'report' && <ManagerReport isRealTenant={isRealTenant} />}
       {tab === 'team' && (
         <ManagerTeam staff={staff} setStaff={setStaff} isRealTenant={isRealTenant} />
       )}

@@ -128,7 +128,8 @@
       "services": "Prestations",
       "stock": "Stock",
       "clients": "Clients",
-      "settings": "Paramètres"
+      "settings": "Paramètres",
+      "report": "Rapport"
     },
     "trial": {
       "expired": "Votre essai gratuit est terminé. Pour continuer à utiliser Aboodhairsalon, contactez-nous.",
@@ -252,9 +253,9 @@
         "total": "Total",
         "refunded": "Remboursé",
         "net": "Net",
-        "methodCard": "Carte",
-        "methodCash": "Espèces",
-        "methodMobile": "Mobile"
+        "methodCard": "Visa",
+        "methodCash": "Cash",
+        "methodMobile": "InstaPay"
       },
       "period": {
         "day": "jour",
@@ -828,9 +829,9 @@
       "kpiAvgTicket": "Ticket moyen",
       "kpiTips": "Pourboires",
       "methodsHeader": "Encaissements par moyen de paiement",
-      "methodCash": "Espèces",
-      "methodCard": "Carte",
-      "methodMobile": "Mobile",
+      "methodCash": "Cash",
+      "methodCard": "Visa",
+      "methodMobile": "InstaPay",
       "saleCountOne": "{count} vente",
       "saleCountMany": "{count} ventes",
       "refundedCountOne": "{count} vente remboursée ce jour",
@@ -850,6 +851,71 @@
       "csvTotal": "Total",
       "csvRefunded": "Remboursé",
       "csvNet": "Net"
+    },
+    "report": {
+      "title": "Rapport comptable",
+      "subtitle": "Synthèse comptable détaillée par période",
+      "period": {
+        "day": "Jour",
+        "week": "Semaine",
+        "month": "Mois"
+      },
+      "refreshing": "Actualisation…",
+      "kpi": {
+        "revenueNet": "Chiffre d’affaires net",
+        "sales": "Ventes",
+        "avgTicket": "Ticket moyen",
+        "bookingsDone": "RDV réalisés"
+      },
+      "payments": {
+        "title": "Moyens de paiement",
+        "visa": "Visa",
+        "cash": "Cash",
+        "instapay": "InstaPay",
+        "other": "Autre",
+        "share": "Part"
+      },
+      "byService": {
+        "title": "Ventes par prestation",
+        "topBadge": "Top vente"
+      },
+      "byProduct": {
+        "title": "Ventes par produit"
+      },
+      "cols": {
+        "name": "Désignation",
+        "qty": "Qté",
+        "revenue": "CA",
+        "amount": "Montant"
+      },
+      "accounting": {
+        "title": "Détail comptable",
+        "gross": "Chiffre d’affaires brut",
+        "discount": "Remises accordées",
+        "surplus": "Suppléments",
+        "cashback": "Cashback utilisé",
+        "refunded": "Remboursements",
+        "net": "Chiffre d’affaires net",
+        "tips": "Pourboires",
+        "tax": "Taxes",
+        "tipsNote": "Reversés aux coiffeurs (hors CA)"
+      },
+      "bookings": {
+        "title": "Rendez-vous",
+        "done": "Réalisés",
+        "noShow": "Absents",
+        "cancelled": "Annulés",
+        "upcoming": "À venir",
+        "total": "Total"
+      },
+      "exportCsv": "Exporter CSV",
+      "exportPdf": "Exporter PDF",
+      "empty": "Aucune vente sur cette période.",
+      "error": "Impossible de charger le rapport.",
+      "pdf": {
+        "generatedOn": "Généré le",
+        "period": "Période"
+      }
     }
   },
   "cashier": {
@@ -1063,9 +1129,9 @@
       "amountDue": "À régler",
       "grossLabel": "Sous-total",
       "cashbackLabel": "Cashback appliqué",
-      "methodCard": "Carte bancaire",
-      "methodCash": "Espèces",
-      "methodMobile": "Sans contact",
+      "methodCard": "Visa",
+      "methodCash": "Cash",
+      "methodMobile": "InstaPay",
       "selectMethodFirst": "Choisissez un mode de paiement",
       "confirmCollect": "Encaisser {amount} · {method}"
     },
@@ -1404,9 +1470,9 @@
       "invoices": {
         "header": "Mes factures",
         "empty": "Aucune facture pour l'instant.",
-        "methodCard": "Carte",
-        "methodCash": "Espèces",
-        "methodMobile": "Mobile",
+        "methodCard": "Visa",
+        "methodCash": "Cash",
+        "methodMobile": "InstaPay",
         "downloadPdf": "Télécharger",
         "downloadPdfAria": "Télécharger la facture en PDF",
         "refundedTag": "Remboursé"

@@ -89,6 +89,102 @@ export function buildSalesCsv(
   return toCsv([header, ...rows]);
 }
 
+/**
+ * Libellés (déjà localisés) pour le CSV du rapport comptable.
+ * Les en-têtes/sections sont passés par l'appelant via next-intl pour rester
+ * indépendants de la locale figée côté utilitaire pur (cf. SalesCsvLabels).
+ */
+export interface ReportCsvLabels {
+  reportTitle: string;
+  salon: string;
+  currencyLabel: string;
+  currencyCode: string;
+  periodLabel: string;
+  periodValue: string; // « Mois — 01/06/2026 → 13/06/2026 »
+  synthesis: string;
+  revenueNet: string;
+  sales: string;
+  avgTicket: string;
+  gross: string;
+  discount: string;
+  surplus: string;
+  cashback: string;
+  refunded: string;
+  tips: string;
+  tax: string;
+  paymentsTitle: string;
+  amount: string;
+  visa: string;
+  cash: string;
+  instapay: string;
+  other: string;
+  byServiceTitle: string;
+  byProductTitle: string;
+  colName: string;
+  colQty: string;
+  colRevenue: string;
+  bookingsTitle: string;
+  done: string;
+  noShow: string;
+  cancelled: string;
+  upcoming: string;
+  total: string;
+}
+
+/**
+ * Construit le CSV du rapport comptable — document multi-sections (synthèse,
+ * moyens de paiement, ventes par prestation/produit, rendez-vous).
+ *
+ * Les montants sont en décimal brut (séparateur point, 2 décimales) pour un
+ * ré-import propre dans Excel / un logiciel comptable, indépendamment de la
+ * locale. Contrairement au PDF, le CSV gère l'UTF-8 → c'est l'export à
+ * privilégier en arabe (noms de prestations inclus).
+ */
+export function buildReportCsv(
+  r: import('./report-actions').AccountingReport,
+  L: ReportCsvLabels,
+): string {
+  const money = (cents: number) => (cents / 100).toFixed(2);
+  const rows: (string | number)[][] = [];
+  rows.push([L.reportTitle, L.salon]);
+  rows.push([L.periodLabel, L.periodValue]);
+  rows.push([L.currencyLabel, L.currencyCode]);
+  rows.push([]);
+  rows.push([L.synthesis]);
+  rows.push([L.revenueNet, money(r.revenueNetCents)]);
+  rows.push([L.sales, r.salesCount]);
+  rows.push([L.avgTicket, money(r.avgTicketCents)]);
+  rows.push([L.gross, money(r.grossCents)]);
+  rows.push([L.surplus, money(r.surplusCents)]);
+  rows.push([L.discount, money(r.discountCents)]);
+  rows.push([L.cashback, money(r.cashbackCents)]);
+  rows.push([L.refunded, money(r.refundedCents)]);
+  rows.push([L.tips, money(r.tipsCents)]);
+  rows.push([L.tax, money(r.taxCents)]);
+  rows.push([]);
+  rows.push([L.paymentsTitle, L.amount]);
+  rows.push([L.visa, money(r.byMethod.visa)]);
+  rows.push([L.cash, money(r.byMethod.cash)]);
+  rows.push([L.instapay, money(r.byMethod.instapay)]);
+  if (r.byMethod.other > 0) rows.push([L.other, money(r.byMethod.other)]);
+  rows.push([]);
+  rows.push([L.byServiceTitle, L.colQty, L.colRevenue]);
+  for (const s of r.byService) rows.push([s.name, s.count, money(s.revenueCents)]);
+  if (r.byProduct.length > 0) {
+    rows.push([]);
+    rows.push([L.byProductTitle, L.colQty, L.colRevenue]);
+    for (const p of r.byProduct) rows.push([p.name, p.count, money(p.revenueCents)]);
+  }
+  rows.push([]);
+  rows.push([L.bookingsTitle]);
+  rows.push([L.done, r.bookings.done]);
+  rows.push([L.noShow, r.bookings.noShow]);
+  rows.push([L.cancelled, r.bookings.cancelled]);
+  rows.push([L.upcoming, r.bookings.upcoming]);
+  rows.push([L.total, r.bookings.total]);
+  return toCsv(rows);
+}
+
 /** Déclenche le téléchargement d'un fichier CSV dans le navigateur. */
 export function downloadCsv(filename: string, content: string): void {
   const blob = new Blob([UTF8_BOM, content], { type: 'text/csv;charset=utf-8;' });
