@@ -24,6 +24,10 @@ export interface Service {
    *  Liste VIDE = tous les coiffeurs peuvent la faire (défaut). Sinon, seuls
    *  ces coiffeurs sont proposés à la réservation + affichés en caisse. */
   barberIds: string[];
+  /** Noms/descriptions multilingues ({ fr, en, ar }). Résolus selon la locale
+   *  au chargement (`name`/`desc` = repli). Édités en Direction. */
+  nameI18n?: Record<string, string>;
+  descI18n?: Record<string, string>;
 }
 
 export interface Product {
@@ -36,6 +40,8 @@ export interface Product {
   stock: number;
   low: number;
   sku: string;
+  /** Nom multilingue ({ fr, en, ar }) — résolu selon la locale au chargement. */
+  nameI18n?: Record<string, string>;
 }
 
 /**

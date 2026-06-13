@@ -6,10 +6,12 @@
  *
  * Auth : requireCashier() — redirection automatique si pas de session caissier.
  */
+import { getLocale } from 'next-intl/server';
 import { createAdminClient } from '@/db';
 import { SALON } from '@/config/salon';
 import { requireCashier } from '../_data/auth-server';
 import { utcIsoToZonedParts } from '../_lib/timezone';
+import { pickLocale, shortLocale, type I18nText } from '@/lib/pick-locale';
 import type {
   Booking,
   BookingSource,
@@ -190,8 +192,16 @@ export default async function CashierPage() {
       .eq('is_active', true)
       .order('sort_order', { ascending: true }),
 
-    admin.from('tenants').select('name').eq('id', tenantId).maybeSingle(),
+    admin.from('tenants').select('name, category_i18n').eq('id', tenantId).maybeSingle(),
   ]);
+
+  // Langue courante + map de traduction des sections.
+  const locale = shortLocale(await getLocale());
+  const catMap =
+    (((tenantRes.data as { category_i18n?: Record<string, I18nText> } | null)?.category_i18n ??
+      {}) as Record<string, I18nText>);
+  const localizedCategory = (cat: string | null): string | undefined =>
+    cat ? pickLocale(catMap[cat], locale, cat) : undefined;
 
   // Mapping DB → types front
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -202,12 +212,12 @@ export default async function CashierPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const services: Service[] = ((servicesRes.data as any[]) ?? []).map((r) => ({
     id: r.id as string,
-    name: r.name as string,
+    name: pickLocale(r.name_i18n as I18nText, locale, r.name as string),
     duration: r.duration_min as number,
     priceCents: r.price_cents as number,
     icon: toServiceIcon(r.icon as string | null),
-    desc: (r.description as string) ?? '',
-    category: (r.category as string | null) ?? undefined,
+    desc: pickLocale(r.description_i18n as I18nText, locale, (r.description as string) ?? ''),
+    category: localizedCategory(r.category as string | null),
     barberIds: ((r.service_barbers as { barber_id: string }[] | null) ?? []).map(
       (sb) => sb.barber_id,
     ),
@@ -216,7 +226,7 @@ export default async function CashierPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const initialProducts: Product[] = ((productsRes.data as any[]) ?? []).map((r) => ({
     id: r.id as string,
-    name: r.name as string,
+    name: pickLocale(r.name_i18n as I18nText, locale, r.name as string),
     priceCents: r.price_cents as number,
     costCents: (r.cost_cents as number) ?? 0,
     stock: r.stock as number,

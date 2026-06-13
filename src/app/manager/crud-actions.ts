@@ -29,8 +29,6 @@ import { sendPushToTenant } from './push-actions';
 // `Insert` de la table. On caste l'OBJET vers son type Insert exact (pas `never`)
 // pour conserver le type-check sur les champs tout en contournant le bug d'inférence.
 type StaffInsert = Database['public']['Tables']['staff']['Insert'];
-type ServiceInsert = Database['public']['Tables']['services']['Insert'];
-type ProductInsert = Database['public']['Tables']['products']['Insert'];
 
 /** Codes d'erreur émis par les mutations CRUD. */
 export type CrudErrorCode =
@@ -255,9 +253,21 @@ const ServiceSchema = z.object({
   // L'UI n'envoie que des staff.id valides ; la FK service_barbers→staff
   // rejette de toute façon un id invalide.
   barberIds: z.array(z.string().uuid()).max(50).optional().default([]),
+  // Noms/descriptions multilingues { fr, en, ar } — la résolution d'affichage
+  // se fait au chargement. `name`/`desc` restent le repli.
+  nameI18n: z.record(z.string().trim().max(80)).optional(),
+  descI18n: z.record(z.string().trim().max(300)).optional(),
 });
 
 export type ServiceInput = z.input<typeof ServiceSchema>;
+
+/** Langue de repli pour la colonne `name` (legacy + fallback pickLocale) :
+ *  1re traduction renseignée, sinon le `name` fourni. */
+function primaryName(i18n: Record<string, string> | undefined, fallback: string): string {
+  if (!i18n) return fallback;
+  const v = (i18n['fr'] || i18n['en'] || i18n['ar'] || '').trim();
+  return v || fallback;
+}
 
 export async function createService(input: ServiceInput): Promise<MutationResult> {
   const ctx = await requireTenant();
@@ -267,15 +277,17 @@ export async function createService(input: ServiceInput): Promise<MutationResult
     return { ok: false, errorKey: zodMessageToCode(parsed.error.errors[0]?.message) };
   }
   const d = parsed.data;
-  const row: ServiceInsert = {
+  const row = {
     tenant_id: ctx.tenant.id,
-    name: d.name,
+    name: primaryName(d.nameI18n, d.name),
     duration_min: d.duration,
     price_cents: d.priceCents,
     icon: d.icon,
     description: d.desc,
     category: d.category,
-  };
+    name_i18n: d.nameI18n ?? null,
+    description_i18n: d.descI18n ?? null,
+  } satisfies Record<string, unknown>;
   const { data, error } = await supabase
     .from('services')
     .insert(row as never)
@@ -310,12 +322,14 @@ export async function updateService(id: string, input: ServiceInput): Promise<Mu
   const { error } = await supabase
     .from('services')
     .update({
-      name: d.name,
+      name: primaryName(d.nameI18n, d.name),
       duration_min: d.duration,
       price_cents: d.priceCents,
       icon: d.icon,
       description: d.desc,
       category: d.category,
+      name_i18n: d.nameI18n ?? null,
+      description_i18n: d.descI18n ?? null,
     } as never)
     .eq('id', id);
   if (error) return { ok: false, errorKey: 'dbError', errorValues: { message: error.message } };
@@ -417,6 +431,8 @@ const ProductSchema = z.object({
   costCents: z.number().int().min(0).optional().default(0),
   stock: z.number().int().min(0),
   low: z.number().int().min(0),
+  /** Nom multilingue { fr, en, ar }. `name` = repli. */
+  nameI18n: z.record(z.string().trim().max(80)).optional(),
 });
 
 export type ProductInput = z.input<typeof ProductSchema>;
@@ -429,15 +445,16 @@ export async function createProduct(input: ProductInput): Promise<MutationResult
     return { ok: false, errorKey: zodMessageToCode(parsed.error.errors[0]?.message) };
   }
   const d = parsed.data;
-  const row: ProductInsert = {
+  const row = {
     tenant_id: ctx.tenant.id,
-    name: d.name,
+    name: primaryName(d.nameI18n, d.name),
     sku: d.sku.toUpperCase(),
     price_cents: d.priceCents,
     cost_cents: d.costCents ?? 0,
     stock: d.stock,
     low_threshold: d.low,
-  };
+    name_i18n: d.nameI18n ?? null,
+  } satisfies Record<string, unknown>;
   const { data, error } = await supabase
     .from('products')
     .insert(row as never)
@@ -464,12 +481,13 @@ export async function updateProduct(id: string, input: ProductInput): Promise<Mu
   const { error } = await supabase
     .from('products')
     .update({
-      name: d.name,
+      name: primaryName(d.nameI18n, d.name),
       sku: d.sku.toUpperCase(),
       price_cents: d.priceCents,
       cost_cents: d.costCents ?? 0,
       stock: d.stock,
       low_threshold: d.low,
+      name_i18n: d.nameI18n ?? null,
     } as never)
     .eq('id', id);
   if (error) {

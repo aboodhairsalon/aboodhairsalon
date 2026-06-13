@@ -10,8 +10,10 @@ import 'server-only';
  * + centimes) attendus par les composants existants — évite de refactorer
  * tout `/manager/page.tsx`.
  */
+import { getLocale } from 'next-intl/server';
 import { createAdminClient, type Database } from '@/db';
 import type { CashierShift, Product, Service, Staff, StaffRole } from '../_data/mock';
+import { pickLocale, shortLocale, type I18nText } from '@/lib/pick-locale';
 
 type StaffRow = Database['public']['Tables']['staff']['Row'];
 type ServiceRow = Database['public']['Tables']['services']['Row'];
@@ -44,6 +46,10 @@ export async function getManagerCollections(_tenantId: string): Promise<ManagerC
   // DÉSACTIVÉS disparaissaient de l'admin (impossible de les réactiver).
   // Symétrique du fix crud-actions.ts. requireTenant() en amont gate l'accès.
   const supabase = createAdminClient();
+  // Langue courante pour l'AFFICHAGE des listes (le formulaire d'édition lit,
+  // lui, les objets `nameI18n`/`descI18n` bruts). La `category` reste BRUTE
+  // côté Direction (clé de regroupement des sections).
+  const locale = shortLocale(await getLocale());
 
   const staffRes = await supabase
     .from('staff')
@@ -101,25 +107,35 @@ export async function getManagerCollections(_tenantId: string): Promise<ManagerC
   const services: Service[] = (
     (servicesRes.data as (ServiceRow & { service_barbers?: { barber_id: string }[] })[] | null) ??
     []
-  ).map((r) => ({
-    id: r.id,
-    name: r.name,
-    duration: r.duration_min,
-    priceCents: r.price_cents,
-    icon: toServiceIcon(r.icon),
-    desc: r.description ?? '',
-    category: r.category ?? undefined,
-    barberIds: (r.service_barbers ?? []).map((sb) => sb.barber_id),
-  }));
+  ).map((r) => {
+    const nameI18n = (r as { name_i18n?: I18nText }).name_i18n ?? undefined;
+    const descI18n = (r as { description_i18n?: I18nText }).description_i18n ?? undefined;
+    return {
+      id: r.id,
+      // Listes Direction : nom affiché dans la langue du gérant. Le formulaire
+      // d'édition lit `nameI18n` brut (3 langues).
+      name: pickLocale(nameI18n, locale, r.name),
+      duration: r.duration_min,
+      priceCents: r.price_cents,
+      icon: toServiceIcon(r.icon),
+      desc: pickLocale(descI18n, locale, r.description ?? ''),
+      // BRUTE : sert de clé de regroupement des sections côté Direction.
+      category: r.category ?? undefined,
+      barberIds: (r.service_barbers ?? []).map((sb) => sb.barber_id),
+      nameI18n: (nameI18n as Record<string, string> | undefined) ?? undefined,
+      descI18n: (descI18n as Record<string, string> | undefined) ?? undefined,
+    };
+  });
 
-  const products: Product[] = ((productsRes.data as ProductRow[] | null) ?? []).map((r) => ({
+  const products: Product[] = ((productsRes.data as (ProductRow & { name_i18n?: I18nText })[] | null) ?? []).map((r) => ({
     id: r.id,
-    name: r.name,
+    name: pickLocale(r.name_i18n, locale, r.name),
     priceCents: r.price_cents,
     costCents: r.cost_cents ?? 0,
     stock: r.stock,
     low: r.low_threshold,
     sku: r.sku,
+    nameI18n: (r.name_i18n as Record<string, string> | undefined) ?? undefined,
   }));
 
   const gallery = (

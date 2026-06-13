@@ -11,11 +11,13 @@ import 'server-only';
  * headers). L'espace client est public — aucune session Supabase Auth requise,
  * lecture via client admin (RLS bypass).
  */
+import { getLocale } from 'next-intl/server';
 import { createAdminClient } from '@/db';
 import { SALON } from '@/config/salon';
 import type { TenantSession } from '../_components/TenantProvider';
 import type { Currency } from '@/lib/money';
 import type { CashierShift, Product, Service, Staff, StaffRole } from '../_data/mock';
+import { pickLocale, shortLocale, type I18nText } from '@/lib/pick-locale';
 
 const SERVICE_ICONS = ['scissors', 'razor', 'crown', 'shield', 'star', 'sparkle'] as const;
 type ServiceIcon = (typeof SERVICE_ICONS)[number];
@@ -67,8 +69,14 @@ export async function getPublicTenantData(): Promise<TenantSession | null> {
         .order('sort_order', { ascending: true }),
     ]);
 
+  // Langue courante (cookie NEXT_LOCALE) → résolution des libellés multilingues.
+  const locale = shortLocale(await getLocale());
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const t = tenantRes.data as any;
+  // Map de traduction des sections (catégories) : { "<clé>": { fr, en, ar } }.
+  const catMap = (t?.category_i18n as Record<string, I18nText> | null) ?? {};
+  const localizedCategory = (cat: string | null): string | undefined =>
+    cat ? pickLocale(catMap[cat], locale, cat) : undefined;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const b = brandingRes.data as any;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -95,12 +103,13 @@ export async function getPublicTenantData(): Promise<TenantSession | null> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const services: Service[] = ((servicesRes.data as any[]) ?? []).map((r) => ({
     id: r.id as string,
-    name: r.name as string,
+    // Résolu selon la locale ({fr,en,ar}) — repli sur le nom d'origine.
+    name: pickLocale(r.name_i18n as I18nText, locale, r.name as string),
     duration: r.duration_min as number,
     priceCents: r.price_cents as number,
     icon: toServiceIcon(r.icon as string | null),
-    desc: (r.description as string) ?? '',
-    category: (r.category as string | null) ?? undefined,
+    desc: pickLocale(r.description_i18n as I18nText, locale, (r.description as string) ?? ''),
+    category: localizedCategory(r.category as string | null),
     barberIds: ((r.service_barbers as { barber_id: string }[] | null) ?? []).map(
       (sb) => sb.barber_id,
     ),
@@ -109,7 +118,7 @@ export async function getPublicTenantData(): Promise<TenantSession | null> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const products: Product[] = ((productsRes.data as any[]) ?? []).map((r) => ({
     id: r.id as string,
-    name: r.name as string,
+    name: pickLocale(r.name_i18n as I18nText, locale, r.name as string),
     priceCents: r.price_cents as number,
     costCents: (r.cost_cents as number) ?? 0,
     stock: r.stock as number,

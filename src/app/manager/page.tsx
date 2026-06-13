@@ -196,6 +196,8 @@ const SERVICE_OPS: PersistOps<Service> = {
       desc: s.desc,
       category: s.category,
       barberIds: s.barberIds,
+      nameI18n: s.nameI18n,
+      descI18n: s.descI18n,
     }),
   update: (id, s) =>
     updateService(id, {
@@ -206,6 +208,8 @@ const SERVICE_OPS: PersistOps<Service> = {
       desc: s.desc,
       category: s.category,
       barberIds: s.barberIds,
+      nameI18n: s.nameI18n,
+      descI18n: s.descI18n,
     }),
   remove: (id) => deleteService(id),
 };
@@ -219,6 +223,7 @@ const PRODUCT_OPS: PersistOps<Product> = {
       costCents: p.costCents,
       stock: p.stock,
       low: p.low,
+      nameI18n: p.nameI18n,
     }),
   update: (id, p) =>
     updateProduct(id, {
@@ -228,6 +233,7 @@ const PRODUCT_OPS: PersistOps<Product> = {
       costCents: p.costCents,
       stock: p.stock,
       low: p.low,
+      nameI18n: p.nameI18n,
     }),
   remove: (id) => deleteProduct(id),
 };
@@ -3209,11 +3215,23 @@ function ManagerServices({ services, setServices, barbers }: ServicesProps) {
       >
         {editing && (
           <div className="space-y-4">
-            <Input
-              label={t('editModal.nameLabel')}
-              value={editing.name}
-              onChange={(e) => setEditing({ ...editing, name: e.target.value })}
-            />
+            {/* Nom en 3 langues — l'affichage suit la langue choisie côté
+                client / caisse. `name` (repli) = 1re langue renseignée. */}
+            {(['fr', 'en', 'ar'] as const).map((lng) => (
+              <Input
+                key={lng}
+                label={`${t('editModal.nameLabel')} · ${lng.toUpperCase()}`}
+                value={editing.nameI18n?.[lng] ?? ''}
+                onChange={(e) => {
+                  const next = { ...(editing.nameI18n ?? {}), [lng]: e.target.value };
+                  setEditing({
+                    ...editing,
+                    nameI18n: next,
+                    name: (next.fr || next.en || next.ar || '').trim(),
+                  });
+                }}
+              />
+            ))}
             <Input
               label={t('editModal.descLabel')}
               value={editing.desc}
@@ -3468,11 +3486,22 @@ function ManagerStock({ products, setProducts }: StockProps) {
       >
         {editing && (
           <div className="space-y-4">
-            <Input
-              label={t('editModal.nameLabel')}
-              value={editing.name}
-              onChange={(e) => setEditing({ ...editing, name: e.target.value })}
-            />
+            {/* Nom produit en 3 langues — suit la langue choisie en caisse. */}
+            {(['fr', 'en', 'ar'] as const).map((lng) => (
+              <Input
+                key={lng}
+                label={`${t('editModal.nameLabel')} · ${lng.toUpperCase()}`}
+                value={editing.nameI18n?.[lng] ?? ''}
+                onChange={(e) => {
+                  const next = { ...(editing.nameI18n ?? {}), [lng]: e.target.value };
+                  setEditing({
+                    ...editing,
+                    nameI18n: next,
+                    name: (next.fr || next.en || next.ar || '').trim(),
+                  });
+                }}
+              />
+            ))}
             <Input
               label={t('editModal.skuLabel')}
               value={editing.sku}
