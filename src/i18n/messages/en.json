@@ -1010,7 +1010,8 @@
       "emailBtn": "Email receipt",
       "emailSendingBtn": "Sending…",
       "emailSentBtn": "Sent ✓",
-      "emailSentToast": "Receipt sent to the client by email."
+      "emailSentToast": "Receipt sent to the client by email.",
+      "printBtn": "Print ticket"
     },
     "receiptPdf": {
       "documentTitle": "Receipt",
@@ -1026,7 +1027,8 @@
       "itemDesc": "Description",
       "qrHint": "Scan to access your receipt.",
       "refundedStamp": "REFUNDED",
-      "printedOn": "Printed on"
+      "printedOn": "Printed on",
+      "thankYou": "Thank you for your visit!"
     },
     "clientSelector": {
       "removeAria": "Remove client",

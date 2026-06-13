@@ -17,7 +17,7 @@
  * /client). Le QR n'est utile que dans la fenêtre de temps physique au
  * comptoir, donc l'exposition est négligeable.
  */
-import { Check, Download, Mail, Phone, QrCode } from 'lucide-react';
+import { Check, Download, Mail, Phone, Printer, QrCode } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import QRCode from 'qrcode';
 import { useEffect, useState, useTransition } from 'react';
@@ -27,6 +27,7 @@ import { useFmtMoney } from '../_data/local-state';
 import { useTenantOrNull } from '../_components/TenantProvider';
 import { useToast } from '../_components/Toast';
 import { downloadReceiptPdf } from '../_lib/receipt-pdf';
+import { printReceipt } from '../_lib/receipt-print';
 import { sendReceiptEmail } from '../manager/email-actions';
 import { issueClientToken } from '../manager/token-actions';
 
@@ -161,55 +162,76 @@ export function ReceiptQRModal({
     });
   };
 
+  // Données de la vente — partagées entre le PDF et l'impression directe.
+  const buildReceiptData = () => ({
+    saleId,
+    dateIso: new Date().toISOString(),
+    time: new Date().toTimeString().slice(0, 5),
+    items,
+    totalCents,
+    tipCents,
+    method,
+    methodLabel,
+    currency: session?.tenant.currency ?? SALON.currency,
+    clientName: displayName || null,
+    qrDataUrl,
+    qrCaption: url || null,
+  });
+
+  // Identité du salon. La caisse ne monte pas de TenantProvider → session peut
+  // être null : fallback sur les constantes SALON (sinon nom vide + EUR). Audit.
+  const buildSalonInfo = () => ({
+    name: session?.tenant.name ?? SALON.name,
+    logoDataUrl: session?.branding.logo_url ?? SALON.logoUrl,
+    addressStreet: session?.settings.address_street ?? null,
+    addressCity: session?.settings.address_city ?? null,
+    addressZip: session?.settings.address_zip ?? null,
+    branch: session?.settings.branch ?? null,
+    phone: session?.settings.contact_phone ?? null,
+    email: session?.settings.contact_email ?? null,
+    website: session?.settings.contact_website ?? null,
+    tagline: session?.settings.tagline ?? null,
+  });
+
   const handleDownloadPdf = () => {
-    downloadReceiptPdf(
-      {
-        saleId,
-        dateIso: new Date().toISOString(),
-        time: new Date().toTimeString().slice(0, 5),
-        items,
-        totalCents,
-        tipCents,
-        method,
-        methodLabel,
-        currency: session?.tenant.currency ?? SALON.currency,
-        clientName: displayName || null,
-        qrDataUrl,
-        qrCaption: url || null,
-      },
-      {
-        // La caisse ne monte pas de TenantProvider → session est null ici.
-        // Fallback sur les constantes SALON pour que le PDF porte bien
-        // l'identité du salon (au lieu de nom vide + EUR). Audit.
-        name: session?.tenant.name ?? SALON.name,
-        logoDataUrl: session?.branding.logo_url ?? SALON.logoUrl,
-        addressStreet: session?.settings.address_street ?? null,
-        addressCity: session?.settings.address_city ?? null,
-        addressZip: session?.settings.address_zip ?? null,
-        branch: session?.settings.branch ?? null,
-        phone: session?.settings.contact_phone ?? null,
-        email: session?.settings.contact_email ?? null,
-        website: session?.settings.contact_website ?? null,
-        tagline: session?.settings.tagline ?? null,
-      },
-      {
-        documentTitle: tPdf('documentTitle'),
-        saleNumber: tPdf('saleNumber'),
-        method: tPdf('method'),
-        client: tPdf('client'),
-        subtotal: tPdf('subtotal'),
-        tip: tPdf('tip'),
-        total: tPdf('total'),
-        qty: tPdf('qty'),
-        unitPrice: tPdf('unitPrice'),
-        lineTotal: tPdf('lineTotal'),
-        itemDesc: tPdf('itemDesc'),
-        qrHint: tPdf('qrHint'),
-        refundedStamp: tPdf('refundedStamp'),
-        printedOn: tPdf('printedOn'),
-        bcp47,
-      },
-    );
+    downloadReceiptPdf(buildReceiptData(), buildSalonInfo(), {
+      documentTitle: tPdf('documentTitle'),
+      saleNumber: tPdf('saleNumber'),
+      method: tPdf('method'),
+      client: tPdf('client'),
+      subtotal: tPdf('subtotal'),
+      tip: tPdf('tip'),
+      total: tPdf('total'),
+      qty: tPdf('qty'),
+      unitPrice: tPdf('unitPrice'),
+      lineTotal: tPdf('lineTotal'),
+      itemDesc: tPdf('itemDesc'),
+      qrHint: tPdf('qrHint'),
+      refundedStamp: tPdf('refundedStamp'),
+      printedOn: tPdf('printedOn'),
+      bcp47,
+    });
+  };
+
+  // Impression directe (rouleau thermique 80 mm / A4 / PDF) — rend l'arabe
+  // nativement, contrairement au PDF jsPDF (police latine).
+  const handlePrint = () => {
+    printReceipt(buildReceiptData(), buildSalonInfo(), {
+      documentTitle: tPdf('documentTitle'),
+      saleNumber: tPdf('saleNumber'),
+      method: tPdf('method'),
+      client: tPdf('client'),
+      subtotal: tPdf('subtotal'),
+      tip: tPdf('tip'),
+      total: tPdf('total'),
+      qty: tPdf('qty'),
+      unitPrice: tPdf('unitPrice'),
+      itemDesc: tPdf('itemDesc'),
+      qrHint: tPdf('qrHint'),
+      printedOn: tPdf('printedOn'),
+      thankYou: tPdf('thankYou'),
+      bcp47,
+    });
   };
 
   return (
@@ -283,13 +305,19 @@ export function ReceiptQRModal({
           </div>
         )}
 
-        <div className="grid w-full grid-cols-2 gap-2 pt-2">
-          <Btn variant="secondary" icon={Download} onClick={handleDownloadPdf} full>
-            {t('downloadPdfBtn')}
+        <div className="flex w-full flex-col gap-2 pt-2">
+          {/* Imprimer le ticket — action principale (rouleau thermique / A4) */}
+          <Btn variant="secondary" icon={Printer} onClick={handlePrint} full>
+            {t('printBtn')}
           </Btn>
-          <Btn full onClick={onClose}>
-            {t('nextSaleBtn')}
-          </Btn>
+          <div className="grid grid-cols-2 gap-2">
+            <Btn variant="secondary" icon={Download} onClick={handleDownloadPdf} full>
+              {t('downloadPdfBtn')}
+            </Btn>
+            <Btn full onClick={onClose}>
+              {t('nextSaleBtn')}
+            </Btn>
+          </div>
         </div>
       </div>
     </Modal>

@@ -1011,7 +1011,8 @@
       "emailBtn": "إرسال بالبريد",
       "emailSendingBtn": "جارٍ الإرسال…",
       "emailSentBtn": "تمّ الإرسال ✓",
-      "emailSentToast": "تمّ إرسال الإيصال إلى العميل بالبريد الإلكتروني."
+      "emailSentToast": "تمّ إرسال الإيصال إلى العميل بالبريد الإلكتروني.",
+      "printBtn": "طباعة الإيصال"
     },
     "receiptPdf": {
       "documentTitle": "إيصال البيع",
@@ -1027,7 +1028,8 @@
       "itemDesc": "الوصف",
       "qrHint": "امسح للوصول إلى إيصالك.",
       "refundedStamp": "مردود",
-      "printedOn": "طُبع في"
+      "printedOn": "طُبع في",
+      "thankYou": "شكرًا لزيارتكم!"
     },
     "clientSelector": {
       "removeAria": "إزالة العميل",

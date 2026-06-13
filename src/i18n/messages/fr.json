@@ -1010,7 +1010,8 @@
       "emailBtn": "Envoyer par email",
       "emailSendingBtn": "Envoi…",
       "emailSentBtn": "Envoyé ✓",
-      "emailSentToast": "Reçu envoyé par email au client."
+      "emailSentToast": "Reçu envoyé par email au client.",
+      "printBtn": "Imprimer le ticket"
     },
     "receiptPdf": {
       "documentTitle": "Reçu de caisse",
@@ -1026,7 +1027,8 @@
       "itemDesc": "Désignation",
       "qrHint": "Scannez pour retrouver votre facture.",
       "refundedStamp": "REMBOURSÉ",
-      "printedOn": "Imprimé le"
+      "printedOn": "Imprimé le",
+      "thankYou": "Merci de votre visite !"
     },
     "clientSelector": {
       "removeAria": "Retirer le client",
