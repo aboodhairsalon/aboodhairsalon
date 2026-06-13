@@ -116,12 +116,18 @@ export function ManagerReport({ isRealTenant }: { isRealTenant: boolean }) {
   const load = useCallback(
     (p: ReportPeriod) => {
       startTransition(async () => {
-        const res = await getAccountingReport(p);
-        if (res.ok) {
-          setReport(res.report);
-          setErrorKey(null);
-        } else {
-          setErrorKey(res.errorKey);
+        try {
+          const res = await getAccountingReport(p);
+          if (res.ok) {
+            setReport(res.report);
+            setErrorKey(null);
+          } else {
+            setErrorKey(res.errorKey);
+          }
+        } catch {
+          // Toute erreur inattendue (session expirée, réseau) → carte d'erreur
+          // plutôt qu'un squelette figé indéfiniment.
+          setErrorKey('dbError');
         }
       });
     },

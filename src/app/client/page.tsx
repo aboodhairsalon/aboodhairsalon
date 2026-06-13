@@ -79,6 +79,7 @@ import { ShareSalonModal } from './ShareSalonModal';
 import { verifyClientTokenAction } from './token-verify-action';
 import { downloadReceiptPdfServer } from './receipt-pdf-action';
 import { SALON } from '@/config/salon';
+import { utcIsoToZonedParts } from '../_lib/timezone';
 
 const DOW = ['DIM', 'LUN', 'MAR', 'MER', 'JEU', 'VEN', 'SAM'] as const;
 
@@ -1011,17 +1012,26 @@ function ClientHome({
     };
   }, [phone, tenantId]);
 
-  // Statut ouvert / fermé d'après les horaires du salon
+  // Statut ouvert / fermé d'après les horaires du salon — à l'heure du Caire
+  // (pas l'appareil du visiteur) et en gérant la fermeture après minuit
+  // (ex. « 10:00 → 00:00 » : sans ça, "21:40" < "00:00" est faux en compare
+  // string → le salon affichait « Fermé » toute la soirée alors qu'il est ouvert).
   const schedule = parseWeekSchedule(s?.hours_text);
-  const today = schedule?.[TODAY_KEY];
   const openNow = (() => {
-    if (!today?.open || today.slots.length === 0) return false;
-    const now = new Date();
-    const hhmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(
-      2,
-      '0',
-    )}`;
-    return today.slots.some((sl) => sl.from <= hhmm && hhmm < sl.to);
+    const { date: cairoDate, time: hhmm } = utcIsoToZonedParts(
+      new Date().toISOString(),
+      SALON.timezone,
+    );
+    const dayKeys: DayKey[] = ['dim', 'lun', 'mar', 'mer', 'jeu', 'ven', 'sam'];
+    const dayKey = dayKeys[new Date(`${cairoDate}T12:00:00Z`).getUTCDay()] ?? 'lun';
+    const day = schedule?.[dayKey];
+    if (!day?.open || day.slots.length === 0) return false;
+    return day.slots.some((sl) => {
+      const to = sl.to === '00:00' ? '24:00' : sl.to; // minuit = fin de journée
+      return to > sl.from
+        ? sl.from <= hhmm && hhmm < to // créneau standard (10:00 → 22:00)
+        : hhmm >= sl.from || hhmm < sl.to; // créneau passant minuit (18:00 → 02:00)
+    });
   })();
 
   const upcomingCount = bookings.filter((b) => b.status === 'upcoming').length;
