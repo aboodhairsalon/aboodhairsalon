@@ -1478,8 +1478,23 @@ function CashierPOS({
               return grouped.map(([cat, items]) => (
                 <div key={cat || '__none__'} className={cat ? 'mt-3' : ''}>
                   {cat && (
-                    <div className="mono text-ink-soft mb-2 text-[10px] uppercase tracking-wider">
-                      {cat}
+                    <div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                      <span className="mono text-ink-soft text-[10px] uppercase tracking-wider">
+                        {cat}
+                      </span>
+                      {/* Coiffeur(s) de la section = union des coiffeurs assignés
+                          à ses prestations. Vide = tous → on n'affiche rien. */}
+                      {(() => {
+                        const names = Array.from(new Set(items.flatMap((s) => s.barberIds)))
+                          .map((id) => barbers.find((b) => b.id === id)?.name)
+                          .filter(Boolean);
+                        return names.length > 0 ? (
+                          <span className="text-ink-soft inline-flex items-center gap-1 text-[11px] normal-case tracking-normal">
+                            <User className="h-3 w-3 shrink-0" strokeWidth={1.5} />
+                            {names.join(', ')}
+                          </span>
+                        ) : null;
+                      })()}
                     </div>
                   )}
                   <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
@@ -1494,18 +1509,6 @@ function CashierPOS({
                           <ServiceIcon iconKey={s.icon} className="h-5 w-5" />
                         </div>
                         <div className="display mb-1 text-base">{s.name}</div>
-                        {/* Coiffeur(s) assigné(s). Vide = tous → on n'affiche rien. */}
-                        {s.barberIds.length > 0 && (
-                          <div className="text-ink-soft mb-1 flex items-center gap-1 text-[11px]">
-                            <User className="h-3 w-3 shrink-0" strokeWidth={1.5} />
-                            <span className="truncate">
-                              {s.barberIds
-                                .map((id) => barbers.find((b) => b.id === id)?.name)
-                                .filter(Boolean)
-                                .join(', ')}
-                            </span>
-                          </div>
-                        )}
                         <div className="mono text-ink text-sm">{fmt(s.priceCents)}</div>
                       </button>
                     ))}
