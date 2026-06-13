@@ -112,6 +112,7 @@ function mapSale(row: any): Sale {
       name: si.name as string,
       priceCents: si.unit_price_cents as number,
       qty: (si.qty as number) ?? 1,
+      barberId: (si.barber_id as string | null) ?? undefined,
     })),
     method: (['card', 'cash', 'mobile'] as const).includes(row.method) ? row.method : 'card',
     totalCents: (row.total_cents as number) ?? 0,

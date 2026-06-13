@@ -173,6 +173,9 @@ export interface SaleItem {
   name: string;
   priceCents: number;
   qty?: number;
+  /** Coiffeur (staff.id) ayant réalisé CETTE prestation. Optionnel : les
+   *  produits n'ont pas de coiffeur, et les ventes historiques non plus. */
+  barberId?: string;
 }
 
 export interface Sale {

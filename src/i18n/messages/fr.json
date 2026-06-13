@@ -1021,6 +1021,8 @@
       "servicesDivider": "Prestations",
       "productsDivider": "Produits",
       "catalogEmpty": "Aucun élément à afficher",
+      "barberPickTitle": "Qui réalise « {name} » ?",
+      "chooseBarber": "Choisir le coiffeur",
       "stockBadge": "{count} en stock",
       "ticket": "Ticket",
       "clearTicket": "Vider",

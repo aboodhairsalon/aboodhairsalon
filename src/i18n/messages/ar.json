@@ -1022,6 +1022,8 @@
       "servicesDivider": "الخدمات",
       "productsDivider": "المنتجات",
       "catalogEmpty": "لا توجد عناصر",
+      "barberPickTitle": "من يقوم بـ «{name}»؟",
+      "chooseBarber": "اختر الحلاق",
       "stockBadge": "{count} في المخزون",
       "ticket": "الفاتورة",
       "clearTicket": "إفراغ",

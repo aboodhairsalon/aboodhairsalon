@@ -224,6 +224,8 @@ export interface PayBookingInput {
     name: string;
     priceCents: number;
     qty: number;
+    /** Coiffeur (staff.id) de la prestation extra. Ignoré pour les produits. */
+    barberId?: string;
   }>;
 }
 
@@ -350,6 +352,8 @@ export async function payBooking(input: PayBookingInput): Promise<MutationResult
       kind: 'service' as const,
       service_id: bookingRow.service_id ?? null,
       product_id: null,
+      // Prestation de base du RDV → réalisée par le coiffeur du RDV.
+      barber_id: bookingRow.barber_id ?? null,
       name: input.serviceName ?? 'Prestation',
       qty: 1,
       unit_price_cents: bookingRow.amount_cents,
@@ -361,6 +365,7 @@ export async function payBooking(input: PayBookingInput): Promise<MutationResult
       kind: e.kind,
       service_id: e.kind === 'service' && isUuid(e.refId) ? e.refId : null,
       product_id: e.kind === 'product' && isUuid(e.refId) ? e.refId : null,
+      barber_id: e.kind === 'service' && e.barberId && isUuid(e.barberId) ? e.barberId : null,
       name: e.name,
       qty: e.qty,
       unit_price_cents: e.priceCents,
@@ -420,6 +425,8 @@ export interface DirectSaleItem {
   name: string;
   priceCents: number;
   qty: number;
+  /** Coiffeur (staff.id) ayant réalisé la prestation. Ignoré pour les produits. */
+  barberId?: string;
 }
 
 export interface CreateDirectSaleInput {
@@ -499,6 +506,9 @@ export async function createDirectSale(input: CreateDirectSaleInput): Promise<Mu
       kind: i.kind,
       service_id: i.kind === 'service' && isUuid(i.refId) ? i.refId : null,
       product_id: i.kind === 'product' && isUuid(i.refId) ? i.refId : null,
+      // Coiffeur par ligne (prestations uniquement). FK service_barbers→staff
+      // garantit un id valide ; on filtre les non-uuid par prudence.
+      barber_id: i.kind === 'service' && i.barberId && isUuid(i.barberId) ? i.barberId : null,
       name: i.name,
       qty: i.qty,
       unit_price_cents: i.priceCents,

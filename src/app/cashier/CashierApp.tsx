@@ -988,13 +988,76 @@ function CashierPOS({
   const add = (
     item: { id: string; name: string; priceCents: number },
     type: 'service' | 'product',
+    barberId?: string,
   ) => {
     setCart((c) => {
-      const k = `${type}-${item.id}`;
+      // Clé : pour une PRESTATION on inclut le coiffeur → une même prestation
+      // réalisée par 2 coiffeurs = 2 lignes distinctes. Produits / lignes libres
+      // (surplus) : pas de coiffeur, clé inchangée.
+      const k = type === 'service' && barberId ? `${type}-${item.id}-${barberId}` : `${type}-${item.id}`;
       const ex = c.find((x) => x.k === k);
       if (ex) return c.map((x) => (x.k === k ? { ...x, qty: x.qty + 1 } : x));
-      return [...c, { k, type, id: item.id, name: item.name, priceCents: item.priceCents, qty: 1 }];
+      return [
+        ...c,
+        { k, type, id: item.id, name: item.name, priceCents: item.priceCents, qty: 1, barberId },
+      ];
     });
+  };
+
+  // Coiffeurs autorisés pour une prestation : barberIds vide = tous. Repli sur
+  // tous si le filtre vide tout (coiffeur assigné retiré).
+  const allowedBarbersFor = (svc: Service): Barber[] => {
+    const ids = svc.barberIds ?? [];
+    if (ids.length === 0) return barbers;
+    const filtered = barbers.filter((b) => ids.includes(b.id));
+    return filtered.length > 0 ? filtered : barbers;
+  };
+
+  // Sélecteur de coiffeur PAR prestation. Ouvert au clic sur une prestation à
+  // plusieurs coiffeurs (mode 'add') OU au clic sur le coiffeur d'une ligne du
+  // ticket pour le changer (mode { changeKey }).
+  const [barberPick, setBarberPick] = useState<{
+    service: { id: string; name: string; priceCents: number };
+    allowed: Barber[];
+    mode: 'add' | { changeKey: string };
+  } | null>(null);
+
+  // Clic sur une prestation : 1 coiffeur possible → ajout direct ; sinon →
+  // ouvre le sélecteur.
+  const addService = (s: Service) => {
+    const allowed = allowedBarbersFor(s);
+    const item = { id: s.id, name: s.name, priceCents: s.priceCents };
+    if (allowed.length <= 1) {
+      add(item, 'service', allowed[0]?.id);
+    } else {
+      setBarberPick({ service: item, allowed, mode: 'add' });
+    }
+  };
+
+  // Validation du sélecteur de coiffeur.
+  const pickBarber = (barberId: string) => {
+    if (!barberPick) return;
+    if (barberPick.mode === 'add') {
+      add(barberPick.service, 'service', barberId);
+    } else {
+      const changeKey = barberPick.mode.changeKey;
+      setCart((c) => {
+        const line = c.find((x) => x.k === changeKey);
+        if (!line) return c;
+        const newKey = `service-${line.id}-${barberId}`;
+        if (newKey === changeKey) return c;
+        // Une ligne identique (même prestation + nouveau coiffeur) existe déjà
+        // → on fusionne les quantités au lieu de créer un doublon.
+        const dupe = c.find((x) => x.k === newKey);
+        if (dupe) {
+          return c
+            .filter((x) => x.k !== changeKey)
+            .map((x) => (x.k === newKey ? { ...x, qty: x.qty + line.qty } : x));
+        }
+        return c.map((x) => (x.k === changeKey ? { ...x, k: newKey, barberId } : x));
+      });
+    }
+    setBarberPick(null);
   };
 
   const sub = (k: string) =>
@@ -1096,11 +1159,14 @@ function CashierPOS({
         name: baseService.name,
         priceCents: b.amountCents,
         qty: 1,
+        // Prestation de base → coiffeur du RDV (modifiable par ligne ensuite).
+        barberId: b.barberId || undefined,
       });
     }
     // Extras déjà ajoutés au RDV (cf. AddExtrasModal côté Rendez-vous) — on
     // les recopie tels quels dans le cart pour que la caissière les voie
-    // et puisse les ajuster.
+    // et puisse les ajuster. Les extras-prestations héritent par défaut du
+    // coiffeur du RDV (modifiable).
     (b.extras ?? []).forEach((e) => {
       newCart.push({
         k: e.key,
@@ -1109,6 +1175,7 @@ function CashierPOS({
         name: e.name,
         priceCents: e.priceCents,
         qty: e.qty,
+        barberId: e.kind === 'service' ? b.barberId || undefined : undefined,
       });
     });
     setCart(newCart);
@@ -1169,13 +1236,19 @@ function CashierPOS({
       name: c.name,
       priceCents: c.priceCents,
       qty: c.qty,
+      barberId: c.barberId,
     }));
-    const itemsSnapshot = cartSnapshot.map(({ type, name, priceCents, qty }) => ({
+    const itemsSnapshot = cartSnapshot.map(({ type, name, priceCents, qty, barberId: bid }) => ({
       type,
       name,
       priceCents,
       qty,
+      barberId: bid,
     }));
+    // Coiffeur « principal » de la vente (= 1re prestation avec coiffeur) pour
+    // sales.barber_id (compat stats par coiffeur). L'attribution fine est par
+    // ligne (sale_items.barber_id).
+    const primaryBarberId = cart.find((c) => c.type === 'service' && c.barberId)?.barberId;
     // Total brut (avant cashback) — total panier + supplément éventuel.
     // Le cashback débité est soustrait pour obtenir le montant effectivement
     // encaissé en caisse. Le débit DB côté client_profiles a déjà été fait
@@ -1197,7 +1270,7 @@ function CashierPOS({
       items: [...itemsSnapshot, ...supplementItems],
       method,
       totalCents: totalWithSurplus,
-      barberId,
+      barberId: primaryBarberId ?? barberId,
       clientName: clientDisplayName || undefined,
       tipCents: surplus.tipCents,
     });
@@ -1261,6 +1334,7 @@ function CashierPOS({
           name: c.name,
           priceCents: c.priceCents,
           qty: c.qty,
+          barberId: c.barberId,
         }));
       const baseSvc = services.find((s) => s.id === loadedBookingSnapshot.serviceId);
       result = await payBooking({
@@ -1275,7 +1349,7 @@ function CashierPOS({
       });
     } else {
       result = await createDirectSale({
-        barberId: barberId || undefined,
+        barberId: primaryBarberId || undefined,
         clientPhone: clientPhoneValue || undefined,
         clientName: clientDisplayName || undefined,
         tipCents: surplus.tipCents,
@@ -1289,6 +1363,7 @@ function CashierPOS({
           name: c.name,
           priceCents: c.priceCents,
           qty: c.qty,
+          barberId: c.barberId,
         })),
       });
     }
@@ -1335,23 +1410,8 @@ function CashierPOS({
           <h2 className="display mt-2 text-3xl">{t('title')}</h2>
         </div>
 
-        <div className="mb-4 flex items-center gap-3">
-          <span className="mono text-ink-soft text-[10px] uppercase tracking-[0.25em]">
-            {t('forLabel')}
-          </span>
-          {barbers.map((b) => (
-            <button
-              key={b.id}
-              type="button"
-              onClick={() => setBarberId(b.id)}
-              className={`btn-press rounded-sm border px-3 py-1.5 text-xs font-semibold ${
-                barberId === b.id ? 'border-brand-primary text-ink' : 'border-line text-ink-mute'
-              }`}
-            >
-              {b.name}
-            </button>
-          ))}
-        </div>
+        {/* Le coiffeur se choisit désormais PAR prestation (au clic / dans le
+            ticket), plus via un sélecteur global ici. */}
 
         {/* ── Client rattaché à la vente (recherche + sélection / création) ─
             Remplace les anciens champs « Nom » + « Téléphone » séparés qui
@@ -1502,7 +1562,7 @@ function CashierPOS({
                       <button
                         key={s.id}
                         type="button"
-                        onClick={() => add({ id: s.id, name: s.name, priceCents: s.priceCents }, 'service')}
+                        onClick={() => addService(s)}
                         className="btn-press tile-hover border-line bg-surface rounded-sm border p-4 text-start"
                       >
                         <div className="text-brand-primary mb-2">
@@ -1605,12 +1665,6 @@ function CashierPOS({
 
         <div className="border-line text-ink-mute mb-3 flex flex-wrap gap-x-3 gap-y-0.5 border-b pb-3 text-xs">
           <span>
-            {t('ticketBarber')}{' '}
-            <span className="text-ink font-semibold">
-              {barbers.find((b) => b.id === barberId)?.name ?? '—'}
-            </span>
-          </span>
-          <span>
             {t('ticketClient')}{' '}
             <span className="text-ink font-semibold">
               {client
@@ -1633,6 +1687,32 @@ function CashierPOS({
               <div key={c.k} className="bg-surface-elev flex items-center gap-2 rounded-sm p-2">
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-sm font-semibold">{c.name}</div>
+                  {/* Coiffeur de la ligne (prestations réelles uniquement, pas
+                      les lignes libres / surplus). Tap → change le coiffeur. */}
+                  {(() => {
+                    const svc =
+                      c.type === 'service' ? services.find((s) => s.id === c.id) : undefined;
+                    if (!svc) return null;
+                    const allowed = allowedBarbersFor(svc);
+                    return (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setBarberPick({
+                            service: { id: c.id, name: c.name, priceCents: c.priceCents },
+                            allowed,
+                            mode: { changeKey: c.k },
+                          })
+                        }
+                        className="text-ink-soft hover:text-ink mt-0.5 flex items-center gap-1 text-[11px]"
+                      >
+                        <User className="h-3 w-3 shrink-0" strokeWidth={1.5} />
+                        <span className="underline-offset-2 hover:underline">
+                          {barbers.find((b) => b.id === c.barberId)?.name ?? t('chooseBarber')}
+                        </span>
+                      </button>
+                    );
+                  })()}
                   <div className="mono text-ink-mute text-xs">
                     {fmt(c.priceCents)} × {c.qty}
                   </div>
@@ -1646,7 +1726,7 @@ function CashierPOS({
                 </button>
                 <button
                   type="button"
-                  onClick={() => add({ id: c.id, name: c.name, priceCents: c.priceCents }, c.type)}
+                  onClick={() => add({ id: c.id, name: c.name, priceCents: c.priceCents }, c.type, c.barberId)}
                   className="btn-press border-line hover:border-brand-primary flex h-7 w-7 items-center justify-center rounded-sm border"
                 >
                   <Plus className="h-3 w-3" />
@@ -1781,6 +1861,31 @@ function CashierPOS({
         clientPhone={client?.phone ?? null}
         onConfirm={(method, surplus) => void onPay(method, surplus)}
       />
+
+      {/* Sélecteur de coiffeur par prestation (ouvert à l'ajout d'une
+          prestation à plusieurs coiffeurs, ou au clic sur le coiffeur d'une
+          ligne du ticket). */}
+      <Modal
+        open={!!barberPick}
+        onClose={() => setBarberPick(null)}
+        title={barberPick ? t('barberPickTitle', { name: barberPick.service.name }) : ''}
+      >
+        {barberPick && (
+          <div className="flex flex-wrap gap-2">
+            {barberPick.allowed.map((b) => (
+              <button
+                key={b.id}
+                type="button"
+                onClick={() => pickBarber(b.id)}
+                className="btn-press border-line hover:border-brand-primary bg-surface flex items-center gap-2 rounded-sm border px-4 py-2.5 text-sm font-semibold"
+              >
+                <User className="h-4 w-4" strokeWidth={1.6} />
+                {b.name}
+              </button>
+            ))}
+          </div>
+        )}
+      </Modal>
 
       {/* Sticky bottom CTA mobile — au-dessous de `lg` le ticket n'est
           plus sticky parce qu'il est en colonne empilée. La caissière doit
