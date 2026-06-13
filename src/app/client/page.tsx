@@ -78,6 +78,7 @@ import { InstallPwaButton } from './InstallPwaButton';
 import { ShareSalonModal } from './ShareSalonModal';
 import { verifyClientTokenAction } from './token-verify-action';
 import { downloadReceiptPdfServer } from './receipt-pdf-action';
+import { SALON } from '@/config/salon';
 
 const DOW = ['DIM', 'LUN', 'MAR', 'MER', 'JEU', 'VEN', 'SAM'] as const;
 
@@ -2660,9 +2661,31 @@ function ClientMyBookings({
 }: MyBookingsProps) {
   const t = useTranslations('client.mine');
   const fmt = useFmtMoney();
+  // « Maintenant » dans le fuseau du salon (Le Caire), au même format que
+  // `b.date + b.time` ('YYYY-MM-DD' + 'HH:mm') → comparaison lexicographique
+  // fiable (largeur fixe). Un RDV resté au statut 'upcoming' mais dont l'heure
+  // est passée NE doit PAS s'afficher « à venir » avec un bouton Annuler : il
+  // descend dans « Passés » (l'auto-clôture serveur réglera le statut DB).
+  const nowKey = (() => {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: SALON.timezone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }).formatToParts(new Date());
+    const get = (type: string) => parts.find((p) => p.type === type)?.value ?? '';
+    const hh = get('hour') === '24' ? '00' : get('hour'); // minuit → '00'
+    return `${get('year')}-${get('month')}-${get('day')}${hh}:${get('minute')}`;
+  })();
+  const isPastUpcoming = (b: Booking) => b.status === 'upcoming' && b.date + b.time < nowKey;
   const sorted = [...bookings].sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
-  const upcoming = sorted.filter((b) => b.status === 'upcoming');
-  const pastBookings = sorted.filter((b) => b.status === 'done' || b.status === 'cancelled');
+  const upcoming = sorted.filter((b) => b.status === 'upcoming' && !isPastUpcoming(b));
+  const pastBookings = sorted.filter(
+    (b) => b.status === 'done' || b.status === 'cancelled' || isPastUpcoming(b),
+  );
 
   // Historique « Passés » fusionné : RDV passés + passages walk-in, triés du
   // plus récent au plus ancien (cohérent avec la liste des factures du profil).
@@ -2715,14 +2738,24 @@ function ClientMyBookings({
               {t('withBarber', { name: barber?.name ?? '', duration: s?.duration ?? 0 })}
             </div>
             <div className="mt-2">
-              {b.status === 'upcoming' && (
-                <span
-                  className="rounded-md px-2 py-0.5 text-[10px] font-semibold"
-                  style={{ background: LC.btn, color: LC.btnText }}
-                >
-                  {t('statusUpcoming')}
-                </span>
-              )}
+              {b.status === 'upcoming' &&
+                (isPastUpcoming(b) ? (
+                  // Heure passée mais statut DB encore 'upcoming' → tag neutre
+                  // « Passé » (pas le tag « À venir », qui serait mensonger).
+                  <span
+                    className="rounded-md px-2 py-0.5 text-[10px] font-semibold"
+                    style={{ background: '#F1EEE9', color: '#7A7167' }}
+                  >
+                    {t('statusPast')}
+                  </span>
+                ) : (
+                  <span
+                    className="rounded-md px-2 py-0.5 text-[10px] font-semibold"
+                    style={{ background: LC.btn, color: LC.btnText }}
+                  >
+                    {t('statusUpcoming')}
+                  </span>
+                ))}
               {b.status === 'done' && (
                 <span
                   className="rounded-md px-2 py-0.5 text-[10px] font-semibold"
@@ -2750,7 +2783,7 @@ function ClientMyBookings({
           <span className="display mono text-xl" style={{ color: LC.title }}>
             {fmt(b.amountCents)}
           </span>
-          {b.status === 'upcoming' && (
+          {b.status === 'upcoming' && !isPastUpcoming(b) && (
             <button
               type="button"
               onClick={() => cancelBooking(b.id)}

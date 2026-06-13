@@ -1272,6 +1272,7 @@
       "statusMissed": "لم تحضر",
       "withBarber": "مع {name} · {duration} دقيقة",
       "cancel": "إلغاء",
+      "statusPast": "سابق",
       "walkInSubtitle": "زيارة مباشرة",
       "statusWalkIn": "مباشر",
       "statusRefunded": "مسترد",

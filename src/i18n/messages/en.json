@@ -1271,6 +1271,7 @@
       "statusMissed": "Missed",
       "withBarber": "with {name} · {duration} min",
       "cancel": "Cancel",
+      "statusPast": "Past",
       "walkInSubtitle": "Walk-in visit",
       "statusWalkIn": "Walk-in",
       "statusRefunded": "Refunded",

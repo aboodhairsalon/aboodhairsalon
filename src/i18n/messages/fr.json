@@ -1271,6 +1271,7 @@
       "statusMissed": "Manqué",
       "withBarber": "avec {name} · {duration} min",
       "cancel": "Annuler",
+      "statusPast": "Passé",
       "walkInSubtitle": "Passage en salon",
       "statusWalkIn": "Passage",
       "statusRefunded": "Remboursé",
