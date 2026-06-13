@@ -194,6 +194,7 @@ const SERVICE_OPS: PersistOps<Service> = {
       icon: s.icon,
       desc: s.desc,
       category: s.category,
+      barberIds: s.barberIds,
     }),
   update: (id, s) =>
     updateService(id, {
@@ -203,6 +204,7 @@ const SERVICE_OPS: PersistOps<Service> = {
       icon: s.icon,
       desc: s.desc,
       category: s.category,
+      barberIds: s.barberIds,
     }),
   remove: (id) => deleteService(id),
 };
@@ -338,7 +340,9 @@ export default function ManagerPage() {
       {tab === 'reserv' && (
         <ManagerReservations services={services} barbers={barbers} bookings={bookings} />
       )}
-      {tab === 'services' && <ManagerServices services={services} setServices={setServices} />}
+      {tab === 'services' && (
+        <ManagerServices services={services} setServices={setServices} barbers={barbers} />
+      )}
       {tab === 'stock' && <ManagerStock products={products} setProducts={setProducts} />}
       {tab === 'clients' && <ManagerClients />}
       {tab === 'settings' && <ManagerSettings />}
@@ -2748,9 +2752,11 @@ function ManagerReservations({ services, barbers, bookings }: ReservProps) {
 interface ServicesProps {
   services: Service[];
   setServices: (next: Service[] | ((prev: Service[]) => Service[])) => void;
+  /** Équipe (coiffeurs) pour l'affectation « qui réalise cette prestation ». */
+  barbers: Barber[];
 }
 
-function ManagerServices({ services, setServices }: ServicesProps) {
+function ManagerServices({ services, setServices, barbers }: ServicesProps) {
   const t = useTranslations('manager.services');
   const tErrors = useTranslations('manager.errors');
   const toast = useToast();
@@ -2807,6 +2813,7 @@ function ManagerServices({ services, setServices }: ServicesProps) {
     priceCents: 2500,
     icon: 'scissors',
     desc: '',
+    barberIds: [], // vide = tous les coiffeurs
   };
 
   const iconKeys: Service['icon'][] = ['scissors', 'razor', 'crown', 'shield', 'star', 'sparkle'];
@@ -3226,6 +3233,41 @@ function ManagerServices({ services, setServices }: ServicesProps) {
                     </button>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* Affectation coiffeurs : qui peut réaliser cette prestation.
+                Aucune sélection = tous les coiffeurs (défaut). */}
+            {barbers.length > 0 && (
+              <div>
+                <span className="mono text-ink-soft mb-2 block text-[10px] uppercase tracking-[0.2em]">
+                  {t('editModal.barbersLabel')}
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  {barbers.map((b) => {
+                    const selected = editing.barberIds.includes(b.id);
+                    return (
+                      <button
+                        key={b.id}
+                        type="button"
+                        onClick={() =>
+                          setEditing({
+                            ...editing,
+                            barberIds: selected
+                              ? editing.barberIds.filter((x) => x !== b.id)
+                              : [...editing.barberIds, b.id],
+                          })
+                        }
+                        className={`btn-press rounded-sm border px-3 py-2 text-xs ${selected ? 'border-brand-primary bg-surface text-ink' : 'border-line text-ink-mute hover:border-line-hi'}`}
+                      >
+                        {b.name}
+                      </button>
+                    );
+                  })}
+                </div>
+                {editing.barberIds.length === 0 && (
+                  <p className="text-ink-soft mt-2 text-[11px]">{t('editModal.barbersAllHint')}</p>
+                )}
               </div>
             )}
 

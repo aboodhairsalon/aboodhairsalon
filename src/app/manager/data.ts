@@ -58,7 +58,8 @@ export async function getManagerCollections(_tenantId: string): Promise<ManagerC
   // tout en restant en DB pour préserver les références RDV/ventes.
   const servicesRes = await supabase
     .from('services')
-    .select('*')
+    // Embed M:N service_barbers → liste des coiffeurs autorisés par prestation.
+    .select('*, service_barbers(barber_id)')
     .eq('is_active', true)
     .order('sort_order', { ascending: true })
     .order('created_at', { ascending: true });
@@ -94,7 +95,10 @@ export async function getManagerCollections(_tenantId: string): Promise<ManagerC
     category: r.category ?? undefined,
   }));
 
-  const services: Service[] = ((servicesRes.data as ServiceRow[] | null) ?? []).map((r) => ({
+  const services: Service[] = (
+    (servicesRes.data as (ServiceRow & { service_barbers?: { barber_id: string }[] })[] | null) ??
+    []
+  ).map((r) => ({
     id: r.id,
     name: r.name,
     duration: r.duration_min,
@@ -102,6 +106,7 @@ export async function getManagerCollections(_tenantId: string): Promise<ManagerC
     icon: toServiceIcon(r.icon),
     desc: r.description ?? '',
     category: r.category ?? undefined,
+    barberIds: (r.service_barbers ?? []).map((sb) => sb.barber_id),
   }));
 
   const products: Product[] = ((productsRes.data as ProductRow[] | null) ?? []).map((r) => ({

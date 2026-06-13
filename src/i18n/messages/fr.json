@@ -536,6 +536,8 @@
         "priceLabel": "Prix ({currency})",
         "iconLabel": "Icône",
         "sectionLabel": "Section",
+        "barbersLabel": "Qui réalise cette prestation ?",
+        "barbersAllHint": "Aucun sélectionné = tous les coiffeurs",
         "cancelBtn": "Annuler",
         "saveBtn": "Enregistrer"
       }

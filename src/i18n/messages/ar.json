@@ -537,6 +537,8 @@
         "priceLabel": "السعر ({currency})",
         "iconLabel": "الأيقونة",
         "sectionLabel": "القسم",
+        "barbersLabel": "من يقوم بهذه الخدمة؟",
+        "barbersAllHint": "بدون تحديد = كل الحلاقين",
         "cancelBtn": "إلغاء",
         "saveBtn": "حفظ"
       }

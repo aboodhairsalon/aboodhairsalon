@@ -176,8 +176,7 @@ export default async function CashierPage() {
 
     admin
       .from('services')
-      .select('*')
-      
+      .select('*, service_barbers(barber_id)')
       .eq('is_active', true)
       .order('sort_order', { ascending: true }),
 
@@ -208,6 +207,9 @@ export default async function CashierPage() {
     icon: toServiceIcon(r.icon as string | null),
     desc: (r.description as string) ?? '',
     category: (r.category as string | null) ?? undefined,
+    barberIds: ((r.service_barbers as { barber_id: string }[] | null) ?? []).map(
+      (sb) => sb.barber_id,
+    ),
   }));
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

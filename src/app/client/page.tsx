@@ -1451,6 +1451,16 @@ function ClientBookingFlow({
   const closeReviews = useCallback(() => setReviewsBarber(null), []);
 
   const service = services.find((s) => s.id === serviceId);
+  // Coiffeurs autorisés pour la prestation choisie. `barberIds` vide sur le
+  // service = aucune restriction → tous. Cas limite (un coiffeur assigné a été
+  // retiré → filtre vide) : on retombe sur TOUS pour ne jamais bloquer la
+  // réservation.
+  const allowedBarbers = (() => {
+    const ids = service?.barberIds ?? [];
+    if (ids.length === 0) return barbers;
+    const filtered = barbers.filter((b) => ids.includes(b.id));
+    return filtered.length > 0 ? filtered : barbers;
+  })();
   const barber = barbers.find((b) => b.id === barberId);
 
   const days = useMemo(
@@ -2085,7 +2095,7 @@ function ClientBookingFlow({
               <button
                 type="button"
                 onClick={() => {
-                  setBarberId(barbers[0]?.id ?? null);
+                  setBarberId(allowedBarbers[0]?.id ?? null);
                   setStep(3);
                 }}
                 className="btn-press flex flex-col items-center justify-center gap-1.5 rounded-2xl border p-3 text-center transition-all sm:p-4"
@@ -2105,8 +2115,9 @@ function ClientBookingFlow({
                 </div>
               </button>
 
-              {/* Barbiers — note /5 + avis consultables */}
-              {barbers.map((b) => {
+              {/* Barbiers — note /5 + avis consultables. Filtré aux coiffeurs
+                  qui réalisent la prestation choisie (allowedBarbers). */}
+              {allowedBarbers.map((b) => {
                 const rating = ratings.get(b.id);
                 const avg = rating?.avg ?? 0;
                 const count = rating?.count ?? 0;

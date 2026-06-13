@@ -536,6 +536,8 @@
         "priceLabel": "Price ({currency})",
         "iconLabel": "Icon",
         "sectionLabel": "Section",
+        "barbersLabel": "Who performs this service?",
+        "barbersAllHint": "None selected = all barbers",
         "cancelBtn": "Cancel",
         "saveBtn": "Save"
       }

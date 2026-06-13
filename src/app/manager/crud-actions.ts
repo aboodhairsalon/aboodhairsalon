@@ -211,6 +211,10 @@ const ServiceSchema = z.object({
     .max(80)
     .optional()
     .transform((v) => v || null),
+  // Coiffeurs (staff.id) autorisés à réaliser la prestation. Vide = tous.
+  // L'UI n'envoie que des staff.id valides ; la FK service_barbers→staff
+  // rejette de toute façon un id invalide.
+  barberIds: z.array(z.string().uuid()).max(50).optional().default([]),
 });
 
 export type ServiceInput = z.input<typeof ServiceSchema>;
@@ -238,12 +242,25 @@ export async function createService(input: ServiceInput): Promise<MutationResult
     .select('id')
     .single();
   if (error) return { ok: false, errorKey: 'dbError', errorValues: { message: error.message } };
+  const serviceId = (data as { id: string }).id;
+
+  // Assignations coiffeurs (M:N). Vide → on n'insère rien (= tous les coiffeurs).
+  if (d.barberIds.length > 0) {
+    const sbRows = d.barberIds.map((barberId) => ({
+      service_id: serviceId,
+      barber_id: barberId,
+      tenant_id: ctx.tenant.id,
+    }));
+    const { error: sbErr } = await supabase.from('service_barbers').insert(sbRows as never);
+    if (sbErr) return { ok: false, errorKey: 'dbError', errorValues: { message: sbErr.message } };
+  }
+
   revalidatePath('/manager');
-  return { ok: true, id: (data as { id: string }).id };
+  return { ok: true, id: serviceId };
 }
 
 export async function updateService(id: string, input: ServiceInput): Promise<MutationResult> {
-  await requireTenant();
+  const ctx = await requireTenant();
   const supabase = createAdminClient();
   const parsed = ServiceSchema.safeParse(input);
   if (!parsed.success) {
@@ -262,6 +279,22 @@ export async function updateService(id: string, input: ServiceInput): Promise<Mu
     } as never)
     .eq('id', id);
   if (error) return { ok: false, errorKey: 'dbError', errorValues: { message: error.message } };
+
+  // Remplace l'ensemble des assignations coiffeurs : on efface puis on réinsère
+  // (delete-then-insert). Pas transactionnel mais idempotent : un échec d'insert
+  // laisse la liste vide (= tous), un retry recolle. Vide → reste effacé.
+  const { error: delErr } = await supabase.from('service_barbers').delete().eq('service_id', id);
+  if (delErr) return { ok: false, errorKey: 'dbError', errorValues: { message: delErr.message } };
+  if (d.barberIds.length > 0) {
+    const sbRows = d.barberIds.map((barberId) => ({
+      service_id: id,
+      barber_id: barberId,
+      tenant_id: ctx.tenant.id,
+    }));
+    const { error: insErr } = await supabase.from('service_barbers').insert(sbRows as never);
+    if (insErr) return { ok: false, errorKey: 'dbError', errorValues: { message: insErr.message } };
+  }
+
   revalidatePath('/manager');
   return { ok: true };
 }

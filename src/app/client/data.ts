@@ -52,7 +52,7 @@ export async function getPublicTenantData(): Promise<TenantSession | null> {
         .order('created_at', { ascending: true }),
       admin
         .from('services')
-        .select('*')
+        .select('*, service_barbers(barber_id)')
         .eq('is_active', true)
         .order('sort_order', { ascending: true })
         .order('created_at', { ascending: true }),
@@ -100,6 +100,9 @@ export async function getPublicTenantData(): Promise<TenantSession | null> {
     icon: toServiceIcon(r.icon as string | null),
     desc: (r.description as string) ?? '',
     category: (r.category as string | null) ?? undefined,
+    barberIds: ((r.service_barbers as { barber_id: string }[] | null) ?? []).map(
+      (sb) => sb.barber_id,
+    ),
   }));
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

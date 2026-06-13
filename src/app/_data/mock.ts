@@ -20,6 +20,10 @@ export interface Service {
   desc: string;
   /** Section personnalisée (optionnelle) — null/undefined = sans section. */
   category?: string;
+  /** Coiffeurs (staff.id) autorisés à réaliser cette prestation.
+   *  Liste VIDE = tous les coiffeurs peuvent la faire (défaut). Sinon, seuls
+   *  ces coiffeurs sont proposés à la réservation + affichés en caisse. */
+  barberIds: string[];
 }
 
 export interface Product {
@@ -213,6 +217,7 @@ export const INITIAL_SERVICES: Service[] = [
     priceCents: 2500,
     icon: 'scissors',
     desc: 'Coupe sur-mesure, shampoing, finitions tondeuse',
+    barberIds: [],
   },
   {
     id: 's2',
@@ -221,6 +226,7 @@ export const INITIAL_SERVICES: Service[] = [
     priceCents: 1800,
     icon: 'razor',
     desc: 'Sculpture, contour précis, huile à barbe',
+    barberIds: [],
   },
   {
     id: 's3',
@@ -229,6 +235,7 @@ export const INITIAL_SERVICES: Service[] = [
     priceCents: 3800,
     icon: 'crown',
     desc: 'La signature de la maison',
+    barberIds: [],
   },
   {
     id: 's4',
@@ -237,6 +244,7 @@ export const INITIAL_SERVICES: Service[] = [
     priceCents: 3500,
     icon: 'shield',
     desc: 'Serviette chaude, rasoir traditionnel',
+    barberIds: [],
   },
   {
     id: 's5',
@@ -245,6 +253,7 @@ export const INITIAL_SERVICES: Service[] = [
     priceCents: 1800,
     icon: 'star',
     desc: 'Calme, patience, premier souvenir',
+    barberIds: [],
   },
   {
     id: 's6',
@@ -253,6 +262,7 @@ export const INITIAL_SERVICES: Service[] = [
     priceCents: 4500,
     icon: 'sparkle',
     desc: 'Camouflage des gris, naturel garanti',
+    barberIds: [],
   },
 ];
 

@@ -12,6 +12,7 @@ import {
   Receipt,
   Smartphone,
   Trash2,
+  User,
   Wallet,
   X,
   type LucideIcon,
@@ -1493,6 +1494,18 @@ function CashierPOS({
                           <ServiceIcon iconKey={s.icon} className="h-5 w-5" />
                         </div>
                         <div className="display mb-1 text-base">{s.name}</div>
+                        {/* Coiffeur(s) assigné(s). Vide = tous → on n'affiche rien. */}
+                        {s.barberIds.length > 0 && (
+                          <div className="text-ink-soft mb-1 flex items-center gap-1 text-[11px]">
+                            <User className="h-3 w-3 shrink-0" strokeWidth={1.5} />
+                            <span className="truncate">
+                              {s.barberIds
+                                .map((id) => barbers.find((b) => b.id === id)?.name)
+                                .filter(Boolean)
+                                .join(', ')}
+                            </span>
+                          </div>
+                        )}
                         <div className="mono text-ink text-sm">{fmt(s.priceCents)}</div>
                       </button>
                     ))}
