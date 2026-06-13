@@ -31,9 +31,33 @@ import { imageUrlToDataUrl, printReceipt } from '../_lib/receipt-print';
 import { sendReceiptEmail } from '../manager/email-actions';
 import { issueClientToken } from '../manager/token-actions';
 
-function toBcp47(locale: string): string {
-  return locale === 'ar' ? 'ar-EG' : locale === 'en' ? 'en-US' : 'fr-FR';
-}
+/**
+ * Le ticket de caisse est TOUJOURS imprimé en ANGLAIS — document commercial
+ * standard, lisible par tous (touristes, expats, normes), indépendamment de
+ * la langue d'interface du caissier. Libellés + format date/montant figés en
+ * anglais (en-GB). Les libellés de paiement suivent ceux de la caisse :
+ * Visa / Cash / InstaPay.
+ */
+const RECEIPT_LABELS = {
+  documentTitle: 'Receipt',
+  saleNumber: 'Sale #',
+  method: 'Method',
+  client: 'Client',
+  subtotal: 'Subtotal',
+  tip: 'Tip',
+  total: 'Total',
+  qty: 'Qty',
+  unitPrice: 'Unit',
+  lineTotal: 'Total',
+  itemDesc: 'Description',
+  qrHint: 'Scan to access your receipt.',
+  refundedStamp: 'REFUNDED',
+  printedOn: 'Printed on',
+  thankYou: 'Thank you for your visit!',
+  copyClient: 'Customer copy',
+  copyMerchant: 'Merchant copy',
+} as const;
+const RECEIPT_BCP47 = 'en-GB';
 
 export interface ReceiptQRClient {
   phone: string;
@@ -77,11 +101,8 @@ export function ReceiptQRModal({
   slug?: string;
 }) {
   const t = useTranslations('cashier.receiptQR');
-  const tPdf = useTranslations('cashier.receiptPdf');
-  const tLog = useTranslations('cashier.log');
   const tErrors = useTranslations('manager.errors');
   const locale = useLocale();
-  const bcp47 = toBcp47(locale);
   const fmt = useFmtMoney();
   const toast = useToast();
   const session = useTenantOrNull();
@@ -139,12 +160,8 @@ export function ReceiptQRModal({
     ? [client.firstName, client.lastName].filter(Boolean).join(' ').trim() || client.phone
     : '';
 
-  const methodLabel =
-    method === 'card'
-      ? tLog('methodShortCard')
-      : method === 'cash'
-        ? tLog('methodShortCash')
-        : tLog('methodShortMobile');
+  // Ticket en anglais → libellé de paiement aligné sur la caisse (Visa/Cash/InstaPay).
+  const methodLabel = method === 'card' ? 'Visa' : method === 'cash' ? 'Cash' : 'InstaPay';
 
   const handleSendEmail = () => {
     if (!saleId || saleId.startsWith('local-')) return;
@@ -199,21 +216,8 @@ export function ReceiptQRModal({
     // pour qu'il apparaisse aussi sur le PDF (échec silencieux = PDF sans logo).
     const logoDataUrl = await imageUrlToDataUrl(salon.logoDataUrl);
     downloadReceiptPdf(buildReceiptData(), { ...salon, logoDataUrl }, {
-      documentTitle: tPdf('documentTitle'),
-      saleNumber: tPdf('saleNumber'),
-      method: tPdf('method'),
-      client: tPdf('client'),
-      subtotal: tPdf('subtotal'),
-      tip: tPdf('tip'),
-      total: tPdf('total'),
-      qty: tPdf('qty'),
-      unitPrice: tPdf('unitPrice'),
-      lineTotal: tPdf('lineTotal'),
-      itemDesc: tPdf('itemDesc'),
-      qrHint: tPdf('qrHint'),
-      refundedStamp: tPdf('refundedStamp'),
-      printedOn: tPdf('printedOn'),
-      bcp47,
+      ...RECEIPT_LABELS,
+      bcp47: RECEIPT_BCP47,
     });
   };
 
@@ -221,22 +225,8 @@ export function ReceiptQRModal({
   // nativement, contrairement au PDF jsPDF (police latine).
   const handlePrint = () => {
     printReceipt(buildReceiptData(), buildSalonInfo(), {
-      documentTitle: tPdf('documentTitle'),
-      saleNumber: tPdf('saleNumber'),
-      method: tPdf('method'),
-      client: tPdf('client'),
-      subtotal: tPdf('subtotal'),
-      tip: tPdf('tip'),
-      total: tPdf('total'),
-      qty: tPdf('qty'),
-      unitPrice: tPdf('unitPrice'),
-      itemDesc: tPdf('itemDesc'),
-      qrHint: tPdf('qrHint'),
-      printedOn: tPdf('printedOn'),
-      thankYou: tPdf('thankYou'),
-      copyClient: tPdf('copyClient'),
-      copyMerchant: tPdf('copyMerchant'),
-      bcp47,
+      ...RECEIPT_LABELS,
+      bcp47: RECEIPT_BCP47,
     });
   };
 
