@@ -234,6 +234,8 @@ export function ReceiptQRModal({
       qrHint: tPdf('qrHint'),
       printedOn: tPdf('printedOn'),
       thankYou: tPdf('thankYou'),
+      copyClient: tPdf('copyClient'),
+      copyMerchant: tPdf('copyMerchant'),
       bcp47,
     });
   };

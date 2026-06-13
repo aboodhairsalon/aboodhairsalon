@@ -26,6 +26,10 @@ export interface ReceiptPrintLabels {
   qrHint: string;
   printedOn: string;
   thankYou: string;
+  /** Étiquette « Exemplaire client » (1er ticket). */
+  copyClient: string;
+  /** Étiquette « Exemplaire commerçant » (2e ticket — conservé par le salon). */
+  copyMerchant: string;
   /** Locale BCP-47 (formatage montants + sens RTL si 'ar…'). */
   bcp47: string;
 }
@@ -132,13 +136,49 @@ export function buildReceiptHtml(
          <div class="mut c">${esc(L.qrHint)}</div>`
       : '';
 
+  const printedOn = `<div class="foot">${esc(L.printedOn)} ${esc(
+    fmtDateLong(new Date().toISOString(), L.bcp47),
+  )}</div>`;
+
+  // Un exemplaire du ticket. `copyLabel` distingue l'exemplaire client du
+  // commerçant (impression en double exigée légalement). Logo + QR partagés.
+  const renderCopy = (copyLabel: string) => `
+  <div class="copy">
+    ${logo}
+    <div class="c xl">${esc(salon.name)}</div>
+    <div class="c">${headLines}</div>
+    <hr class="hr" />
+    <div class="row"><span>${esc(L.saleNumber)} ${esc(data.saleId.slice(0, 8).toUpperCase())}</span></div>
+    <div class="row"><span>${esc(fmtDateLong(data.dateIso, L.bcp47))} · ${esc(data.time)}</span></div>
+    ${data.clientName ? `<div class="row"><span>${esc(L.client)} : ${esc(data.clientName)}</span></div>` : ''}
+    <div class="row"><span>${esc(L.method)} : ${esc(data.methodLabel)}</span></div>
+    ${data.refunded ? `<div class="stamp">${esc(L.documentTitle)} ✗</div>` : ''}
+    <hr class="hr" />
+    ${itemsHtml}
+    <hr class="hr" />
+    ${
+      hasTip
+        ? `<div class="row"><span>${esc(L.subtotal)}</span><span>${esc(money(itemsSubtotal))}</span></div>
+           <div class="row"><span>${esc(L.tip)}</span><span>${esc(money(data.tipCents ?? 0))}</span></div>`
+        : ''
+    }
+    <div class="row total-row"><span>${esc(L.total)}</span><span>${esc(money(grandTotal))}</span></div>
+    ${qr}
+    <div class="thanks">${esc(L.thankYou)}</div>
+    <div class="copy-label">${esc(copyLabel)}</div>
+    ${printedOn}
+  </div>`;
+
+  // 2 exemplaires : 1er = client, 2e = commerçant. Ligne de découpe entre eux
+  // (l'imprimante thermique sort les deux à la suite sur le rouleau).
   return `<!doctype html><html dir="${rtl ? 'rtl' : 'ltr'}" lang="${esc(L.bcp47.slice(0, 2))}">
 <head><meta charset="utf-8" />
 <style>
   @page { size: 80mm auto; margin: 0; }
   * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   html, body { margin: 0; padding: 0; background: #fff; }
-  body { width: 80mm; padding: 5mm 4mm 6mm; font-family: 'Courier New', ui-monospace, monospace; font-size: 12px; color: #000; line-height: 1.4; }
+  body { width: 80mm; font-family: 'Courier New', ui-monospace, monospace; font-size: 12px; color: #000; line-height: 1.4; }
+  .copy { padding: 5mm 4mm; }
   .c { text-align: center; }
   .b { font-weight: 700; }
   .lg { font-size: 15px; }
@@ -153,32 +193,15 @@ export function buildReceiptHtml(
   .total-row { font-size: 17px; font-weight: 700; margin-top: 3px; }
   .qr { width: 38mm; height: 38mm; display: block; margin: 8px auto 2px; }
   .thanks { text-align: center; font-weight: 700; margin-top: 9px; }
-  .foot { text-align: center; font-size: 9px; opacity: .65; margin-top: 6px; }
+  .copy-label { text-align: center; font-weight: 700; font-size: 11px; letter-spacing: 1px; border: 1px solid #000; padding: 2px 0; margin: 7px 0 4px; }
+  .foot { text-align: center; font-size: 9px; opacity: .65; margin-top: 4px; }
   .stamp { text-align: center; color: #b91c1c; font-weight: 700; border: 2px solid #b91c1c; padding: 2px; margin: 6px 0; letter-spacing: 2px; }
+  .cut { text-align: center; font-size: 10px; opacity: .6; letter-spacing: 1px; padding: 4px 4mm 6px; }
 </style></head>
 <body>
-  ${logo}
-  <div class="c xl">${esc(salon.name)}</div>
-  <div class="c">${headLines}</div>
-  <hr class="hr" />
-  <div class="row"><span>${esc(L.saleNumber)} ${esc(data.saleId.slice(0, 8).toUpperCase())}</span></div>
-  <div class="row"><span>${esc(fmtDateLong(data.dateIso, L.bcp47))} · ${esc(data.time)}</span></div>
-  ${data.clientName ? `<div class="row"><span>${esc(L.client)} : ${esc(data.clientName)}</span></div>` : ''}
-  <div class="row"><span>${esc(L.method)} : ${esc(data.methodLabel)}</span></div>
-  ${data.refunded ? `<div class="stamp">${esc(L.documentTitle)} ✗</div>` : ''}
-  <hr class="hr" />
-  ${itemsHtml}
-  <hr class="hr" />
-  ${
-    hasTip
-      ? `<div class="row"><span>${esc(L.subtotal)}</span><span>${esc(money(itemsSubtotal))}</span></div>
-         <div class="row"><span>${esc(L.tip)}</span><span>${esc(money(data.tipCents ?? 0))}</span></div>`
-      : ''
-  }
-  <div class="row total-row"><span>${esc(L.total)}</span><span>${esc(money(grandTotal))}</span></div>
-  ${qr}
-  <div class="thanks">${esc(L.thankYou)}</div>
-  <div class="foot">${esc(L.printedOn)} ${esc(fmtDateLong(new Date().toISOString(), L.bcp47))}</div>
+  ${renderCopy(L.copyClient)}
+  <div class="cut">✂ — — — — — — — — — — — — — — —</div>
+  ${renderCopy(L.copyMerchant)}
 </body></html>`;
 }
 

@@ -1028,7 +1028,9 @@
       "qrHint": "Scannez pour retrouver votre facture.",
       "refundedStamp": "REMBOURSÉ",
       "printedOn": "Imprimé le",
-      "thankYou": "Merci de votre visite !"
+      "thankYou": "Merci de votre visite !",
+      "copyClient": "Exemplaire client",
+      "copyMerchant": "Exemplaire commerçant"
     },
     "clientSelector": {
       "removeAria": "Retirer le client",

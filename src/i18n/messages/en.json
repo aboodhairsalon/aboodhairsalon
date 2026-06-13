@@ -1028,7 +1028,9 @@
       "qrHint": "Scan to access your receipt.",
       "refundedStamp": "REFUNDED",
       "printedOn": "Printed on",
-      "thankYou": "Thank you for your visit!"
+      "thankYou": "Thank you for your visit!",
+      "copyClient": "Customer copy",
+      "copyMerchant": "Merchant copy"
     },
     "clientSelector": {
       "removeAria": "Remove client",

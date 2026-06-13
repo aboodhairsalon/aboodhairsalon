@@ -1029,7 +1029,9 @@
       "qrHint": "امسح للوصول إلى إيصالك.",
       "refundedStamp": "مردود",
       "printedOn": "طُبع في",
-      "thankYou": "شكرًا لزيارتكم!"
+      "thankYou": "شكرًا لزيارتكم!",
+      "copyClient": "نسخة العميل",
+      "copyMerchant": "نسخة التاجر"
     },
     "clientSelector": {
       "removeAria": "إزالة العميل",
