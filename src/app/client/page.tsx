@@ -500,6 +500,12 @@ export default function ClientPage() {
   const [tab, setTab] = useState('home');
   const [shareOpen, setShareOpen] = useState(false);
   const [bookings, setBookings] = useState<Booking[]>(tenantSession ? [] : INITIAL_BOOKINGS);
+  // Ventes « walk-in » (passages sans réservation) à fusionner dans l'onglet
+  // « Mes RDV » → historique complet (RDV + passages directs) demandé par le
+  // salon. On ne garde QUE les ventes sans `bookingId` : un RDV encaissé via
+  // payBooking porte un bookingId et apparaît déjà dans `bookings`, le
+  // remontrer comme vente serait un doublon. Vide si non authentifié.
+  const [walkInSales, setWalkInSales] = useState<ClientSaleItem[]>([]);
   // Lightbox galerie — `null` = fermée, sinon index de la photo affichée.
   const [galleryLightboxIdx, setGalleryLightboxIdx] = useState<number | null>(null);
 
@@ -615,6 +621,13 @@ export default function ClientPage() {
       }));
       setBookings(mapped);
     });
+    // En parallèle : ventes walk-in (passages sans RDV) pour l'historique
+    // fusionné. Même garde auth + mêmes deps que les RDV. On filtre les
+    // ventes issues d'un RDV (bookingId non nul) pour éviter les doublons.
+    void getClientSales(tenantSession.tenant.id, phone).then((r) => {
+      if (!alive || !r.ok) return;
+      setWalkInSales(r.sales.filter((s) => !s.bookingId));
+    });
     return () => {
       alive = false;
     };
@@ -707,6 +720,7 @@ export default function ClientPage() {
       {tab === 'mine' && (
         <ClientMyBookings
           bookings={bookings}
+          walkInSales={walkInSales}
           services={services}
           barbers={barbers}
           cancelBooking={cancelBooking}
@@ -2623,17 +2637,44 @@ function ClientBookingFlow({
 // =============================================================================
 interface MyBookingsProps {
   bookings: Booking[];
+  /** Passages walk-in (ventes sans RDV) — fusionnés dans l'historique. */
+  walkInSales: ClientSaleItem[];
   services: Service[];
   barbers: Barber[];
   cancelBooking: (id: string) => void;
 }
 
-function ClientMyBookings({ bookings, services, barbers, cancelBooking }: MyBookingsProps) {
+/** Entrée unifiée de l'historique « Passés » : soit un RDV, soit un passage
+ *  walk-in. `sortKey` = 'YYYY-MM-DDHH:mm' pour trier les deux sur le même axe
+ *  temporel (plus récent d'abord). */
+type PastEntry =
+  | { kind: 'booking'; sortKey: string; booking: Booking }
+  | { kind: 'sale'; sortKey: string; sale: ClientSaleItem };
+
+function ClientMyBookings({
+  bookings,
+  walkInSales,
+  services,
+  barbers,
+  cancelBooking,
+}: MyBookingsProps) {
   const t = useTranslations('client.mine');
   const fmt = useFmtMoney();
   const sorted = [...bookings].sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
   const upcoming = sorted.filter((b) => b.status === 'upcoming');
-  const past = sorted.filter((b) => b.status === 'done' || b.status === 'cancelled');
+  const pastBookings = sorted.filter((b) => b.status === 'done' || b.status === 'cancelled');
+
+  // Historique « Passés » fusionné : RDV passés + passages walk-in, triés du
+  // plus récent au plus ancien (cohérent avec la liste des factures du profil).
+  const pastEntries: PastEntry[] = [
+    ...pastBookings.map(
+      (b): PastEntry => ({ kind: 'booking', sortKey: b.date + b.time, booking: b }),
+    ),
+    ...walkInSales.map(
+      (s): PastEntry => ({ kind: 'sale', sortKey: s.date + s.time, sale: s }),
+    ),
+  ].sort((a, b) => b.sortKey.localeCompare(a.sortKey));
+  const hasHistory = bookings.length > 0 || walkInSales.length > 0;
 
   const renderItem = (b: Booking) => {
     const s = services.find((x) => x.id === b.serviceId);
@@ -2724,6 +2765,80 @@ function ClientMyBookings({ bookings, services, barbers, cancelBooking }: MyBook
     );
   };
 
+  // Carte d'un passage walk-in (vente sans RDV) — même gabarit que les RDV,
+  // en LECTURE SEULE (pas de bouton annuler : c'est un passé). Tag champagne
+  // « Passage » pour le distinguer du vert « Terminé » des RDV ; si la vente
+  // a été remboursée → tag rouge + montant barré (cohérent avec les factures).
+  const renderSale = (s: ClientSaleItem) => {
+    const label =
+      s.items.length > 0
+        ? s.items.map((it) => (it.qty > 1 ? `${it.name} ×${it.qty}` : it.name)).join(' + ')
+        : t('walkInItemsFallback');
+    return (
+      <div
+        key={s.id}
+        className="fade-up flex items-center justify-between gap-4 rounded-2xl p-5"
+        style={{
+          background: LC.card,
+          border: `1px solid ${LC.cardBorder}`,
+          boxShadow: LC.cardShadow,
+        }}
+      >
+        <div className="flex min-w-0 items-center gap-4">
+          <div
+            className="shrink-0 rounded-xl px-3 py-2 text-center"
+            style={{ background: LC.inputBg }}
+          >
+            <div
+              className="mono text-[9px] uppercase tracking-wider"
+              style={{ color: LC.subtitle }}
+            >
+              {new Date(s.date).toLocaleDateString('fr-FR', { month: 'short' }).replace('.', '')}
+            </div>
+            <div className="display text-2xl leading-none" style={{ color: LC.title }}>
+              {new Date(s.date).getDate()}
+            </div>
+            <div className="mono mt-1 text-[10px]" style={{ color: LC.btn }}>
+              {s.time}
+            </div>
+          </div>
+          <div className="min-w-0">
+            <div className="display truncate text-lg" style={{ color: LC.title }}>
+              {label}
+            </div>
+            <div className="text-xs" style={{ color: LC.subtitle }}>
+              {t('walkInSubtitle')}
+            </div>
+            <div className="mt-2">
+              <span
+                className="rounded-md px-2 py-0.5 text-[10px] font-semibold"
+                style={
+                  s.refunded
+                    ? { background: '#FEECEC', color: '#B91C1C' } // remboursé
+                    : { background: '#FBF4E9', color: '#9A6B1E' } // passage (champagne)
+                }
+              >
+                {s.refunded ? t('statusRefunded') : t('statusWalkIn')}
+              </span>
+            </div>
+          </div>
+        </div>
+        <div className="flex flex-col items-end gap-2">
+          <span
+            className="display mono text-xl"
+            style={{
+              color: LC.title,
+              textDecoration: s.refunded ? 'line-through' : undefined,
+              opacity: s.refunded ? 0.6 : 1,
+            }}
+          >
+            {fmt(s.totalCents)}
+          </span>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div
       className="min-h-screen"
@@ -2751,7 +2866,7 @@ function ClientMyBookings({ bookings, services, barbers, cancelBooking }: MyBook
           </>
         )}
 
-        {past.length > 0 && (
+        {pastEntries.length > 0 && (
           <>
             <h3
               className="mono mb-3 text-[10px] uppercase tracking-[0.3em]"
@@ -2759,11 +2874,15 @@ function ClientMyBookings({ bookings, services, barbers, cancelBooking }: MyBook
             >
               {t('past')}
             </h3>
-            <div className="space-y-3">{past.map(renderItem)}</div>
+            <div className="space-y-3">
+              {pastEntries.map((e) =>
+                e.kind === 'booking' ? renderItem(e.booking) : renderSale(e.sale),
+              )}
+            </div>
           </>
         )}
 
-        {bookings.length === 0 && (
+        {!hasHistory && (
           <div
             className="rounded-2xl p-12 text-center"
             style={{

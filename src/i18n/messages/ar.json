@@ -1261,7 +1261,7 @@
       "bookAgain": "حجز جديد"
     },
     "mine": {
-      "eyebrow": "مواعيدك",
+      "eyebrow": "زياراتك",
       "title": "سجلك",
       "upcoming": "قادم ({count})",
       "past": "السابق",
@@ -1272,6 +1272,10 @@
       "statusMissed": "لم تحضر",
       "withBarber": "مع {name} · {duration} دقيقة",
       "cancel": "إلغاء",
+      "walkInSubtitle": "زيارة مباشرة",
+      "statusWalkIn": "مباشر",
+      "statusRefunded": "مسترد",
+      "walkInItemsFallback": "شراء بالصالون",
       "emptyTitle": "لا توجد مواعيد",
       "emptySubtitle": "احجز أول موعد لك في تبويب «حجز»."
     },

@@ -1260,7 +1260,7 @@
       "bookAgain": "Réserver à nouveau"
     },
     "mine": {
-      "eyebrow": "Vos rendez-vous",
+      "eyebrow": "Vos visites",
       "title": "Votre historique",
       "upcoming": "À venir ({count})",
       "past": "Passés",
@@ -1271,6 +1271,10 @@
       "statusMissed": "Manqué",
       "withBarber": "avec {name} · {duration} min",
       "cancel": "Annuler",
+      "walkInSubtitle": "Passage en salon",
+      "statusWalkIn": "Passage",
+      "statusRefunded": "Remboursé",
+      "walkInItemsFallback": "Achat en salon",
       "emptyTitle": "Aucun rendez-vous",
       "emptySubtitle": "Réservez votre premier créneau dans l'onglet « Réserver »."
     },

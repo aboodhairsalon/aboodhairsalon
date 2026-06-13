@@ -688,6 +688,11 @@ export async function createClientFromCashier(
 
 export type ClientSaleItem = {
   id: string;
+  /** RDV source si la vente provient d'un encaissement de réservation
+   *  (payBooking) ; `null` pour une vente directe / walk-in. Sert à
+   *  dédupliquer l'historique client : un RDV payé apparaît DÉJÀ dans la
+   *  liste des RDV, on ne le re-montre pas comme une « vente ». */
+  bookingId: string | null;
   date: string; // 'YYYY-MM-DD'
   time: string; // 'HH:mm'
   totalCents: number;
@@ -803,7 +808,7 @@ export async function getClientSales(
   const { data, error } = await admin
     .from('sales')
     .select(
-      'id, created_at, subtotal_cents, total_cents, cashback_redeemed_cents, method, status, refunded_at, sale_items(name, qty, unit_price_cents)',
+      'id, created_at, booking_id, subtotal_cents, total_cents, cashback_redeemed_cents, method, status, refunded_at, sale_items(name, qty, unit_price_cents)',
     )
     
     .eq('client_phone', normalizedPhone)
@@ -823,6 +828,7 @@ export async function getClientSales(
       | {
           id: string;
           created_at: string;
+          booking_id: string | null;
           subtotal_cents: number | null;
           total_cents: number;
           cashback_redeemed_cents: number | null;
@@ -837,6 +843,7 @@ export async function getClientSales(
     const zoned = utcIsoToZonedParts(r.created_at as string, SALON.timezone);
     return {
       id: r.id,
+      bookingId: r.booking_id ?? null,
       date: zoned.date,
       time: zoned.time,
       totalCents: r.total_cents ?? 0,

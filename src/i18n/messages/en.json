@@ -1260,7 +1260,7 @@
       "bookAgain": "Book another"
     },
     "mine": {
-      "eyebrow": "Your appointments",
+      "eyebrow": "Your visits",
       "title": "Your history",
       "upcoming": "Upcoming ({count})",
       "past": "Past",
@@ -1271,6 +1271,10 @@
       "statusMissed": "Missed",
       "withBarber": "with {name} · {duration} min",
       "cancel": "Cancel",
+      "walkInSubtitle": "Walk-in visit",
+      "statusWalkIn": "Walk-in",
+      "statusRefunded": "Refunded",
+      "walkInItemsFallback": "In-salon purchase",
       "emptyTitle": "No appointments",
       "emptySubtitle": "Book your first slot in the “Book” tab."
     },
