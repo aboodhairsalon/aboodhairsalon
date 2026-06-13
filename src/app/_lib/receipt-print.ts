@@ -30,6 +30,39 @@ export interface ReceiptPrintLabels {
   bcp47: string;
 }
 
+/**
+ * Convertit une URL d'image (ex. logo Supabase https) en data URL base64.
+ * Utile pour le PDF jsPDF, qui n'accepte QUE des data URLs (une URL https
+ * est ignorée → pas de logo). Le HTML, lui, charge l'URL directement.
+ *
+ * Tolérant : renvoie `null` en cas d'échec (CORS, 404, timeout) → l'appelant
+ * génère alors le document sans logo, sans planter.
+ */
+export async function imageUrlToDataUrl(
+  url: string | null | undefined,
+  timeoutMs = 2500,
+): Promise<string | null> {
+  if (!url) return null;
+  if (url.startsWith('data:image/')) return url; // déjà une data URL
+  if (typeof fetch === 'undefined') return null;
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+    const res = await fetch(url, { signal: ctrl.signal, cache: 'force-cache' });
+    clearTimeout(timer);
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    return await new Promise<string | null>((resolve) => {
+      const fr = new FileReader();
+      fr.onload = () => resolve(typeof fr.result === 'string' ? fr.result : null);
+      fr.onerror = () => resolve(null);
+      fr.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
+
 /** Échappe le HTML — les noms (salon, articles, client) viennent de la DB. */
 function esc(s: string): string {
   return s

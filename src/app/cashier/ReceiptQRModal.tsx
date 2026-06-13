@@ -27,7 +27,7 @@ import { useFmtMoney } from '../_data/local-state';
 import { useTenantOrNull } from '../_components/TenantProvider';
 import { useToast } from '../_components/Toast';
 import { downloadReceiptPdf } from '../_lib/receipt-pdf';
-import { printReceipt } from '../_lib/receipt-print';
+import { imageUrlToDataUrl, printReceipt } from '../_lib/receipt-print';
 import { sendReceiptEmail } from '../manager/email-actions';
 import { issueClientToken } from '../manager/token-actions';
 
@@ -193,8 +193,12 @@ export function ReceiptQRModal({
     tagline: session?.settings.tagline ?? null,
   });
 
-  const handleDownloadPdf = () => {
-    downloadReceiptPdf(buildReceiptData(), buildSalonInfo(), {
+  const handleDownloadPdf = async () => {
+    const salon = buildSalonInfo();
+    // jsPDF n'accepte que des data URLs → on convertit le logo https en base64
+    // pour qu'il apparaisse aussi sur le PDF (échec silencieux = PDF sans logo).
+    const logoDataUrl = await imageUrlToDataUrl(salon.logoDataUrl);
+    downloadReceiptPdf(buildReceiptData(), { ...salon, logoDataUrl }, {
       documentTitle: tPdf('documentTitle'),
       saleNumber: tPdf('saleNumber'),
       method: tPdf('method'),
