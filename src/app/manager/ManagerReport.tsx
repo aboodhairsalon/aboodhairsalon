@@ -10,8 +10,10 @@
  * PDF (document A4 imprimable).
  */
 import {
+  Award,
   Banknote,
   CalendarCheck,
+  Clock,
   CreditCard,
   Download,
   FileText,
@@ -19,6 +21,7 @@ import {
   Scissors,
   Smartphone,
   TrendingUp,
+  UserPlus,
   Users,
   Wallet,
 } from 'lucide-react';
@@ -73,8 +76,31 @@ const EN_PDF_STATIC = {
   cancelled: 'Cancelled',
   upcoming: 'Upcoming',
   total: 'Total',
+  barberTitle: 'Performance by barber',
+  barberServices: 'Services',
+  barberTips: 'Tips',
+  comparisonTitle: 'Comparison vs previous period',
+  comparisonCurrent: 'Period',
+  comparisonPrevious: 'Previous',
+  comparisonChange: 'Change',
+  clientsTitle: 'Clients',
+  clientsNew: 'New',
+  clientsReturning: 'Returning',
+  clientsAnonymous: 'No account',
+  clientsDistinct: 'Unique clients',
+  clientsNoShowRate: 'No-show rate',
+  peakTitle: 'Busy times',
+  peakByHour: 'By hour',
+  peakByDay: 'By day',
 };
 const EN_PERIOD: Record<ReportPeriod, string> = { day: 'Day', week: 'Week', month: 'Month' };
+
+/** Noms courts localisés des 7 jours (index 0 = dimanche) via Intl. */
+function weekdayNamesFor(loc: string): string[] {
+  const f = new Intl.DateTimeFormat(loc, { weekday: 'short' });
+  // 2024-01-07 est un dimanche → +i donne le jour d'indice i.
+  return [0, 1, 2, 3, 4, 5, 6].map((i) => f.format(new Date(Date.UTC(2024, 0, 7 + i))));
+}
 
 export function ManagerReport({ isRealTenant }: { isRealTenant: boolean }) {
   const t = useTranslations('manager.report');
@@ -137,6 +163,7 @@ export function ManagerReport({ isRealTenant }: { isRealTenant: boolean }) {
       }).format(new Date()),
       currency: currencyCode,
       bcp47: pdfBcp47,
+      weekdayNames: weekdayNamesFor(pdfBcp47), // PDF = police latine → jours latins
     };
     if (isAr) {
       return { ...EN_PDF_STATIC, periodLabel: EN_PDF_STATIC.periodLabel, ...dyn };
@@ -178,6 +205,22 @@ export function ManagerReport({ isRealTenant }: { isRealTenant: boolean }) {
       cancelled: t('bookings.cancelled'),
       upcoming: t('bookings.upcoming'),
       total: t('bookings.total'),
+      barberTitle: t('barber.title'),
+      barberServices: t('barber.services'),
+      barberTips: t('barber.tips'),
+      comparisonTitle: t('comparison.title'),
+      comparisonCurrent: t('comparison.current'),
+      comparisonPrevious: t('comparison.previous'),
+      comparisonChange: t('comparison.change'),
+      clientsTitle: t('clients.title'),
+      clientsNew: t('clients.new'),
+      clientsReturning: t('clients.returning'),
+      clientsAnonymous: t('clients.anonymous'),
+      clientsDistinct: t('clients.distinct'),
+      clientsNoShowRate: t('clients.noShowRate'),
+      peakTitle: t('peak.title'),
+      peakByHour: t('peak.byHour'),
+      peakByDay: t('peak.byDay'),
       ...dyn,
     };
   }
@@ -221,6 +264,23 @@ export function ManagerReport({ isRealTenant }: { isRealTenant: boolean }) {
       cancelled: t('bookings.cancelled'),
       upcoming: t('bookings.upcoming'),
       total: t('bookings.total'),
+      barberTitle: t('barber.title'),
+      barberServices: t('barber.services'),
+      barberTips: t('barber.tips'),
+      comparisonTitle: t('comparison.title'),
+      comparisonCurrent: t('comparison.current'),
+      comparisonPrevious: t('comparison.previous'),
+      comparisonChange: t('comparison.change'),
+      clientsTitle: t('clients.title'),
+      clientsNew: t('clients.new'),
+      clientsReturning: t('clients.returning'),
+      clientsAnonymous: t('clients.anonymous'),
+      clientsDistinct: t('clients.distinct'),
+      clientsNoShowRate: t('clients.noShowRate'),
+      peakTitle: t('peak.title'),
+      peakByHour: t('peak.byHour'),
+      peakByDay: t('peak.byDay'),
+      weekdayNames: weekdayNamesFor(bcp47), // CSV = UTF-8 → jours dans la langue UI
     };
   }
 
@@ -315,22 +375,45 @@ export function ManagerReport({ isRealTenant }: { isRealTenant: boolean }) {
         <ReportSkeleton />
       ) : (
         <div className="space-y-6">
-          {/* KPI de synthèse */}
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <KpiCard
-              icon={TrendingUp}
-              label={t('kpi.revenueNet')}
-              value={fmt(report.revenueNetCents)}
-              accent
-            />
-            <KpiCard icon={Receipt} label={t('kpi.sales')} value={String(report.salesCount)} />
-            <KpiCard icon={Wallet} label={t('kpi.avgTicket')} value={fmt(report.avgTicketCents)} />
-            <KpiCard
-              icon={CalendarCheck}
-              label={t('kpi.bookingsDone')}
-              value={String(report.bookings.done)}
-            />
-          </div>
+          {/* KPI de synthèse — avec delta vs période précédente */}
+          {(() => {
+            const prev = report.previous;
+            const prevAvg = prev.salesCount > 0 ? Math.round(prev.revenueNetCents / prev.salesCount) : 0;
+            const vs = t('kpi.vsPrev');
+            return (
+              <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                <KpiCard
+                  icon={TrendingUp}
+                  label={t('kpi.revenueNet')}
+                  value={fmt(report.revenueNetCents)}
+                  accent
+                  delta={pctDelta(report.revenueNetCents, prev.revenueNetCents)}
+                  deltaLabel={vs}
+                />
+                <KpiCard
+                  icon={Receipt}
+                  label={t('kpi.sales')}
+                  value={String(report.salesCount)}
+                  delta={pctDelta(report.salesCount, prev.salesCount)}
+                  deltaLabel={vs}
+                />
+                <KpiCard
+                  icon={Wallet}
+                  label={t('kpi.avgTicket')}
+                  value={fmt(report.avgTicketCents)}
+                  delta={pctDelta(report.avgTicketCents, prevAvg)}
+                  deltaLabel={vs}
+                />
+                <KpiCard
+                  icon={CalendarCheck}
+                  label={t('kpi.bookingsDone')}
+                  value={String(report.bookings.done)}
+                  delta={pctDelta(report.bookings.done, prev.bookingsDone)}
+                  deltaLabel={vs}
+                />
+              </div>
+            );
+          })()}
 
           {report.salesCount === 0 && report.bookings.total === 0 ? (
             <Card className="p-8 text-center text-sm text-ink-mute">{t('empty')}</Card>
@@ -451,6 +534,20 @@ export function ManagerReport({ isRealTenant }: { isRealTenant: boolean }) {
                 )}
               </Card>
 
+              {/* Performance par coiffeur */}
+              <Card className="p-5">
+                <SectionHeader icon={Award} title={t('barber.title')} />
+                {report.byBarber.length > 0 ? (
+                  <BarberTable
+                    rows={report.byBarber}
+                    fmt={fmt}
+                    labels={{ services: t('barber.services'), tips: t('barber.tips') }}
+                  />
+                ) : (
+                  <p className="py-2 text-sm text-ink-mute">{t('barber.empty')}</p>
+                )}
+              </Card>
+
               {/* Rendez-vous */}
               <Card className="p-5">
                 <SectionHeader icon={Users} title={t('bookings.title')} />
@@ -461,6 +558,58 @@ export function ManagerReport({ isRealTenant }: { isRealTenant: boolean }) {
                   <StatPill label={t('bookings.upcoming')} value={report.bookings.upcoming} />
                   <StatPill label={t('bookings.total')} value={report.bookings.total} strong />
                 </div>
+              </Card>
+
+              {/* Clients (nouveaux / fidèles / sans compte + taux d'absence) */}
+              <Card className="p-5">
+                <SectionHeader icon={UserPlus} title={t('clients.title')} />
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  <StatPill label={t('clients.new')} value={report.clients.newCount} strong />
+                  <StatPill label={t('clients.returning')} value={report.clients.returningCount} />
+                  <StatPill label={t('clients.anonymous')} value={report.clients.anonymousCount} />
+                  <StatPill
+                    label={t('clients.noShowRate')}
+                    value={
+                      report.bookings.done + report.bookings.noShow > 0
+                        ? Math.round(
+                            (report.bookings.noShow /
+                              (report.bookings.done + report.bookings.noShow)) *
+                              100,
+                          )
+                        : 0
+                    }
+                    suffix="%"
+                    danger
+                  />
+                </div>
+              </Card>
+
+              {/* Affluence — heures & jours de pointe */}
+              <Card className="p-5">
+                <SectionHeader icon={Clock} title={t('peak.title')} />
+                {report.peakHours.some((c) => c > 0) ? (
+                  (() => {
+                    const { hourBars, weekdayBars } = buildPeakBars(report, bcp47);
+                    return (
+                      <div className="space-y-5">
+                        <div>
+                          <p className="mb-2 text-xs font-semibold text-ink-mute">
+                            {t('peak.byHour')}
+                          </p>
+                          <MiniBars data={hourBars} />
+                        </div>
+                        <div>
+                          <p className="mb-2 text-xs font-semibold text-ink-mute">
+                            {t('peak.byDay')}
+                          </p>
+                          <MiniBars data={weekdayBars} />
+                        </div>
+                      </div>
+                    );
+                  })()
+                ) : (
+                  <p className="py-2 text-sm text-ink-mute">{t('peak.empty')}</p>
+                )}
               </Card>
             </>
           )}
@@ -489,16 +638,26 @@ function SectionHeader({
   );
 }
 
+/** Variation en % entre période courante et précédente ; null si base nulle. */
+function pctDelta(current: number, previous: number): number | null {
+  if (previous <= 0) return null;
+  return Math.round(((current - previous) / previous) * 100);
+}
+
 function KpiCard({
   icon: Icon,
   label,
   value,
   accent,
+  delta,
+  deltaLabel,
 }: {
   icon: typeof FileText;
   label: string;
   value: string;
   accent?: boolean;
+  delta?: number | null;
+  deltaLabel?: string;
 }) {
   return (
     <div
@@ -513,6 +672,16 @@ function KpiCard({
       <p className={`mt-1.5 text-lg font-bold ${accent ? 'text-brand-primary' : 'text-ink'}`}>
         {value}
       </p>
+      {delta !== undefined && delta !== null && (
+        <p
+          className={`mt-0.5 text-[11px] font-medium tabular-nums ${
+            delta > 0 ? 'text-green' : delta < 0 ? 'text-red' : 'text-ink-soft'
+          }`}
+        >
+          {delta > 0 ? '↑' : delta < 0 ? '↓' : '='} {delta > 0 ? '+' : ''}
+          {delta}% <span className="text-ink-soft">{deltaLabel}</span>
+        </p>
+      )}
     </div>
   );
 }
@@ -677,11 +846,13 @@ function StatPill({
   value,
   strong,
   danger,
+  suffix,
 }: {
   label: string;
   value: number;
   strong?: boolean;
   danger?: boolean;
+  suffix?: string;
 }) {
   return (
     <div
@@ -695,10 +866,107 @@ function StatPill({
         }`}
       >
         {value}
+        {suffix}
       </p>
       <p className="mt-0.5 text-[11px] font-medium text-ink-mute">{label}</p>
     </div>
   );
+}
+
+/** Performance par coiffeur — CA (barre), prestations, pourboires. */
+function BarberTable({
+  rows,
+  fmt,
+  labels,
+}: {
+  rows: AccountingReport['byBarber'];
+  fmt: (cents: number) => string;
+  labels: { services: string; tips: string };
+}) {
+  const maxRev = rows.length > 0 ? Math.max(...rows.map((r) => r.revenueCents), 1) : 1;
+  return (
+    <div className="space-y-3">
+      {rows.map((b, i) => (
+        <div key={b.barberId}>
+          <div className="flex items-center justify-between gap-3 text-sm">
+            <span className="flex min-w-0 items-center gap-1.5">
+              <span className="truncate font-medium text-ink">{b.name}</span>
+              {i === 0 && (
+                <Award className="h-3.5 w-3.5 shrink-0 text-brand-primary" strokeWidth={2} />
+              )}
+            </span>
+            <span className="shrink-0 font-semibold tabular-nums text-ink">
+              {fmt(b.revenueCents)}
+            </span>
+          </div>
+          <div className="mt-1 h-1 overflow-hidden rounded-full bg-surface">
+            <div
+              className="h-full rounded-full bg-brand-primary/60"
+              style={{ width: `${Math.round((b.revenueCents / maxRev) * 100)}%` }}
+            />
+          </div>
+          <div className="mt-1 text-[11px] tabular-nums text-ink-mute">
+            {b.serviceCount} {labels.services} · {labels.tips} {fmt(b.tipsCents)}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Mini histogramme vertical — barre la plus haute mise en avant. */
+function MiniBars({ data }: { data: { label: string; value: number }[] }) {
+  const max = Math.max(...data.map((d) => d.value), 1);
+  return (
+    <div className="flex items-end gap-1" style={{ height: 76 }}>
+      {data.map((d, i) => (
+        <div
+          key={i}
+          className="flex flex-1 flex-col items-center gap-1"
+          title={`${d.label} : ${d.value}`}
+        >
+          <div className="flex w-full flex-1 items-end">
+            <div
+              className={`w-full rounded-t-sm ${
+                d.value === max && max > 0 ? 'bg-brand-primary' : 'bg-brand-primary/35'
+              }`}
+              style={{ height: `${Math.max(3, Math.round((d.value / max) * 100))}%` }}
+            />
+          </div>
+          <span className="text-[9px] text-ink-mute">{d.label}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Prépare les barres d'affluence (plage d'heures active + 7 jours dès lundi). */
+function buildPeakBars(
+  report: AccountingReport,
+  bcp47: string,
+): { hourBars: { label: string; value: number }[]; weekdayBars: { label: string; value: number }[] } {
+  const hours = report.peakHours;
+  let minH = -1;
+  let maxH = -1;
+  for (let h = 0; h < 24; h++) {
+    if ((hours[h] ?? 0) > 0) {
+      if (minH < 0) minH = h;
+      maxH = h;
+    }
+  }
+  const hourBars: { label: string; value: number }[] = [];
+  if (minH >= 0) {
+    for (let h = minH; h <= maxH; h++) hourBars.push({ label: String(h), value: hours[h] ?? 0 });
+  }
+  // Jours dès lundi (1) … dimanche (0). Noms courts localisés via Intl.
+  const wdFmt = new Intl.DateTimeFormat(bcp47, { weekday: 'short' });
+  const order = [1, 2, 3, 4, 5, 6, 0];
+  const weekdayBars = order.map((i) => ({
+    // 2024-01-07 est un dimanche → +i donne le jour d'indice i.
+    label: wdFmt.format(new Date(Date.UTC(2024, 0, 7 + i))),
+    value: report.peakWeekdays[i] ?? 0,
+  }));
+  return { hourBars, weekdayBars };
 }
 
 function ReportSkeleton() {

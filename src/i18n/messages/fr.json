@@ -865,7 +865,8 @@
         "revenueNet": "Chiffre d’affaires net",
         "sales": "Ventes",
         "avgTicket": "Ticket moyen",
-        "bookingsDone": "RDV réalisés"
+        "bookingsDone": "RDV réalisés",
+        "vsPrev": "vs préc."
       },
       "payments": {
         "title": "Moyens de paiement",
@@ -920,6 +921,32 @@
       "pdf": {
         "generatedOn": "Généré le",
         "period": "Période"
+      },
+      "barber": {
+        "title": "Performance par coiffeur",
+        "services": "Prestations",
+        "tips": "Pourboires",
+        "empty": "Aucune vente attribuée à un coiffeur sur cette période."
+      },
+      "peak": {
+        "title": "Affluence",
+        "byHour": "Par heure",
+        "byDay": "Par jour",
+        "empty": "Pas encore de données d’affluence."
+      },
+      "clients": {
+        "title": "Clients",
+        "new": "Nouveaux",
+        "returning": "Fidèles",
+        "anonymous": "Sans compte",
+        "distinct": "Clients distincts",
+        "noShowRate": "Taux d’absence"
+      },
+      "comparison": {
+        "title": "Comparaison vs période précédente",
+        "current": "Période",
+        "previous": "Précédente",
+        "change": "Évolution"
       }
     }
   },

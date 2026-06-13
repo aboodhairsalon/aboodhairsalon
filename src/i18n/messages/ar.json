@@ -866,7 +866,8 @@
         "revenueNet": "صافي الإيرادات",
         "sales": "المبيعات",
         "avgTicket": "متوسط الفاتورة",
-        "bookingsDone": "المواعيد المنجزة"
+        "bookingsDone": "المواعيد المنجزة",
+        "vsPrev": "مقابل السابقة"
       },
       "payments": {
         "title": "طرق الدفع",
@@ -921,6 +922,32 @@
       "pdf": {
         "generatedOn": "Generated on",
         "period": "Period"
+      },
+      "barber": {
+        "title": "أداء الحلاقين",
+        "services": "الخدمات",
+        "tips": "الإكراميات",
+        "empty": "لا توجد مبيعات منسوبة إلى حلاق في هذه الفترة."
+      },
+      "peak": {
+        "title": "أوقات الذروة",
+        "byHour": "حسب الساعة",
+        "byDay": "حسب اليوم",
+        "empty": "لا توجد بيانات إقبال بعد."
+      },
+      "clients": {
+        "title": "العملاء",
+        "new": "جدد",
+        "returning": "مخلصون",
+        "anonymous": "بدون حساب",
+        "distinct": "عملاء مختلفون",
+        "noShowRate": "نسبة الغياب"
+      },
+      "comparison": {
+        "title": "مقارنة بالفترة السابقة",
+        "current": "الفترة",
+        "previous": "السابقة",
+        "change": "التغير"
       }
     }
   },

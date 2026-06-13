@@ -67,6 +67,28 @@ export interface ReportPdfLabels {
   cancelled: string;
   upcoming: string;
   total: string;
+  // Performance par coiffeur
+  barberTitle: string;
+  barberServices: string;
+  barberTips: string;
+  // Comparaison période précédente
+  comparisonTitle: string;
+  comparisonCurrent: string;
+  comparisonPrevious: string;
+  comparisonChange: string;
+  // Clients
+  clientsTitle: string;
+  clientsNew: string;
+  clientsReturning: string;
+  clientsAnonymous: string;
+  clientsDistinct: string;
+  clientsNoShowRate: string;
+  // Affluence
+  peakTitle: string;
+  peakByHour: string;
+  peakByDay: string;
+  /** Noms courts des 7 jours (index 0 = dimanche), latins (résolus par l'appelant). */
+  weekdayNames: string[];
   // Format monétaire
   currency: string; // 'EGP'
   bcp47: string; // locale latine pour Intl ('fr-FR' / 'en-US')
@@ -322,6 +344,112 @@ export function buildReportPdf(
   kvRow(L.cancelled, String(r.bookings.cancelled), { muted: true });
   kvRow(L.upcoming, String(r.bookings.upcoming), { muted: true });
   kvRow(L.total, String(r.bookings.total), { strong: true });
+  y += 12;
+
+  // ── Performance par coiffeur ──────────────────────────────────────────────
+  if (r.byBarber.length > 0) {
+    sectionTitle(L.barberTitle);
+    ensure(18);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.setTextColor(120);
+    doc.text(L.colName, M, y);
+    doc.text(L.colRevenue, M + 300, y, { align: 'right' });
+    doc.text(L.barberServices, M + 400, y, { align: 'right' });
+    doc.text(L.barberTips, RIGHT, y, { align: 'right' });
+    doc.setTextColor(0);
+    doc.setFont('helvetica', 'normal');
+    y += 14;
+    r.byBarber.forEach((b, i) => {
+      ensure(18);
+      if (i === 0) {
+        doc.setFillColor(250, 247, 235);
+        doc.rect(M - 4, y - 11, RIGHT - M + 8, 16, 'F');
+      }
+      doc.setFontSize(10);
+      doc.setTextColor(30);
+      doc.text(truncate(doc, b.name, 180), M, y);
+      doc.text(money(b.revenueCents), M + 300, y, { align: 'right' });
+      doc.setTextColor(90);
+      doc.text(String(b.serviceCount), M + 400, y, { align: 'right' });
+      doc.text(money(b.tipsCents), RIGHT, y, { align: 'right' });
+      doc.setTextColor(0);
+      y += 16;
+    });
+    y += 12;
+  }
+
+  // ── Comparaison vs période précédente ─────────────────────────────────────
+  sectionTitle(L.comparisonTitle);
+  ensure(18);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.setTextColor(120);
+  doc.text(L.comparisonCurrent, M + 300, y, { align: 'right' });
+  doc.text(L.comparisonPrevious, M + 420, y, { align: 'right' });
+  doc.text(L.comparisonChange, RIGHT, y, { align: 'right' });
+  doc.setTextColor(0);
+  doc.setFont('helvetica', 'normal');
+  y += 14;
+  const cmpRow = (label: string, cur: number, prev: number, isMoney: boolean) => {
+    ensure(16);
+    doc.setFontSize(10);
+    doc.setTextColor(30);
+    doc.text(label, M, y);
+    doc.text(isMoney ? money(cur) : String(cur), M + 300, y, { align: 'right' });
+    doc.setTextColor(120);
+    doc.text(isMoney ? money(prev) : String(prev), M + 420, y, { align: 'right' });
+    const d = prev > 0 ? Math.round(((cur - prev) / prev) * 100) : null;
+    if (d === null) doc.setTextColor(120);
+    else if (d > 0) doc.setTextColor(20, 120, 60);
+    else if (d < 0) doc.setTextColor(200, 30, 30);
+    else doc.setTextColor(120);
+    doc.text(d === null ? '—' : `${d > 0 ? '+' : ''}${d}%`, RIGHT, y, { align: 'right' });
+    doc.setTextColor(0);
+    y += 16;
+  };
+  cmpRow(L.revenueNet, r.revenueNetCents, r.previous.revenueNetCents, true);
+  cmpRow(L.sales, r.salesCount, r.previous.salesCount, false);
+  cmpRow(L.done, r.bookings.done, r.previous.bookingsDone, false);
+  y += 12;
+
+  // ── Clients ───────────────────────────────────────────────────────────────
+  sectionTitle(L.clientsTitle);
+  kvRow(L.clientsNew, String(r.clients.newCount));
+  kvRow(L.clientsReturning, String(r.clients.returningCount), { muted: true });
+  kvRow(L.clientsAnonymous, String(r.clients.anonymousCount), { muted: true });
+  kvRow(L.clientsDistinct, String(r.clients.totalDistinct), { strong: true });
+  const noShowRate =
+    r.bookings.done + r.bookings.noShow > 0
+      ? Math.round((r.bookings.noShow / (r.bookings.done + r.bookings.noShow)) * 100)
+      : 0;
+  kvRow(L.clientsNoShowRate, `${noShowRate}%`, { muted: true });
+  y += 12;
+
+  // ── Affluence (pics) ──────────────────────────────────────────────────────
+  let bestH = -1;
+  let bestHV = 0;
+  for (let h = 0; h < 24; h++) {
+    const v = r.peakHours[h] ?? 0;
+    if (v > bestHV) {
+      bestHV = v;
+      bestH = h;
+    }
+  }
+  let bestD = -1;
+  let bestDV = 0;
+  for (let i = 0; i < 7; i++) {
+    const v = r.peakWeekdays[i] ?? 0;
+    if (v > bestDV) {
+      bestDV = v;
+      bestD = i;
+    }
+  }
+  if (bestH >= 0 || bestD >= 0) {
+    sectionTitle(L.peakTitle);
+    kvRow(L.peakByHour, bestH >= 0 ? `${bestH}h (${bestHV})` : '—');
+    kvRow(L.peakByDay, bestD >= 0 ? `${L.weekdayNames[bestD] ?? ''} (${bestDV})` : '—');
+  }
 
   // ── Pied de page sur chaque page : nom salon + n° page ────────────────────
   const pageCount = doc.getNumberOfPages();

@@ -98,6 +98,39 @@ export interface AccountingReport {
     upcoming: number;
     total: number;
   };
+
+  /** Performance par coiffeur (CA encaissé, nb de prestations, pourboires). */
+  byBarber: Array<{
+    barberId: string;
+    name: string;
+    revenueCents: number;
+    serviceCount: number;
+    tipsCents: number;
+  }>;
+
+  /** Mêmes indicateurs sur la période précédente (pour les deltas %). */
+  previous: {
+    revenueNetCents: number;
+    salesCount: number;
+    bookingsDone: number;
+  };
+
+  /** Affluence par heure du jour (index 0–23, heure du Caire) — nb d'encaissements. */
+  peakHours: number[];
+  /** Affluence par jour de semaine (index 0=dimanche … 6=samedi) — nb d'encaissements. */
+  peakWeekdays: number[];
+
+  /** Mix clients sur la période (sur les ventes identifiées). */
+  clients: {
+    /** Clients dont le compte a été créé pendant la période. */
+    newCount: number;
+    /** Clients identifiés ayant déjà un compte antérieur. */
+    returningCount: number;
+    /** Ventes sans client rattaché (walk-in anonyme). */
+    anonymousCount: number;
+    /** Total de clients identifiés distincts sur la période. */
+    totalDistinct: number;
+  };
 }
 
 export type GetAccountingReportResult =
@@ -141,6 +174,20 @@ export async function getAccountingReport(
   const startIso = zonedToUtcIso(startYmd, '00:00', tz);
   const endIso = zonedToUtcIso(endYmd, '00:00', tz);
 
+  // Période PRÉCÉDENTE (comparaison « vs hier / semaine dernière / mois dernier »).
+  // On décale les deux bornes d'une unité → comparaison « à date » (ex. 1–13 ce
+  // mois-ci vs 1–13 le mois dernier).
+  const shift = (ymd: string): string => {
+    if (period === 'day') return addDaysYmd(ymd, -1);
+    if (period === 'week') return addDaysYmd(ymd, -7);
+    const [y, m, d] = ymd.split('-').map(Number);
+    return new Date(Date.UTC(y as number, (m as number) - 2, d as number))
+      .toISOString()
+      .slice(0, 10);
+  };
+  const prevStartIso = zonedToUtcIso(shift(startYmd), '00:00', tz);
+  const prevEndIso = zonedToUtcIso(shift(endYmd), '00:00', tz);
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const admin = createAdminClient() as any;
 
@@ -163,12 +210,12 @@ export async function getAccountingReport(
     return { rows: allRows, error: null };
   }
 
-  const [salesRes, bookingsRes] = await Promise.all([
+  const [salesRes, bookingsRes, prevSalesRes, prevBookingsRes] = await Promise.all([
     fetchAllPages(() =>
       admin
         .from('sales')
         .select(
-          'method, total_cents, tip_cents, tax_cents, refunded_cents, cashback_redeemed_cents, sale_items(kind, service_id, product_id, name, qty, total_cents)',
+          'method, total_cents, tip_cents, tax_cents, refunded_cents, cashback_redeemed_cents, barber_id, client_id, created_at, sale_items(kind, service_id, product_id, name, qty, total_cents, barber_id)',
         )
         .eq('tenant_id', ctx.tenant.id)
         .eq('status', 'completed') // exclut refunded (total) / voided / pending
@@ -183,9 +230,27 @@ export async function getAccountingReport(
         .gte('starts_at', startIso)
         .lt('starts_at', endIso),
     ),
+    // Période précédente — colonnes minimales (juste de quoi calculer les deltas).
+    fetchAllPages(() =>
+      admin
+        .from('sales')
+        .select('total_cents, refunded_cents')
+        .eq('tenant_id', ctx.tenant.id)
+        .eq('status', 'completed')
+        .gte('created_at', prevStartIso)
+        .lt('created_at', prevEndIso),
+    ),
+    fetchAllPages(() =>
+      admin
+        .from('bookings')
+        .select('status')
+        .eq('tenant_id', ctx.tenant.id)
+        .gte('starts_at', prevStartIso)
+        .lt('starts_at', prevEndIso),
+    ),
   ]);
 
-  if (salesRes.error || bookingsRes.error) {
+  if (salesRes.error || bookingsRes.error || prevSalesRes.error || prevBookingsRes.error) {
     return { ok: false, errorKey: 'dbError' };
   }
 
@@ -292,6 +357,108 @@ export async function getAccountingReport(
     else bookings.upcoming += 1; // upcoming + in_chair
   }
 
+  // ---------------------------------------------------------------------------
+  // Performance par coiffeur — CA par barber_id de ligne (fallback : barber de la
+  // vente), nb de prestations (lignes service), pourboires par barber de la vente.
+  // ---------------------------------------------------------------------------
+  const barberAgg = new Map<string, { revenueCents: number; serviceCount: number; tipsCents: number }>();
+  const barberBucket = (id: string) => {
+    let b = barberAgg.get(id);
+    if (!b) {
+      b = { revenueCents: 0, serviceCount: 0, tipsCents: 0 };
+      barberAgg.set(id, b);
+    }
+    return b;
+  };
+  for (const s of salesRes.rows) {
+    const saleBarber = (s.barber_id as string | null) ?? null;
+    const tip = (s.tip_cents as number) ?? 0;
+    if (saleBarber && tip > 0) barberBucket(saleBarber).tipsCents += tip;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const it of ((s.sale_items as any[]) ?? [])) {
+      const line = (it.total_cents as number) ?? 0;
+      if (line <= 0) continue; // on ignore remises/lignes nulles pour la perf coiffeur
+      const bid = (it.barber_id as string | null) ?? saleBarber;
+      if (!bid) continue;
+      const bucket = barberBucket(bid);
+      bucket.revenueCents += line;
+      if (it.service_id) bucket.serviceCount += (it.qty as number) ?? 1;
+    }
+  }
+  const barberIds = [...barberAgg.keys()];
+  const staffById = new Map<string, string>();
+  if (barberIds.length > 0) {
+    const { data: staffRows } = await admin.from('staff').select('id, name').in('id', barberIds);
+    for (const st of ((staffRows ?? []) as { id: string; name: string }[])) {
+      staffById.set(st.id, st.name);
+    }
+  }
+  const byBarber = barberIds
+    .map((id) => ({
+      barberId: id,
+      name: staffById.get(id) ?? '—',
+      revenueCents: barberAgg.get(id)!.revenueCents,
+      serviceCount: barberAgg.get(id)!.serviceCount,
+      tipsCents: barberAgg.get(id)!.tipsCents,
+    }))
+    .sort((a, b) => b.revenueCents - a.revenueCents);
+
+  // ---------------------------------------------------------------------------
+  // Affluence — encaissements groupés par heure + jour de semaine (Le Caire).
+  // ---------------------------------------------------------------------------
+  const peakHours = new Array(24).fill(0) as number[];
+  const peakWeekdays = new Array(7).fill(0) as number[];
+  for (const s of salesRes.rows) {
+    const parts = utcIsoToZonedParts(s.created_at as string, tz); // { date, time }
+    const hour = Number.parseInt(parts.time.slice(0, 2), 10);
+    if (hour >= 0 && hour < 24) peakHours[hour] = (peakHours[hour] ?? 0) + 1;
+    const wd = new Date(`${parts.date}T12:00:00Z`).getUTCDay(); // 0=dim..6=sam
+    peakWeekdays[wd] = (peakWeekdays[wd] ?? 0) + 1;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Mix clients — nouveaux (compte créé pendant la période) vs fidèles.
+  // ---------------------------------------------------------------------------
+  const activeClientIds = new Set<string>();
+  let anonymousCount = 0;
+  for (const s of salesRes.rows) {
+    const cid = s.client_id as string | null;
+    if (cid) activeClientIds.add(cid);
+    else anonymousCount += 1;
+  }
+  let newCount = 0;
+  if (activeClientIds.size > 0) {
+    const { data: cpRows } = await admin
+      .from('client_profiles')
+      .select('id, created_at')
+      .in('id', [...activeClientIds]);
+    const startMs = new Date(startIso).getTime();
+    for (const cp of ((cpRows ?? []) as { id: string; created_at: string | null }[])) {
+      if (cp.created_at && new Date(cp.created_at).getTime() >= startMs) newCount += 1;
+    }
+  }
+  const clients = {
+    newCount,
+    returningCount: Math.max(0, activeClientIds.size - newCount),
+    anonymousCount,
+    totalDistinct: activeClientIds.size,
+  };
+
+  // ---------------------------------------------------------------------------
+  // Période précédente — CA net, nb ventes, RDV réalisés (pour les deltas).
+  // ---------------------------------------------------------------------------
+  let prevRevenueNetCents = 0;
+  for (const s of prevSalesRes.rows) {
+    prevRevenueNetCents += Math.max(0, ((s.total_cents as number) ?? 0) - ((s.refunded_cents as number) ?? 0));
+  }
+  let prevBookingsDone = 0;
+  for (const b of prevBookingsRes.rows) if (b.status === 'done') prevBookingsDone += 1;
+  const previous = {
+    revenueNetCents: prevRevenueNetCents,
+    salesCount: prevSalesRes.rows.length,
+    bookingsDone: prevBookingsDone,
+  };
+
   return {
     ok: true,
     report: {
@@ -315,6 +482,11 @@ export async function getAccountingReport(
       productCostCents,
       productMarginCents,
       bookings,
+      byBarber,
+      previous,
+      peakHours,
+      peakWeekdays,
+      clients,
     },
   };
 }

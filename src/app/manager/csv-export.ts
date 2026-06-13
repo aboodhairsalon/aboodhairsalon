@@ -132,6 +132,28 @@ export interface ReportCsvLabels {
   cancelled: string;
   upcoming: string;
   total: string;
+  // Performance par coiffeur
+  barberTitle: string;
+  barberServices: string;
+  barberTips: string;
+  // Comparaison période précédente
+  comparisonTitle: string;
+  comparisonCurrent: string;
+  comparisonPrevious: string;
+  comparisonChange: string;
+  // Clients
+  clientsTitle: string;
+  clientsNew: string;
+  clientsReturning: string;
+  clientsAnonymous: string;
+  clientsDistinct: string;
+  clientsNoShowRate: string;
+  // Affluence
+  peakTitle: string;
+  peakByHour: string;
+  peakByDay: string;
+  /** Noms courts des 7 jours (index 0 = dimanche), résolus via Intl par l'appelant. */
+  weekdayNames: string[];
 }
 
 /**
@@ -194,6 +216,65 @@ export function buildReportCsv(
   rows.push([L.cancelled, r.bookings.cancelled]);
   rows.push([L.upcoming, r.bookings.upcoming]);
   rows.push([L.total, r.bookings.total]);
+
+  // Performance par coiffeur
+  if (r.byBarber.length > 0) {
+    rows.push([]);
+    rows.push([L.barberTitle, L.colRevenue, L.barberServices, L.barberTips]);
+    for (const b of r.byBarber) {
+      rows.push([b.name, money(b.revenueCents), b.serviceCount, money(b.tipsCents)]);
+    }
+  }
+
+  // Comparaison vs période précédente
+  const delta = (cur: number, prev: number) =>
+    prev > 0 ? `${Math.round(((cur - prev) / prev) * 100)}%` : '—';
+  rows.push([]);
+  rows.push([L.comparisonTitle, L.comparisonCurrent, L.comparisonPrevious, L.comparisonChange]);
+  rows.push([
+    L.revenueNet,
+    money(r.revenueNetCents),
+    money(r.previous.revenueNetCents),
+    delta(r.revenueNetCents, r.previous.revenueNetCents),
+  ]);
+  rows.push([
+    L.sales,
+    r.salesCount,
+    r.previous.salesCount,
+    delta(r.salesCount, r.previous.salesCount),
+  ]);
+  rows.push([
+    L.done,
+    r.bookings.done,
+    r.previous.bookingsDone,
+    delta(r.bookings.done, r.previous.bookingsDone),
+  ]);
+
+  // Clients
+  const noShowRate =
+    r.bookings.done + r.bookings.noShow > 0
+      ? Math.round((r.bookings.noShow / (r.bookings.done + r.bookings.noShow)) * 100)
+      : 0;
+  rows.push([]);
+  rows.push([L.clientsTitle]);
+  rows.push([L.clientsNew, r.clients.newCount]);
+  rows.push([L.clientsReturning, r.clients.returningCount]);
+  rows.push([L.clientsAnonymous, r.clients.anonymousCount]);
+  rows.push([L.clientsDistinct, r.clients.totalDistinct]);
+  rows.push([L.clientsNoShowRate, `${noShowRate}%`]);
+
+  // Affluence
+  rows.push([]);
+  rows.push([L.peakTitle]);
+  rows.push([L.peakByHour]);
+  for (let h = 0; h < 24; h++) {
+    if ((r.peakHours[h] ?? 0) > 0) rows.push([`${h}h`, r.peakHours[h] ?? 0]);
+  }
+  rows.push([L.peakByDay]);
+  for (const i of [1, 2, 3, 4, 5, 6, 0]) {
+    rows.push([L.weekdayNames[i] ?? String(i), r.peakWeekdays[i] ?? 0]);
+  }
+
   return toCsv(rows);
 }
 

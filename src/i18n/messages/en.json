@@ -865,7 +865,8 @@
         "revenueNet": "Net revenue",
         "sales": "Sales",
         "avgTicket": "Average ticket",
-        "bookingsDone": "Appointments done"
+        "bookingsDone": "Appointments done",
+        "vsPrev": "vs prev."
       },
       "payments": {
         "title": "Payment methods",
@@ -920,6 +921,32 @@
       "pdf": {
         "generatedOn": "Generated on",
         "period": "Period"
+      },
+      "barber": {
+        "title": "Performance by barber",
+        "services": "Services",
+        "tips": "Tips",
+        "empty": "No sales attributed to a barber in this period."
+      },
+      "peak": {
+        "title": "Busy times",
+        "byHour": "By hour",
+        "byDay": "By day",
+        "empty": "No traffic data yet."
+      },
+      "clients": {
+        "title": "Clients",
+        "new": "New",
+        "returning": "Returning",
+        "anonymous": "No account",
+        "distinct": "Unique clients",
+        "noShowRate": "No-show rate"
+      },
+      "comparison": {
+        "title": "Comparison vs previous period",
+        "current": "Period",
+        "previous": "Previous",
+        "change": "Change"
       }
     }
   },
