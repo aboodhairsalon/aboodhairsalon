@@ -15,6 +15,7 @@ import { z } from 'zod';
 import type { Database } from '@/db';
 import { createAdminClient } from '@/db';
 import { requireTenant } from '../_data/auth-server';
+import { sendPushToTenant } from './push-actions';
 
 // FIX critique : les CRUD (staff, services, products) tournaient sur
 // getServerSupabase() (session, RLS-enforced). En single-tenant Aboodhairsalon
@@ -178,6 +179,45 @@ export async function setStaffActive(id: string, isActive: boolean): Promise<Mut
     .eq('id', id);
   if (error) return { ok: false, errorKey: 'dbError', errorValues: { message: error.message } };
   revalidatePath('/manager');
+  return { ok: true };
+}
+
+/**
+ * Marque un coiffeur présent/absent (bascule manuelle). Un coiffeur ABSENT
+ * est masqué à la réservation client + grisé en caisse. Appelable par le
+ * gérant ET le caissier (`allowCassier`). Quand on marque ABSENT, on pousse
+ * une notif (gérant + caisse) pour que personne ne lui affecte de client.
+ */
+export async function setStaffAbsent(id: string, absent: boolean): Promise<MutationResult> {
+  const ctx = await requireTenant({ allowCashier: true });
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from('staff')
+    .update({ is_absent: absent } as never)
+    .eq('id', id)
+    .select('name')
+    .single();
+  if (error) return { ok: false, errorKey: 'dbError', errorValues: { message: error.message } };
+  revalidatePath('/manager');
+
+  if (absent) {
+    const name = (data as { name?: string } | null)?.name ?? '';
+    const payload = {
+      title: 'Coiffeur absent',
+      body: name
+        ? `${name} est marqué·e absent·e — masqué·e à la réservation jusqu'à son retour.`
+        : 'Un coiffeur est marqué absent.',
+      tag: `staff-absent-${id}`,
+    };
+    // Best-effort : la présence est déjà persistée, on n'échoue pas la
+    // mutation si l'envoi push rate (VAPID non configuré, etc.).
+    try {
+      await sendPushToTenant(ctx.tenant.id, { ...payload, url: '/manager?tab=team' }, { role: 'manager' });
+      await sendPushToTenant(ctx.tenant.id, { ...payload, url: '/cashier' }, { role: 'cashier' });
+    } catch {
+      // ignore
+    }
+  }
   return { ok: true };
 }
 

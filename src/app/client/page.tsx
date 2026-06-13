@@ -1456,10 +1456,15 @@ function ClientBookingFlow({
   // retiré → filtre vide) : on retombe sur TOUS pour ne jamais bloquer la
   // réservation.
   const allowedBarbers = (() => {
+    // 1) On retire d'emblée les coiffeurs ABSENTS (jamais réservables).
+    const present = barbers.filter((b) => !b.isAbsent);
     const ids = service?.barberIds ?? [];
-    if (ids.length === 0) return barbers;
-    const filtered = barbers.filter((b) => ids.includes(b.id));
-    return filtered.length > 0 ? filtered : barbers;
+    // 2) Aucune restriction de prestation → tous les présents.
+    if (ids.length === 0) return present;
+    // 3) Restreint aux coiffeurs de la prestation, présents uniquement. Si tous
+    //    les coiffeurs de la prestation sont absents → liste vide (la prestation
+    //    n'est pas réservable aujourd'hui, géré par l'état vide de l'étape 2).
+    return present.filter((b) => ids.includes(b.id));
   })();
   const barber = barbers.find((b) => b.id === barberId);
 
@@ -2090,6 +2095,18 @@ function ClientBookingFlow({
             >
               {t('step2Header')}
             </h3>
+            {/* Aucun coiffeur disponible (tous absents pour cette prestation) :
+                on bloque la sélection plutôt que de proposer « sans préférence »
+                qui réserverait quand même. */}
+            {allowedBarbers.length === 0 && (
+              <div
+                className="rounded-2xl border p-8 text-center text-sm"
+                style={{ background: LC.card, borderColor: LC.cardBorder, color: LC.subtitle }}
+              >
+                {t('noBarberAvailable')}
+              </div>
+            )}
+            {allowedBarbers.length > 0 && (
             <div className="grid grid-cols-3 gap-2.5 sm:gap-3">
               {/* Sans préférence */}
               <button
@@ -2192,6 +2209,7 @@ function ClientBookingFlow({
                 );
               })}
             </div>
+            )}
           </div>
         )}
 

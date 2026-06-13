@@ -45,6 +45,7 @@ import {
   createDirectSale,
   setBookingExtras,
 } from '../manager/booking-actions';
+import { setStaffAbsent } from '../manager/crud-actions';
 import { ClientSelector, type SelectedClient } from './ClientSelector';
 import { ApplyCashbackButton, CashbackHint } from './ApplyCashbackButton';
 import { ClientsToCheckoutSection } from './ClientsToCheckoutSection';
@@ -130,7 +131,22 @@ export function CashierApp({
   // remettre cette valeur à null (le prop sert juste de signal de transfert).
   const [bookingToLoadInTicket, setBookingToLoadInTicket] = useState<Booking | null>(null);
 
-  const barbers = barbersOf(staff);
+  // Présence/absence togglée en caisse — override LOCAL appliqué par-dessus le
+  // staff serveur (optimiste), persisté via setStaffAbsent. Évite de relifter
+  // tout le prop `staff` en state.
+  const [absentOverride, setAbsentOverride] = useState<Record<string, boolean>>({});
+  const barbers = barbersOf(staff).map((b) =>
+    b.id in absentOverride ? { ...b, isAbsent: absentOverride[b.id]! } : b,
+  );
+  const toggleBarberAbsent = (id: string) => {
+    const cur = barbers.find((b) => b.id === id);
+    if (!cur) return;
+    const next = !cur.isAbsent;
+    setAbsentOverride((o) => ({ ...o, [id]: next }));
+    void setStaffAbsent(id, next).then((r) => {
+      if (!r.ok) setAbsentOverride((o) => ({ ...o, [id]: !next })); // rollback
+    });
+  };
   // Identité du caissier connecté — résolue depuis le claim `staff_id` du JWT
   // (cf. requireCashier), et non plus depuis un « caissier du jour » localStorage.
   const me = staff.find((s) => s.id === cashierStaffId);
@@ -303,6 +319,7 @@ export function CashierApp({
           services={services}
           products={products}
           barbers={barbers}
+          onToggleBarberAbsent={toggleBarberAbsent}
           bookings={bookings}
           addSaleLocal={addSaleLocal}
           setSales={setSales}
@@ -891,6 +908,8 @@ interface POSProps {
   services: Service[];
   products: Product[];
   barbers: Barber[];
+  /** Bascule présent/absent d'un coiffeur depuis la caisse (persisté + push). */
+  onToggleBarberAbsent: (id: string) => void;
   /** Bookings du jour — alimente la section « Clients à encaisser ». */
   bookings: Booking[];
   addSaleLocal: (s: Sale) => void;
@@ -928,6 +947,7 @@ function CashierPOS({
   services,
   products,
   barbers,
+  onToggleBarberAbsent,
   bookings,
   addSaleLocal,
   setSales,
@@ -1007,10 +1027,15 @@ function CashierPOS({
   // Coiffeurs autorisés pour une prestation : barberIds vide = tous. Repli sur
   // tous si le filtre vide tout (coiffeur assigné retiré).
   const allowedBarbersFor = (svc: Service): Barber[] => {
+    // Exclut les coiffeurs ABSENTS (on ne leur attribue pas de vente). Repli
+    // sur tous les présents si la prestation n'a que des coiffeurs absents
+    // (quelqu'un de présent a couvert) — contrairement à la réservation qui,
+    // elle, bloque.
+    const present = barbers.filter((b) => !b.isAbsent);
     const ids = svc.barberIds ?? [];
-    if (ids.length === 0) return barbers;
-    const filtered = barbers.filter((b) => ids.includes(b.id));
-    return filtered.length > 0 ? filtered : barbers;
+    if (ids.length === 0) return present;
+    const restricted = present.filter((b) => ids.includes(b.id));
+    return restricted.length > 0 ? restricted : present;
   };
 
   // Sélecteur de coiffeur PAR prestation. Ouvert au clic sur une prestation à
@@ -1410,8 +1435,37 @@ function CashierPOS({
           <h2 className="display mt-2 text-3xl">{t('title')}</h2>
         </div>
 
-        {/* Le coiffeur se choisit désormais PAR prestation (au clic / dans le
-            ticket), plus via un sélecteur global ici. */}
+        {/* Présence de l'équipe — le coiffeur se choisit PAR prestation, mais
+            ici on bascule présent/absent. Un coiffeur absent est masqué à la
+            réservation + retiré du sélecteur de prestation (+ notif push). */}
+        <div className="mb-5">
+          <span className="mono text-ink-soft mb-2 block text-[10px] uppercase tracking-[0.25em]">
+            {t('teamPresence')}
+          </span>
+          <div className="flex flex-wrap gap-2">
+            {barbers.map((b) => (
+              <button
+                key={b.id}
+                type="button"
+                onClick={() => onToggleBarberAbsent(b.id)}
+                aria-pressed={b.isAbsent}
+                className={`btn-press flex items-center gap-1.5 rounded-sm border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                  b.isAbsent
+                    ? 'border-red/40 text-red'
+                    : 'border-line text-ink-mute hover:border-brand-primary'
+                }`}
+                style={b.isAbsent ? { background: 'rgba(185,28,28,0.06)' } : undefined}
+              >
+                <span
+                  className="h-2 w-2 rounded-full"
+                  style={{ background: b.isAbsent ? '#B91C1C' : '#2E7D32' }}
+                />
+                {b.name}
+                {b.isAbsent && <span className="opacity-70">· {t('absentShort')}</span>}
+              </button>
+            ))}
+          </div>
+        </div>
 
         {/* ── Client rattaché à la vente (recherche + sélection / création) ─
             Remplace les anciens champs « Nom » + « Téléphone » séparés qui

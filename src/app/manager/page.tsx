@@ -77,6 +77,7 @@ import {
   deleteService,
   deleteStaff,
   reorderServices,
+  setStaffAbsent,
   updateProduct,
   updateService,
   updateStaff,
@@ -1440,6 +1441,7 @@ function TeamBarbersSection({
     initials: '',
     tone: STAFF_TONES[0]!.value,
     isActive: true,
+    isAbsent: false,
     phone: '',
     email: '',
     roles: ['barber'],
@@ -1447,6 +1449,24 @@ function TeamBarbersSection({
 
   const toggleActive = (id: string) =>
     setStaff((prev) => prev.map((s) => (s.id === id ? { ...s, isActive: !s.isActive } : s)));
+
+  const toast = useToast();
+  const tErrors = useTranslations('manager.errors');
+  // Bascule présent/absent : optimiste + persistance via setStaffAbsent (qui
+  // pousse aussi la notif quand on marque absent). Rollback si échec.
+  const toggleAbsent = (id: string) => {
+    const target = staff.find((s) => s.id === id);
+    if (!target) return;
+    const next = !target.isAbsent;
+    setStaff((prev) => prev.map((s) => (s.id === id ? { ...s, isAbsent: next } : s)));
+    if (!tenantSession) return; // démo : local seulement
+    void setStaffAbsent(id, next).then((r) => {
+      if (!r.ok) {
+        setStaff((prev) => prev.map((s) => (s.id === id ? { ...s, isAbsent: !next } : s)));
+        toast.error(tErrors(r.errorKey as 'dbError', r.errorValues));
+      }
+    });
+  };
 
   /**
    * Suppression "soft" : retire le rôle barbier. Si la personne est polyvalente,
@@ -1499,7 +1519,7 @@ function TeamBarbersSection({
             return (
               <Card
                 key={b.id}
-                className={`fade-up group delay-${(i % 6) + 1} relative overflow-hidden p-6 transition`}
+                className={`fade-up group delay-${(i % 6) + 1} relative overflow-hidden p-6 transition ${b.isAbsent ? 'opacity-60' : ''}`}
               >
                 {/* Number marker */}
                 <div className="display text-brand-primary/10 mono absolute end-4 top-3 text-5xl leading-none">
@@ -1528,6 +1548,26 @@ function TeamBarbersSection({
                     )}
                   </div>
                 </div>
+
+                {/* Présent / Absent — bascule. Absent = masqué à la réservation
+                    + grisé en caisse, et notif push à l'équipe. */}
+                <button
+                  type="button"
+                  onClick={() => toggleAbsent(b.id)}
+                  aria-pressed={b.isAbsent}
+                  className={`btn-press mb-4 flex w-full items-center justify-center gap-2 rounded-sm border px-3 py-2 text-[10px] font-semibold uppercase tracking-wider transition-colors ${
+                    b.isAbsent
+                      ? 'border-red/40 text-red'
+                      : 'border-line-hi text-ink-mute hover:border-brand-primary'
+                  }`}
+                  style={b.isAbsent ? { background: 'rgba(185,28,28,0.06)' } : undefined}
+                >
+                  <span
+                    className="h-2 w-2 rounded-full"
+                    style={{ background: b.isAbsent ? '#B91C1C' : '#2E7D32' }}
+                  />
+                  {b.isAbsent ? t('absentStatus') : t('presentStatus')}
+                </button>
 
                 {/* Rating badge — toujours visible */}
                 {(() => {
@@ -1755,6 +1795,7 @@ function TeamCashiersSection({
     initials: '',
     tone: STAFF_TONES[0]!.value,
     isActive: true,
+    isAbsent: false,
     phone: '',
     email: '',
     roles: ['cashier'],
@@ -2100,6 +2141,7 @@ function CustomTeamSection({
     initials: '',
     tone: STAFF_TONES[0]!.value,
     isActive: true,
+    isAbsent: false,
     phone: '',
     email: '',
     roles: ['barber'],

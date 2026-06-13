@@ -81,6 +81,7 @@ export async function getPublicTenantData(): Promise<TenantSession | null> {
     initials: r.initials as string,
     tone: r.tone as string,
     isActive: r.is_active as boolean,
+    isAbsent: (r.is_absent as boolean | null) ?? false,
     phone: (r.phone as string | null) ?? undefined,
     email: (r.email as string | null) ?? undefined,
     photoUrl: (r.photo_url as string | null) ?? null,

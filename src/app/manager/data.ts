@@ -76,12 +76,15 @@ export async function getManagerCollections(_tenantId: string): Promise<ManagerC
     
     .order('sort_order', { ascending: true });
 
-  const staff: Staff[] = ((staffRes.data as StaffRow[] | null) ?? []).map((r) => ({
+  const staff: Staff[] = (
+    (staffRes.data as (StaffRow & { is_absent?: boolean })[] | null) ?? []
+  ).map((r) => ({
     id: r.id,
     name: r.name,
     initials: r.initials,
     tone: r.tone,
     isActive: r.is_active,
+    isAbsent: r.is_absent ?? false,
     phone: r.phone ?? undefined,
     email: r.email ?? undefined,
     photoUrl: r.photo_url ?? null,

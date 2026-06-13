@@ -55,6 +55,9 @@ export interface Staff {
   initials: string;
   tone: string;
   isActive: boolean;
+  /** Absent (maladie, imprévu…) — bascule manuelle. true = masqué à la
+   *  réservation + grisé en caisse jusqu'au retour. Distinct de `isActive`. */
+  isAbsent: boolean;
   phone?: string;
   email?: string;
   /** Photo de profil (data URL) — remplace l'avatar à initiales. */
@@ -350,6 +353,7 @@ export const INITIAL_STAFF: Staff[] = [
     initials: 'A',
     tone: '#D08C4F',
     isActive: true,
+    isAbsent: false,
     phone: '06 12 34 56 78',
     email: 'antoine@maison-lefevre.fr',
     roles: ['barber', 'cashier'],
@@ -362,6 +366,7 @@ export const INITIAL_STAFF: Staff[] = [
     initials: 'K',
     tone: '#8BAE6E',
     isActive: true,
+    isAbsent: false,
     phone: '06 23 45 67 89',
     email: 'karim@maison-lefevre.fr',
     roles: ['barber'],
@@ -373,6 +378,7 @@ export const INITIAL_STAFF: Staff[] = [
     initials: 'L',
     tone: '#C97D8A',
     isActive: true,
+    isAbsent: false,
     phone: '06 34 56 78 90',
     email: 'leo@maison-lefevre.fr',
     roles: ['barber'],
@@ -384,6 +390,7 @@ export const INITIAL_STAFF: Staff[] = [
     initials: 'S',
     tone: '#C9A85E',
     isActive: true,
+    isAbsent: false,
     phone: '06 45 67 89 12',
     email: 'sofia@maison-lefevre.fr',
     roles: ['cashier'],
@@ -395,6 +402,7 @@ export const INITIAL_STAFF: Staff[] = [
     initials: 'N',
     tone: '#9B7BBF',
     isActive: true,
+    isAbsent: false,
     phone: '06 56 78 90 23',
     email: 'nadia@maison-lefevre.fr',
     roles: ['cashier'],
