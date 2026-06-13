@@ -877,16 +877,21 @@
       },
       "byService": {
         "title": "Sales by service",
-        "topBadge": "Top seller"
+        "topBadge": "Top seller",
+        "empty": "No services sold in this period."
       },
       "byProduct": {
-        "title": "Sales by product"
+        "title": "Sales by product",
+        "empty": "No products sold in this period.",
+        "marginTotal": "Total product margin"
       },
       "cols": {
         "name": "Item",
         "qty": "Qty",
         "revenue": "Revenue",
-        "amount": "Amount"
+        "amount": "Amount",
+        "cost": "Cost",
+        "margin": "Margin"
       },
       "accounting": {
         "title": "Accounting detail",

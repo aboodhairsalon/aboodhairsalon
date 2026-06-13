@@ -64,6 +64,9 @@ const EN_PDF_STATIC = {
   colName: 'Item',
   colQty: 'Qty',
   colRevenue: 'Revenue',
+  colCost: 'Cost',
+  colMargin: 'Margin',
+  marginTotal: 'Total product margin',
   bookingsTitle: 'Appointments',
   done: 'Completed',
   noShow: 'No-shows',
@@ -166,6 +169,9 @@ export function ManagerReport({ isRealTenant }: { isRealTenant: boolean }) {
       colName: t('cols.name'),
       colQty: t('cols.qty'),
       colRevenue: t('cols.revenue'),
+      colCost: t('cols.cost'),
+      colMargin: t('cols.margin'),
+      marginTotal: t('byProduct.marginTotal'),
       bookingsTitle: t('bookings.title'),
       done: t('bookings.done'),
       noShow: t('bookings.noShow'),
@@ -206,6 +212,9 @@ export function ManagerReport({ isRealTenant }: { isRealTenant: boolean }) {
       colName: t('cols.name'),
       colQty: t('cols.qty'),
       colRevenue: t('cols.revenue'),
+      colCost: t('cols.cost'),
+      colMargin: t('cols.margin'),
+      marginTotal: t('byProduct.marginTotal'),
       bookingsTitle: t('bookings.title'),
       done: t('bookings.done'),
       noShow: t('bookings.noShow'),
@@ -408,30 +417,39 @@ export function ManagerReport({ isRealTenant }: { isRealTenant: boolean }) {
               </Card>
 
               {/* Ventes par prestation */}
-              {report.byService.length > 0 && (
-                <Card className="p-5">
-                  <SectionHeader icon={Scissors} title={t('byService.title')} />
+              <Card className="p-5">
+                <SectionHeader icon={Scissors} title={t('byService.title')} />
+                {report.byService.length > 0 ? (
                   <SalesTable
                     lines={report.byService}
                     fmt={fmt}
                     cols={{ name: t('cols.name'), qty: t('cols.qty'), revenue: t('cols.revenue') }}
                     topBadge={t('byService.topBadge')}
                   />
-                </Card>
-              )}
+                ) : (
+                  <p className="py-2 text-sm text-ink-mute">{t('byService.empty')}</p>
+                )}
+              </Card>
 
-              {/* Ventes par produit */}
-              {report.byProduct.length > 0 && (
-                <Card className="p-5">
-                  <SectionHeader icon={Receipt} title={t('byProduct.title')} />
+              {/* Ventes par produit (avec coût + marge) */}
+              <Card className="p-5">
+                <SectionHeader icon={Receipt} title={t('byProduct.title')} />
+                {report.byProduct.length > 0 ? (
                   <SalesTable
                     lines={report.byProduct}
                     fmt={fmt}
                     cols={{ name: t('cols.name'), qty: t('cols.qty'), revenue: t('cols.revenue') }}
                     topBadge={t('byService.topBadge')}
+                    margin={{
+                      label: t('cols.margin'),
+                      totalLabel: t('byProduct.marginTotal'),
+                      totalCents: report.productMarginCents,
+                    }}
                   />
-                </Card>
-              )}
+                ) : (
+                  <p className="py-2 text-sm text-ink-mute">{t('byProduct.empty')}</p>
+                )}
+              </Card>
 
               {/* Rendez-vous */}
               <Card className="p-5">
@@ -566,11 +584,14 @@ function SalesTable({
   fmt,
   cols,
   topBadge,
+  margin,
 }: {
   lines: AccountingReport['byService'];
   fmt: (cents: number) => string;
   cols: { name: string; qty: string; revenue: string };
   topBadge: string;
+  /** Produits uniquement : affiche la marge par ligne + le total. */
+  margin?: { label: string; totalLabel: string; totalCents: number };
 }) {
   const maxRev = lines.length > 0 ? Math.max(...lines.map((l) => l.revenueCents), 1) : 1;
   return (
@@ -582,30 +603,71 @@ function SalesTable({
           <span className="w-24 text-right">{cols.revenue}</span>
         </span>
       </div>
-      {lines.map((line, i) => (
-        <div key={`${line.name}-${i}`} className="relative">
-          <div className="flex items-center justify-between gap-3 text-sm">
-            <span className="flex min-w-0 items-center gap-2">
-              <span className="truncate font-medium text-ink">{line.name}</span>
-              {i === 0 && (
-                <span className="shrink-0 rounded-full bg-brand-primary/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-brand-primary">
-                  {topBadge}
+      {lines.map((line, i) => {
+        const marginPct =
+          line.marginCents !== undefined && line.revenueCents > 0
+            ? Math.round((line.marginCents / line.revenueCents) * 100)
+            : null;
+        return (
+          <div key={`${line.name}-${i}`} className="relative">
+            <div className="flex items-center justify-between gap-3 text-sm">
+              <span className="flex min-w-0 items-center gap-2">
+                <span className="truncate font-medium text-ink">{line.name}</span>
+                {i === 0 && (
+                  <span className="shrink-0 rounded-full bg-brand-primary/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-brand-primary">
+                    {topBadge}
+                  </span>
+                )}
+              </span>
+              <span className="flex shrink-0 items-center gap-3 tabular-nums">
+                <span className="text-ink-mute">×{line.count}</span>
+                <span className="w-24 text-right font-semibold text-ink">
+                  {fmt(line.revenueCents)}
                 </span>
-              )}
-            </span>
-            <span className="flex shrink-0 items-center gap-3 tabular-nums">
-              <span className="text-ink-mute">×{line.count}</span>
-              <span className="w-24 text-right font-semibold text-ink">{fmt(line.revenueCents)}</span>
-            </span>
+              </span>
+            </div>
+            <div className="mt-1 h-1 overflow-hidden rounded-full bg-surface">
+              <div
+                className="h-full rounded-full bg-brand-primary/60"
+                style={{ width: `${Math.round((line.revenueCents / maxRev) * 100)}%` }}
+              />
+            </div>
+            {margin && line.marginCents !== undefined && (
+              <div className="mt-1 text-[11px] tabular-nums text-ink-mute">
+                {margin.label}{' '}
+                <span
+                  className={
+                    line.marginCents > 0
+                      ? 'font-semibold text-green'
+                      : line.marginCents < 0
+                        ? 'font-semibold text-red'
+                        : 'text-ink-soft'
+                  }
+                >
+                  {fmt(line.marginCents)}
+                </span>
+                {marginPct !== null && <span className="text-ink-soft"> · {marginPct}%</span>}
+              </div>
+            )}
           </div>
-          <div className="mt-1 h-1 overflow-hidden rounded-full bg-surface">
-            <div
-              className="h-full rounded-full bg-brand-primary/60"
-              style={{ width: `${Math.round((line.revenueCents / maxRev) * 100)}%` }}
-            />
-          </div>
+        );
+      })}
+      {margin && (
+        <div className="mt-2 flex items-center justify-between border-t border-line-hi pt-2 text-sm">
+          <span className="font-semibold text-ink">{margin.totalLabel}</span>
+          <span
+            className={`tabular-nums font-bold ${
+              margin.totalCents > 0
+                ? 'text-green'
+                : margin.totalCents < 0
+                  ? 'text-red'
+                  : 'text-ink'
+            }`}
+          >
+            {fmt(margin.totalCents)}
+          </span>
         </div>
-      ))}
+      )}
     </div>
   );
 }

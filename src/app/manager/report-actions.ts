@@ -41,6 +41,10 @@ export interface ReportLine {
   count: number;
   /** Chiffre d'affaires cumulé de cette ligne (cents). */
   revenueCents: number;
+  /** Coût d'achat cumulé (cents) — produits uniquement (prestations = undefined). */
+  costCents?: number;
+  /** Marge = CA − coût (cents) — produits uniquement (prestations = undefined). */
+  marginCents?: number;
 }
 
 export interface AccountingReport {
@@ -78,8 +82,12 @@ export interface AccountingReport {
   byMethod: { visa: number; cash: number; instapay: number; other: number };
   /** Ventes par prestation, triées par CA décroissant. */
   byService: ReportLine[];
-  /** Ventes par produit, triées par CA décroissant. */
+  /** Ventes par produit, triées par CA décroissant (avec coût + marge). */
   byProduct: ReportLine[];
+  /** Coût d'achat total des produits vendus (cents). */
+  productCostCents: number;
+  /** Marge totale produits = CA produits − coût produits (cents). */
+  productMarginCents: number;
 
   /** Compteur de rendez-vous sur la période (par date du RDV, pas de la vente). */
   bookings: {
@@ -247,6 +255,30 @@ export async function getAccountingReport(
   const byProduct = [...prodMap.values()].sort((a, b) => b.revenueCents - a.revenueCents);
   const avgTicketCents = salesCount > 0 ? Math.round(revenueNetCents / salesCount) : 0;
 
+  // Coût d'achat → marge produits. On lit products.cost_cents pour les product_id
+  // vus (mêmes conventions que getProductStats : coût ligne = cost_cents × qté,
+  // marge = CA − coût ; produit orphelin/coût non saisi → coût 0). Les prestations
+  // n'ont pas de coût d'achat (main-d'œuvre) → costCents/marginCents restent undefined.
+  const productIds = [...prodMap.keys()].filter((k) => !k.startsWith('name:'));
+  const costById = new Map<string, number>();
+  if (productIds.length > 0) {
+    const { data: costRows } = await admin
+      .from('products')
+      .select('id, cost_cents')
+      .in('id', productIds);
+    for (const p of ((costRows ?? []) as { id: string; cost_cents: number | null }[])) {
+      costById.set(p.id, p.cost_cents ?? 0);
+    }
+  }
+  let productCostCents = 0;
+  for (const [key, line] of prodMap) {
+    const unitCost = costById.get(key) ?? 0; // clé `name:…` (orphelin) → 0
+    line.costCents = unitCost * line.count;
+    line.marginCents = line.revenueCents - line.costCents;
+    productCostCents += line.costCents;
+  }
+  const productMarginCents = byProduct.reduce((s, l) => s + (l.marginCents ?? 0), 0);
+
   // ---------------------------------------------------------------------------
   // Agrégation des rendez-vous (par date du RDV)
   // ---------------------------------------------------------------------------
@@ -280,6 +312,8 @@ export async function getAccountingReport(
       byMethod,
       byService,
       byProduct,
+      productCostCents,
+      productMarginCents,
       bookings,
     },
   };

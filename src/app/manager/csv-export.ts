@@ -123,6 +123,9 @@ export interface ReportCsvLabels {
   colName: string;
   colQty: string;
   colRevenue: string;
+  colCost: string;
+  colMargin: string;
+  marginTotal: string;
   bookingsTitle: string;
   done: string;
   noShow: string;
@@ -172,8 +175,17 @@ export function buildReportCsv(
   for (const s of r.byService) rows.push([s.name, s.count, money(s.revenueCents)]);
   if (r.byProduct.length > 0) {
     rows.push([]);
-    rows.push([L.byProductTitle, L.colQty, L.colRevenue]);
-    for (const p of r.byProduct) rows.push([p.name, p.count, money(p.revenueCents)]);
+    rows.push([L.byProductTitle, L.colQty, L.colRevenue, L.colCost, L.colMargin]);
+    for (const p of r.byProduct) {
+      rows.push([
+        p.name,
+        p.count,
+        money(p.revenueCents),
+        money(p.costCents ?? 0),
+        money(p.marginCents ?? 0),
+      ]);
+    }
+    rows.push([L.marginTotal, '', '', money(r.productCostCents), money(r.productMarginCents)]);
   }
   rows.push([]);
   rows.push([L.bookingsTitle]);

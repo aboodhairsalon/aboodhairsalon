@@ -57,6 +57,9 @@ export interface ReportPdfLabels {
   colName: string;
   colQty: string;
   colRevenue: string;
+  colCost: string;
+  colMargin: string;
+  marginTotal: string;
   // Rendez-vous
   bookingsTitle: string;
   done: string;
@@ -241,18 +244,31 @@ export function buildReportPdf(
   }
   y += 12;
 
-  /** Table 3 colonnes : Désignation | Qté | CA. Surligne la 1ʳᵉ ligne (top vente). */
-  function salesTable(title: string, lines: AccountingReport['byService']) {
+  /**
+   * Table des ventes. Services = 3 colonnes (Désignation | Qté | CA).
+   * Produits (`withMargin`) = 5 colonnes + total marge (Désignation | Qté | CA
+   * | Coût | Marge). Surligne la 1ʳᵉ ligne (top vente).
+   */
+  function salesTable(title: string, lines: AccountingReport['byService'], withMargin = false) {
     if (lines.length === 0) return;
     sectionTitle(title);
+    const xQty = withMargin ? M + 250 : M + 360;
+    const xRev = withMargin ? M + 355 : RIGHT;
+    const xCost = M + 455;
+    const xMargin = RIGHT;
+    const nameW = withMargin ? 195 : 320;
     // En-têtes de colonnes
     ensure(18);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(9);
     doc.setTextColor(120);
     doc.text(L.colName, M, y);
-    doc.text(L.colQty, M + 360, y, { align: 'right' });
-    doc.text(L.colRevenue, RIGHT, y, { align: 'right' });
+    doc.text(L.colQty, xQty, y, { align: 'right' });
+    doc.text(L.colRevenue, xRev, y, { align: 'right' });
+    if (withMargin) {
+      doc.text(L.colCost, xCost, y, { align: 'right' });
+      doc.text(L.colMargin, xMargin, y, { align: 'right' });
+    }
     doc.setTextColor(0);
     doc.setFont('helvetica', 'normal');
     y += 14;
@@ -265,19 +281,39 @@ export function buildReportPdf(
       }
       doc.setFontSize(10);
       doc.setTextColor(30);
-      doc.text(truncate(doc, line.name, 320), M, y);
+      doc.text(truncate(doc, line.name, nameW), M, y);
       doc.setTextColor(90);
-      doc.text(String(line.count), M + 360, y, { align: 'right' });
+      doc.text(String(line.count), xQty, y, { align: 'right' });
       doc.setTextColor(30);
-      doc.text(money(line.revenueCents), RIGHT, y, { align: 'right' });
+      doc.text(money(line.revenueCents), xRev, y, { align: 'right' });
+      if (withMargin) {
+        doc.setTextColor(120);
+        doc.text(money(line.costCents ?? 0), xCost, y, { align: 'right' });
+        doc.setTextColor(30);
+        doc.text(money(line.marginCents ?? 0), xMargin, y, { align: 'right' });
+      }
       doc.setTextColor(0);
       y += 16;
     });
+    if (withMargin) {
+      ensure(20);
+      doc.setDrawColor(200);
+      doc.line(M, y - 8, RIGHT, y - 8);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(30);
+      doc.text(L.marginTotal, M, y);
+      doc.text(money(r.productCostCents), xCost, y, { align: 'right' });
+      doc.text(money(r.productMarginCents), xMargin, y, { align: 'right' });
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(0);
+      y += 18;
+    }
     y += 12;
   }
 
   salesTable(L.byServiceTitle, r.byService);
-  salesTable(L.byProductTitle, r.byProduct);
+  salesTable(L.byProductTitle, r.byProduct, true);
 
   // ── Rendez-vous ───────────────────────────────────────────────────────────
   sectionTitle(L.bookingsTitle);

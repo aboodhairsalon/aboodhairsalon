@@ -877,16 +877,21 @@
       },
       "byService": {
         "title": "Ventes par prestation",
-        "topBadge": "Top vente"
+        "topBadge": "Top vente",
+        "empty": "Aucune prestation vendue sur cette période."
       },
       "byProduct": {
-        "title": "Ventes par produit"
+        "title": "Ventes par produit",
+        "empty": "Aucun produit vendu sur cette période.",
+        "marginTotal": "Marge totale produits"
       },
       "cols": {
         "name": "Désignation",
         "qty": "Qté",
         "revenue": "CA",
-        "amount": "Montant"
+        "amount": "Montant",
+        "cost": "Coût",
+        "margin": "Marge"
       },
       "accounting": {
         "title": "Détail comptable",
