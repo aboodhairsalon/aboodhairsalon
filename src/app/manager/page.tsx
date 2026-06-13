@@ -2157,6 +2157,25 @@ function CustomTeamSection({
   const toggleActive = (id: string) =>
     setStaff((prev) => prev.map((s) => (s.id === id ? { ...s, isActive: !s.isActive } : s)));
 
+  const toast = useToast();
+  const tErrors = useTranslations('manager.errors');
+  const tBarbers = useTranslations('manager.team.barbersSection');
+  // Présent/absent — même logique que la section Barbiers (les membres d'une
+  // section perso peuvent aussi être absents). Optimiste + rollback + push.
+  const toggleAbsent = (id: string) => {
+    const target = sectionStaff.find((s) => s.id === id);
+    if (!target) return;
+    const next = !target.isAbsent;
+    setStaff((prev) => prev.map((s) => (s.id === id ? { ...s, isAbsent: next } : s)));
+    if (!isRealTenant) return;
+    void setStaffAbsent(id, next).then((r) => {
+      if (!r.ok) {
+        setStaff((prev) => prev.map((s) => (s.id === id ? { ...s, isAbsent: !next } : s)));
+        toast.error(tErrors(r.errorKey as 'dbError', r.errorValues));
+      }
+    });
+  };
+
   const remove = (id: string) => {
     setStaff((prev) => prev.filter((s) => s.id !== id));
     setConfirmDelete(null);
@@ -2212,14 +2231,16 @@ function CustomTeamSection({
             return (
               <Card
                 key={s.id}
-                className={`fade-up group delay-${(i % 6) + 1} relative overflow-hidden p-6 transition ${isOnDuty ? 'border-brand-primary copper-glow' : ''}`}
+                className={`fade-up group delay-${(i % 6) + 1} relative overflow-hidden p-6 transition ${isOnDuty ? 'border-brand-primary copper-glow' : ''} ${s.isAbsent ? 'opacity-60' : ''}`}
               >
                 <div className="display text-brand-primary/10 mono absolute end-4 top-3 text-5xl leading-none">
                   {String(i + 1).padStart(2, '0')}
                 </div>
-                {(isBarber || isCashier || isOnDuty) && (
+                {/* Dans une section perso, on n'affiche PAS le tag « Barbier »
+                    (trompeur : la section nomme déjà le métier, ex. « service »).
+                    On garde caissier / de service. */}
+                {(isCashier || isOnDuty) && (
                   <div className="mb-3 flex flex-wrap gap-1.5">
-                    {isBarber && <Tag tone="copper">{t('barberTag')}</Tag>}
                     {isCashier && <Tag tone="copper">{t('cashierTag')}</Tag>}
                     {isOnDuty && <Tag tone="copper">{t('onDutyTag')}</Tag>}
                   </div>
@@ -2233,11 +2254,33 @@ function CustomTeamSection({
                   />
                   <div className="min-w-0 flex-1">
                     <div className="display text-2xl leading-tight">{s.name}</div>
+                    {/* Sous-titre = la section (ex. « service ») plutôt que
+                        « Barbier », qui est juste le rôle technique réservable. */}
                     <div className="mono text-ink-soft mt-1 text-[10px] uppercase tracking-wider">
-                      {s.shift ?? (isBarber ? t('barberRole') : t('cashierRole'))}
+                      {s.shift ?? name}
                     </div>
                   </div>
                 </div>
+                {/* Présent / Absent — pour les membres réservables (barbiers). */}
+                {isBarber && (
+                  <button
+                    type="button"
+                    onClick={() => toggleAbsent(s.id)}
+                    aria-pressed={s.isAbsent}
+                    className={`btn-press mb-4 flex w-full items-center justify-center gap-2 rounded-sm border px-3 py-2 text-[10px] font-semibold uppercase tracking-wider transition-colors ${
+                      s.isAbsent
+                        ? 'border-red/40 text-red'
+                        : 'border-line-hi text-ink-mute hover:border-brand-primary'
+                    }`}
+                    style={s.isAbsent ? { background: 'rgba(185,28,28,0.06)' } : undefined}
+                  >
+                    <span
+                      className="h-2 w-2 rounded-full"
+                      style={{ background: s.isAbsent ? '#B91C1C' : '#2E7D32' }}
+                    />
+                    {s.isAbsent ? tBarbers('absentStatus') : tBarbers('presentStatus')}
+                  </button>
+                )}
                 {isRealTenant && isCashier && (
                   <div className="border-line bg-bg-soft mb-4 rounded-sm border p-3">
                     <div className="mb-1.5 flex items-center justify-between">
