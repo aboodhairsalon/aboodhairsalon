@@ -1018,6 +1018,7 @@
       "clientPhonePlaceholder": "+213 555 000 111",
       "servicesDivider": "Prestations",
       "productsDivider": "Produits",
+      "catalogEmpty": "Aucun élément à afficher",
       "stockBadge": "{count} en stock",
       "ticket": "Ticket",
       "clearTicket": "Vider",

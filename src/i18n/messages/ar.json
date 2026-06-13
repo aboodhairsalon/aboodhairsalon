@@ -1019,6 +1019,7 @@
       "clientPhonePlaceholder": "‎+213 555 000 111",
       "servicesDivider": "الخدمات",
       "productsDivider": "المنتجات",
+      "catalogEmpty": "لا توجد عناصر",
       "stockBadge": "{count} في المخزون",
       "ticket": "الفاتورة",
       "clearTicket": "إفراغ",

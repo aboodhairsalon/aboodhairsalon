@@ -945,6 +945,10 @@ function CashierPOS({
   const fmt = useFmtMoney();
   const router = useRouter();
   const [cart, setCart] = useState<CartLine[]>([]);
+  // Onglet du catalogue : « Prestations » vs « Produits ». Au lieu d'empiler
+  // les deux sections (demande salon), on les sépare en deux onglets et on
+  // passe à 4 cartes par ligne.
+  const [catalogTab, setCatalogTab] = useState<'services' | 'products'>('services');
   const [barberId, setBarberId] = useState(barbers[0]?.id ?? '');
   // Le client est désormais un objet sélectionné (ou null) — fini la double
   // saisie nom + téléphone qui créait des doublons quand chaque caissier
@@ -1431,77 +1435,107 @@ function CashierPOS({
           highlightBookingId={highlightBookingId}
         />
 
-        <Divider label={t('servicesDivider')} />
-        {/* Groupé par categorie : reflète l'organisation faite par le gérant
-            côté Manager (drag-and-drop entre sections). Si aucun service n'a
-            de catégorie, on rend une seule grille plate (aucun header). */}
-        {(() => {
-          const grouped: Array<[string, typeof services]> = [];
-          for (const s of services) {
-            const cat = s.category?.trim() ?? '';
-            let entry = grouped.find(([c]) => c === cat);
-            if (!entry) {
-              entry = [cat, []];
-              grouped.push(entry);
-            }
-            entry[1].push(s);
-          }
-          return grouped.map(([cat, items]) => (
-            <div key={cat || '__none__'} className={cat ? 'mt-3' : ''}>
-              {cat && (
-                <div className="mono text-ink-soft mb-2 text-[10px] uppercase tracking-wider">
-                  {cat}
-                </div>
-              )}
-              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                {items.map((s) => (
-                  <button
-                    key={s.id}
-                    type="button"
-                    onClick={() => add({ id: s.id, name: s.name, priceCents: s.priceCents }, 'service')}
-                    className="btn-press tile-hover border-line bg-surface rounded-sm border p-4 text-start"
-                  >
-                    <div className="text-brand-primary mb-2">
-                      <ServiceIcon iconKey={s.icon} className="h-5 w-5" />
-                    </div>
-                    <div className="display mb-1 text-base">{s.name}</div>
-                    <div className="mono text-ink text-sm">{fmt(s.priceCents)}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          ));
-        })()}
-
-        <Divider label={t('productsDivider')} />
-        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-          {products.map((p) => (
+        {/* Onglets catalogue : Prestations | Produits — séparés (plus empilés
+            sous des dividers), 4 cartes par ligne. Style aligné sur le
+            sélecteur de période du tableau de bord. */}
+        <div className="border-line bg-bg-soft mt-2 mb-5 inline-flex rounded-sm border p-1">
+          {(['services', 'products'] as const).map((k) => (
             <button
-              key={p.id}
+              key={k}
               type="button"
-              disabled={p.stock === 0}
-              onClick={() => add({ id: p.id, name: p.name, priceCents: p.priceCents }, 'product')}
-              className={`btn-press tile-hover bg-surface rounded-sm border p-4 text-start ${
-                p.stock === 0
-                  ? 'border-line cursor-not-allowed opacity-30'
-                  : p.stock <= p.low
-                    ? 'border-red/30'
-                    : 'border-line'
+              onClick={() => setCatalogTab(k)}
+              className={`mono px-5 py-1.5 text-[11px] uppercase tracking-wider transition-colors ${
+                catalogTab === k ? 'bg-brand-primary text-white' : 'text-ink-mute hover:text-ink'
               }`}
             >
-              <div className="mb-2 flex items-start justify-between">
-                <Package className="text-brand-primary h-5 w-5" strokeWidth={1.5} />
-                <span
-                  className={`mono text-[10px] uppercase tracking-wider ${p.stock <= p.low ? 'text-red' : 'text-ink-soft'}`}
-                >
-                  {t('stockBadge', { count: p.stock })}
-                </span>
-              </div>
-              <div className="display mb-1 text-base">{p.name}</div>
-              <div className="mono text-ink text-sm">{fmt(p.priceCents)}</div>
+              {k === 'services' ? t('servicesDivider') : t('productsDivider')}
+              <span className="ms-2 opacity-60">
+                {k === 'services' ? services.length : products.length}
+              </span>
             </button>
           ))}
         </div>
+
+        {/* Onglet Prestations — groupé par catégorie (reflète l'organisation
+            faite côté Manager). Si aucun service n'a de catégorie → grille
+            plate sans header. */}
+        {catalogTab === 'services' &&
+          (services.length === 0 ? (
+            <p className="text-ink-mute py-10 text-center text-sm">{t('catalogEmpty')}</p>
+          ) : (
+            (() => {
+              const grouped: Array<[string, typeof services]> = [];
+              for (const s of services) {
+                const cat = s.category?.trim() ?? '';
+                let entry = grouped.find(([c]) => c === cat);
+                if (!entry) {
+                  entry = [cat, []];
+                  grouped.push(entry);
+                }
+                entry[1].push(s);
+              }
+              return grouped.map(([cat, items]) => (
+                <div key={cat || '__none__'} className={cat ? 'mt-3' : ''}>
+                  {cat && (
+                    <div className="mono text-ink-soft mb-2 text-[10px] uppercase tracking-wider">
+                      {cat}
+                    </div>
+                  )}
+                  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                    {items.map((s) => (
+                      <button
+                        key={s.id}
+                        type="button"
+                        onClick={() => add({ id: s.id, name: s.name, priceCents: s.priceCents }, 'service')}
+                        className="btn-press tile-hover border-line bg-surface rounded-sm border p-4 text-start"
+                      >
+                        <div className="text-brand-primary mb-2">
+                          <ServiceIcon iconKey={s.icon} className="h-5 w-5" />
+                        </div>
+                        <div className="display mb-1 text-base">{s.name}</div>
+                        <div className="mono text-ink text-sm">{fmt(s.priceCents)}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ));
+            })()
+          ))}
+
+        {/* Onglet Produits */}
+        {catalogTab === 'products' &&
+          (products.length === 0 ? (
+            <p className="text-ink-mute py-10 text-center text-sm">{t('catalogEmpty')}</p>
+          ) : (
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+              {products.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  disabled={p.stock === 0}
+                  onClick={() => add({ id: p.id, name: p.name, priceCents: p.priceCents }, 'product')}
+                  className={`btn-press tile-hover bg-surface rounded-sm border p-4 text-start ${
+                    p.stock === 0
+                      ? 'border-line cursor-not-allowed opacity-30'
+                      : p.stock <= p.low
+                        ? 'border-red/30'
+                        : 'border-line'
+                  }`}
+                >
+                  <div className="mb-2 flex items-start justify-between">
+                    <Package className="text-brand-primary h-5 w-5" strokeWidth={1.5} />
+                    <span
+                      className={`mono text-[10px] uppercase tracking-wider ${p.stock <= p.low ? 'text-red' : 'text-ink-soft'}`}
+                    >
+                      {t('stockBadge', { count: p.stock })}
+                    </span>
+                  </div>
+                  <div className="display mb-1 text-base">{p.name}</div>
+                  <div className="mono text-ink text-sm">{fmt(p.priceCents)}</div>
+                </button>
+              ))}
+            </div>
+          ))}
       </div>
 
       {/* Colonne droite : ticket + ajustements (Surplus / Remise) empilés
