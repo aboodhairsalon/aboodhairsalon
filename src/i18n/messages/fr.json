@@ -1219,6 +1219,13 @@
         "errorLocalSale": "Cette vente n'est pas encore enregistrée. Attendez quelques secondes et réessayez.",
         "errorAmountInvalid": "Montant invalide. Doit être entre 0 et {max}."
       }
+    },
+    "offline": {
+      "bannerOffline": "Hors ligne — les ventes sont enregistrées et synchronisées au retour du réseau",
+      "bannerPending": "{count} vente(s) en attente de synchronisation…",
+      "savedToast": "Vente enregistrée hors ligne — synchro au retour du réseau",
+      "syncedToast": "{count} vente(s) synchronisée(s) ✓",
+      "syncFailedToast": "{count} vente(s) non synchronisée(s) — à vérifier"
     }
   },
   "client": {

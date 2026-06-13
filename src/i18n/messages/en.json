@@ -1219,6 +1219,13 @@
         "errorLocalSale": "This sale isn't saved yet. Wait a few seconds and try again.",
         "errorAmountInvalid": "Invalid amount. Must be between 0 and {max}."
       }
+    },
+    "offline": {
+      "bannerOffline": "Offline — sales are saved and will sync when back online",
+      "bannerPending": "{count} sale(s) waiting to sync…",
+      "savedToast": "Sale saved offline — will sync when back online",
+      "syncedToast": "{count} sale(s) synced ✓",
+      "syncFailedToast": "{count} sale(s) could not sync — please check"
     }
   },
   "client": {

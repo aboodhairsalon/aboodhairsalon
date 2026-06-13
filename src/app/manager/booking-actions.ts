@@ -39,6 +39,30 @@ type AnySupabase = any;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const isUuid = (v: string): boolean => UUID_RE.test(v);
 
+/** Idempotence au niveau INSERT (défense en profondeur, complète le pré-check).
+ *  Deux rejeux concurrents partageant la même `offlineClientId` — file de
+ *  synchro + caisse, double-clic, ou tick de synchro pendant l'appel en vol —
+ *  peuvent tous deux passer le pré-check AVANT que l'un n'ait inséré. Le 2e
+ *  heurte alors la contrainte UNIQUE(offline_client_id) → code Postgres 23505.
+ *  On le traite comme un SUCCÈS idempotent en relisant la vente déjà créée par
+ *  le gagnant : jamais de doublon (UNIQUE), jamais d'erreur affichée à tort
+ *  (la caisse ne rollback pas une vente qui existe réellement en DB). */
+async function resolveOfflineDuplicate(
+  db: AnySupabase,
+  tenantId: string,
+  offlineClientId: string | undefined,
+  saleErr: { code?: string } | null,
+): Promise<string | null> {
+  if (!offlineClientId || saleErr?.code !== '23505') return null;
+  const { data } = await db
+    .from('sales')
+    .select('id')
+    .eq('tenant_id', tenantId)
+    .eq('offline_client_id', offlineClientId)
+    .maybeSingle();
+  return data && (data as { id: string }).id ? (data as { id: string }).id : null;
+}
+
 /** Codes d'erreur émis par les actions booking — résolus côté client via
  *  `useTranslations('cashier.errors.*')` pour rester i18n-friendly. */
 export type BookingErrorCode =
@@ -227,6 +251,8 @@ export interface PayBookingInput {
     /** Coiffeur (staff.id) de la prestation extra. Ignoré pour les produits. */
     barberId?: string;
   }>;
+  /** Clé d'idempotence POS offline (uuid) — cf. CreateDirectSaleInput. */
+  offlineClientId?: string;
 }
 
 export async function payBooking(input: PayBookingInput): Promise<MutationResult> {
@@ -236,6 +262,20 @@ export async function payBooking(input: PayBookingInput): Promise<MutationResult
   const supabase = createAdminClient() as AnySupabase;
 
   const db = supabase as AnySupabase;
+
+  // Idempotence offline : si une vente porte déjà cette clé, on la renvoie sans
+  // re-créer ni re-marquer le RDV (ré-envoi depuis la file sûr).
+  if (input.offlineClientId) {
+    const { data: existing } = await db
+      .from('sales')
+      .select('id')
+      .eq('tenant_id', ctx.tenant.id)
+      .eq('offline_client_id', input.offlineClientId)
+      .maybeSingle();
+    if (existing && (existing as { id: string }).id) {
+      return { ok: true, id: (existing as { id: string }).id };
+    }
+  }
 
   // 1. Charger le booking
   const { data: booking, error: fetchErr } = await db
@@ -329,12 +369,22 @@ export async function payBooking(input: PayBookingInput): Promise<MutationResult
       tip_cents: tip,
       tax_cents: taxCents,
       cashback_redeemed_cents: cashbackApplied,
+      offline_client_id: input.offlineClientId ?? null,
       completed_at: new Date().toISOString(),
     })
     .select('id')
     .single();
 
   if (saleErr || !sale) {
+    // Course concurrente sur la même clé d'idempotence → relire la vente du
+    // gagnant et renvoyer un succès (jamais de doublon, jamais de faux échec).
+    const dupId = await resolveOfflineDuplicate(
+      db,
+      ctx.tenant.id,
+      input.offlineClientId,
+      saleErr as { code?: string } | null,
+    );
+    if (dupId) return { ok: true, id: dupId };
     return {
       ok: false,
       errorKey: 'saleCreateFailed',
@@ -445,6 +495,10 @@ export interface CreateDirectSaleInput {
   cashbackAppliedCents?: number;
   method: 'card' | 'cash' | 'mobile';
   items: DirectSaleItem[];
+  /** Clé d'idempotence POS offline (uuid). Si une vente avec cette clé existe
+   *  déjà, l'action la renvoie sans ré-insérer → ré-envoi depuis la file
+   *  d'attente (après reconnexion) sûr, jamais de doublon. */
+  offlineClientId?: string;
 }
 
 export async function createDirectSale(input: CreateDirectSaleInput): Promise<MutationResult> {
@@ -452,6 +506,21 @@ export async function createDirectSale(input: CreateDirectSaleInput): Promise<Mu
   // ferait redirect('/cashier') qui aborte l'INSERT silencieusement.
   const ctx = await requireTenant({ allowCashier: true });
   const db = createAdminClient() as AnySupabase;
+
+  // Idempotence offline : si une vente porte déjà cette clé (la file a renvoyé
+  // la vente après reconnexion, ou la réponse précédente s'est perdue), on la
+  // renvoie sans dupliquer.
+  if (input.offlineClientId) {
+    const { data: existing } = await db
+      .from('sales')
+      .select('id')
+      .eq('tenant_id', ctx.tenant.id)
+      .eq('offline_client_id', input.offlineClientId)
+      .maybeSingle();
+    if (existing && (existing as { id: string }).id) {
+      return { ok: true, id: (existing as { id: string }).id };
+    }
+  }
 
   // subtotal = BRUT, total = NET cash (subtotal − cashback). Tip à part.
   const itemsTotal = input.items.reduce((s, i) => s + i.priceCents * i.qty, 0);
@@ -483,12 +552,22 @@ export async function createDirectSale(input: CreateDirectSaleInput): Promise<Mu
       tip_cents: tip,
       tax_cents: taxCents,
       cashback_redeemed_cents: cashbackApplied,
+      offline_client_id: input.offlineClientId ?? null,
       completed_at: new Date().toISOString(),
     })
     .select('id')
     .single();
 
   if (saleErr || !sale) {
+    // Course concurrente sur la même clé d'idempotence → relire la vente du
+    // gagnant et renvoyer un succès (jamais de doublon, jamais de faux échec).
+    const dupId = await resolveOfflineDuplicate(
+      db,
+      ctx.tenant.id,
+      input.offlineClientId,
+      saleErr as { code?: string } | null,
+    );
+    if (dupId) return { ok: true, id: dupId };
     return {
       ok: false,
       errorKey: 'saleCreateFailed',

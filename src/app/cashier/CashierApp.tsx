@@ -4,12 +4,14 @@ import {
   Banknote,
   Calendar,
   Check,
+  CloudOff,
   Coffee,
   CreditCard,
   Minus,
   Package,
   Plus,
   Receipt,
+  RefreshCw,
   Smartphone,
   Trash2,
   User,
@@ -19,7 +21,15 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
-import { useEffect, useRef, useState, useTransition } from 'react';
+import { useCallback, useEffect, useRef, useState, useTransition } from 'react';
+import { useOnlineStatus } from '../_lib/use-online-status';
+import {
+  bumpAttempts,
+  countQueuedSales,
+  enqueueSale,
+  getQueuedSales,
+  removeQueuedSale,
+} from '../_lib/offline-queue';
 import { Btn, Card, Divider, Modal, Tag } from '@/components';
 import { AppHeader, type TabDef } from '../_components/AppHeader';
 import { ServiceIcon } from '../_components/ServiceIcon';
@@ -51,6 +61,16 @@ import { ApplyCashbackButton, CashbackHint } from './ApplyCashbackButton';
 import { ClientsToCheckoutSection } from './ClientsToCheckoutSection';
 import { ReceiptQRModal, type ReceiptQRClient } from './ReceiptQRModal';
 import { RefundModal } from './RefundModal';
+
+/** Clé d'idempotence d'une vente (uuid) — partagée entre la vente locale et
+ *  `sales.offline_client_id`, garantit qu'un rejeu de la file ne duplique pas. */
+function makeOfflineId(): string {
+  try {
+    return crypto.randomUUID();
+  } catch {
+    return `off-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  }
+}
 
 /** Définition des onglets : `key` + `icon`. Les libellés sont résolus à
  *  chaque render via `useTranslations('cashier.tabs')` pour rester réactifs
@@ -158,6 +178,88 @@ export function CashierApp({
     setTimeout(() => setActionError(null), 4000);
   };
 
+  // ── Résilience hors-ligne : moteur de synchro des ventes ─────────────────
+  //
+  // Monté au niveau racine (toujours actif, quel que soit l'onglet). Les ventes
+  // encaissées sans réseau sont enregistrées en IndexedDB (cf. CashierPOS) ; ici
+  // on les rejoue à la reconnexion. Idempotent côté serveur (offline_client_id),
+  // donc aucun doublon ; durable côté client, donc aucune vente perdue.
+  const router = useRouter();
+  const toast = useToast();
+  const tOffline = useTranslations('cashier.offline');
+  const online = useOnlineStatus();
+  const [pendingSyncCount, setPendingSyncCount] = useState(0);
+  const [syncing, setSyncing] = useState(false);
+  const flushingRef = useRef(false);
+
+  const refreshPendingCount = useCallback(async () => {
+    setPendingSyncCount(await countQueuedSales());
+  }, []);
+
+  const flushOfflineQueue = useCallback(async () => {
+    if (flushingRef.current) return; // une seule passe à la fois
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      void refreshPendingCount();
+      return;
+    }
+    const items = await getQueuedSales();
+    if (items.length === 0) {
+      setPendingSyncCount(0);
+      return;
+    }
+    flushingRef.current = true;
+    setSyncing(true);
+    let synced = 0;
+    let dropped = 0;
+    for (const item of items) {
+      try {
+        const res =
+          item.action === 'payBooking'
+            ? await payBooking(item.payload)
+            : await createDirectSale(item.payload);
+        if (res.ok) {
+          await removeQueuedSale(item.offlineClientId);
+          synced += 1;
+        } else if ((item.attempts ?? 0) >= 2) {
+          // Rejet de validation persistant (rare) → on abandonne après 3 essais
+          // pour ne pas boucler, en alertant le caissier.
+          await removeQueuedSale(item.offlineClientId);
+          dropped += 1;
+        } else {
+          await bumpAttempts(item);
+        }
+      } catch {
+        break; // toujours hors-ligne → on garde le reste pour plus tard
+      }
+    }
+    flushingRef.current = false;
+    setSyncing(false);
+    await refreshPendingCount();
+    if (synced > 0) {
+      toast.success(tOffline('syncedToast', { count: synced }));
+      router.refresh(); // récupère les ventes synchronisées (ids DB) du serveur
+    }
+    if (dropped > 0) toast.error(tOffline('syncFailedToast', { count: dropped }));
+  }, [refreshPendingCount, router, toast, tOffline]);
+
+  // Flush au montage + à chaque retour de connexion.
+  useEffect(() => {
+    void flushOfflineQueue();
+  }, [online, flushOfflineQueue]);
+
+  // Re-vérifie quand la caisse signale une nouvelle vente en file + filet de
+  // sécurité périodique (15 s) si l'événement `online` n'a pas été émis.
+  useEffect(() => {
+    void refreshPendingCount();
+    const onQueueChange = () => void flushOfflineQueue();
+    window.addEventListener('offline-queue-changed', onQueueChange);
+    const iv = window.setInterval(() => void flushOfflineQueue(), 15000);
+    return () => {
+      window.removeEventListener('offline-queue-changed', onQueueChange);
+      window.clearInterval(iv);
+    };
+  }, [flushOfflineQueue, refreshPendingCount]);
+
   const updateBookingLocal = (id: string, patch: Partial<Booking>) =>
     setBookings((prev) => prev.map((b) => (b.id === id ? { ...b, ...patch } : b)));
 
@@ -264,6 +366,38 @@ export function CashierApp({
         setActive={setTab}
         slug={slug}
       />
+
+      {/* Bannière résilience hors-ligne — la caisse continue, les ventes sont
+          enregistrées localement et synchronisées au retour du réseau. */}
+      {(!online || pendingSyncCount > 0) && (
+        <div
+          className={`border-b px-6 py-2.5 ${
+            !online ? 'border-brand-primary/30 bg-brand-primary/10' : 'border-line-hi bg-surface-elev'
+          }`}
+        >
+          <div className="mx-auto flex max-w-7xl items-center gap-2 text-sm">
+            {!online ? (
+              <>
+                <CloudOff className="text-brand-primary h-4 w-4 shrink-0" strokeWidth={2} />
+                <span className="text-brand-primary font-medium">
+                  {tOffline('bannerOffline')}
+                  {pendingSyncCount > 0 ? ` · ${pendingSyncCount}` : ''}
+                </span>
+              </>
+            ) : (
+              <>
+                <RefreshCw
+                  className={`text-ink-mute h-4 w-4 shrink-0 ${syncing ? 'animate-spin' : ''}`}
+                  strokeWidth={2}
+                />
+                <span className="text-ink-mute">
+                  {tOffline('bannerPending', { count: pendingSyncCount })}
+                </span>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Bannière erreur action serveur */}
       {actionError && (
@@ -963,7 +1097,9 @@ function CashierPOS({
   const t = useTranslations('cashier.pos');
   const tSale = useTranslations('cashier.saleItem');
   const tErrors = useTranslations('cashier.errors');
+  const tOffline = useTranslations('cashier.offline');
   const fmt = useFmtMoney();
+  const toast = useToast();
   const router = useRouter();
   const [cart, setCart] = useState<CartLine[]>([]);
   // Onglet du catalogue : « Prestations » vs « Produits ». Au lieu d'empiler
@@ -1341,7 +1477,14 @@ function CashierPOS({
     // sale + sale_items » côté serveur. Les items DU CART qui ne sont pas
     // le service de base sont envoyés comme `extras` ; le service de base
     // est implicite (payBooking le lit depuis bookings.service_id).
-    let result;
+    // Résilience hors-ligne : clé d'idempotence partagée vente locale ↔ serveur,
+    // mise en file DURABLE avant l'appel, puis tentative serveur. Si le réseau
+    // est coupé (l'appel jette), on GARDE la vente + le reçu et on synchronisera
+    // au retour (cf. moteur de synchro racine) — pas de rollback = pas de perte.
+    const offlineClientId = makeOfflineId();
+    let result: Awaited<ReturnType<typeof createDirectSale>> | undefined;
+    let networkFailed = false;
+
     if (loadedBookingSnapshot) {
       // Le service de base du RDV est déjà connu côté serveur (lu depuis
       // bookings.service_id par payBooking) — on l'EXCLUT du cart envoyé en
@@ -1362,7 +1505,7 @@ function CashierPOS({
           barberId: c.barberId,
         }));
       const baseSvc = services.find((s) => s.id === loadedBookingSnapshot.serviceId);
-      result = await payBooking({
+      const bookingInput = {
         bookingId: loadedBookingSnapshot.id,
         method,
         serviceName: baseSvc?.name,
@@ -1371,9 +1514,23 @@ function CashierPOS({
         extraDescription: surplus.extraDescription,
         cashbackAppliedCents: surplus.cashbackAppliedCents,
         extras,
+        offlineClientId,
+      };
+      await enqueueSale({
+        offlineClientId,
+        localId,
+        createdAt: Date.now(),
+        attempts: 0,
+        action: 'payBooking',
+        payload: bookingInput,
       });
+      try {
+        result = await payBooking(bookingInput);
+      } catch {
+        networkFailed = true;
+      }
     } else {
-      result = await createDirectSale({
+      const directInput = {
         barberId: primaryBarberId || undefined,
         clientPhone: clientPhoneValue || undefined,
         clientName: clientDisplayName || undefined,
@@ -1390,10 +1547,35 @@ function CashierPOS({
           qty: c.qty,
           barberId: c.barberId,
         })),
+        offlineClientId,
+      };
+      await enqueueSale({
+        offlineClientId,
+        localId,
+        createdAt: Date.now(),
+        attempts: 0,
+        action: 'createDirectSale',
+        payload: directInput,
       });
+      try {
+        result = await createDirectSale(directInput);
+      } catch {
+        networkFailed = true;
+      }
     }
 
-    if (!result.ok) {
+    if (networkFailed) {
+      // Réseau coupé : la vente reste locale + en file (durable), le reçu reste
+      // imprimable, la synchro se fera au retour. AUCUN rollback.
+      window.dispatchEvent(new Event('offline-queue-changed'));
+      toast.success(tOffline('savedToast'));
+      return;
+    }
+
+    // Réponse serveur reçue (en ligne) → plus besoin de la garder en file.
+    await removeQueuedSale(offlineClientId);
+
+    if (!result || !result.ok) {
       // Rollback : la vente locale (optimistic UI) doit disparaître pour
       // ne pas laisser une vente fantôme dans le log Caisse et fausser les
       // KPIs côté Direction (qui partage le state via les props sales).
@@ -1408,7 +1590,7 @@ function CashierPOS({
       // pour une vente qui n'existe pas en DB. Affiche le toast d'erreur.
       setReceiptOpen(false);
       setLastSale(null);
-      showError(tErrors(result.errorKey as 'unknownError', result.errorValues));
+      showError(tErrors((result?.errorKey ?? 'unknownError') as 'unknownError', result?.errorValues));
       // Resync depuis la DB pour récupérer l'état server-authoritatif —
       // critique si plusieurs caissiers travaillent en parallèle ou si le
       // fail vient d'une race (stock épuisé par un autre POS). Le refresh

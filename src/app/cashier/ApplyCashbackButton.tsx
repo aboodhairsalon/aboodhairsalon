@@ -18,6 +18,7 @@ import { useTranslations } from 'next-intl';
 import { useEffect, useState, useTransition } from 'react';
 
 import { useFmtMoney } from '../_data/local-state';
+import { useOnlineStatus } from '../_lib/use-online-status';
 import { useToast } from '../_components/Toast';
 import { getCashbackBalance, redeemCashbackForSale } from './cashback-actions';
 
@@ -33,10 +34,14 @@ import { getCashbackBalance, redeemCashbackForSale } from './cashback-actions';
 export function CashbackHint({ tenantId, phone }: { tenantId: string; phone: string }) {
   const t = useTranslations('cashier.cashback');
   const fmt = useFmtMoney();
+  const online = useOnlineStatus();
   const [availableCents, setAvailableCents] = useState<number | null>(null);
 
+  // Hors-ligne : le solde n'est pas vérifiable sans réseau (choix salon) → on
+  // n'affiche aucun indicateur cashback (cohérent avec ApplyCashbackButton, et
+  // évite un appel serveur qui échouerait en rejet non géré).
   useEffect(() => {
-    if (!tenantId || !phone) {
+    if (!tenantId || !phone || !online) {
       setAvailableCents(null);
       return;
     }
@@ -48,7 +53,7 @@ export function CashbackHint({ tenantId, phone }: { tenantId: string; phone: str
     return () => {
       alive = false;
     };
-  }, [tenantId, phone]);
+  }, [tenantId, phone, online]);
 
   if (!availableCents || availableCents <= 0) return null;
   return (
@@ -83,13 +88,16 @@ export function ApplyCashbackButton({
   const tErrors = useTranslations('cashier.errors');
   const fmt = useFmtMoney();
   const toast = useToast();
+  const online = useOnlineStatus();
   const [availableCents, setAvailableCents] = useState<number | null>(null);
   const [redeemed, setRedeemed] = useState(false);
   const [pending, startTransition] = useTransition();
 
-  // Charge le solde au mount + à chaque changement de client
+  // Charge le solde au mount + à chaque changement de client. Désactivé
+  // hors-ligne : le solde cashback n'est pas vérifiable sans réseau (choix
+  // salon) → on garde `availableCents` à null, ce qui masque le bouton.
   useEffect(() => {
-    if (!tenantId || !phone) {
+    if (!tenantId || !phone || !online) {
       setAvailableCents(null);
       return;
     }
@@ -105,7 +113,7 @@ export function ApplyCashbackButton({
     return () => {
       alive = false;
     };
-  }, [tenantId, phone]);
+  }, [tenantId, phone, online]);
 
   // Montant qu'on va appliquer = min(disponible, total vente). Pas la peine
   // de donner X EGP de cashback si la vente fait Y < X — on appliquerait X
