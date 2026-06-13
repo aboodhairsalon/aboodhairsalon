@@ -106,6 +106,7 @@ function mapSale(row: any): Sale {
   const zoned = utcIsoToZonedParts(row.created_at as string, SALON.timezone);
   return {
     id: row.id as string,
+    receiptNumber: (row.receipt_number as string | null) ?? null,
     date: zoned.date,
     time: zoned.time,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

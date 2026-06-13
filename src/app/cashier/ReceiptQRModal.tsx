@@ -79,6 +79,7 @@ export function ReceiptQRModal({
   itemsLabel,
   items,
   saleId,
+  receiptNumber,
   method,
   tipCents,
 }: {
@@ -90,8 +91,12 @@ export function ReceiptQRModal({
   itemsLabel: string;
   /** Liste détaillée des articles — utilisée pour le PDF. */
   items: ReceiptQRItem[];
-  /** ID local ou DB de la vente — utilisé pour le PDF (filename + N°). */
+  /** ID local ou DB de la vente — utilisé pour le PDF (filename + fallback N°). */
   saleId: string;
+  /** Numéro de ticket lisible « YYYY-MM-NNN » affiché sur le reçu. `null` tant
+   *  qu'une vente hors-ligne n'est pas synchronisée (le reçu retombe alors sur
+   *  l'identifiant technique). */
+  receiptNumber?: string | null;
   /** Mode de paiement — affiché dans le PDF. */
   method: 'card' | 'cash' | 'mobile';
   /** Pourboire éventuel — ajouté au total dans le PDF. */
@@ -182,6 +187,7 @@ export function ReceiptQRModal({
   // Données de la vente — partagées entre le PDF et l'impression directe.
   const buildReceiptData = () => ({
     saleId,
+    receiptNumber: receiptNumber ?? null,
     dateIso: new Date().toISOString(),
     time: new Date().toTimeString().slice(0, 5),
     items,

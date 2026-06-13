@@ -189,6 +189,9 @@ export interface SaleItem {
 
 export interface Sale {
   id: string;
+  /** Numéro de ticket lisible « YYYY-MM-NNN » (attribué côté serveur à la
+   *  création). `null`/absent tant qu'une vente hors-ligne n'est pas synchro. */
+  receiptNumber?: string | null;
   date: string;
   time: string;
   items: SaleItem[];

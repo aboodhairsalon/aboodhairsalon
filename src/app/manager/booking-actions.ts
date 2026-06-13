@@ -11,7 +11,7 @@
 import { revalidatePath } from 'next/cache';
 import { createAdminClient } from '@/db';
 import { requireTenant } from '../_data/auth-server';
-import { fallbackTimezoneFromLocale, zonedToUtcIso } from '../_lib/timezone';
+import { fallbackTimezoneFromLocale, utcIsoToZonedParts, zonedToUtcIso } from '../_lib/timezone';
 import { notifyClientOfCancellation } from './booking-cancel-email';
 import { sendPushToTenant } from './push-actions';
 
@@ -52,15 +52,43 @@ async function resolveOfflineDuplicate(
   tenantId: string,
   offlineClientId: string | undefined,
   saleErr: { code?: string } | null,
-): Promise<string | null> {
+): Promise<{ id: string; receiptNumber: string | null } | null> {
   if (!offlineClientId || saleErr?.code !== '23505') return null;
   const { data } = await db
     .from('sales')
-    .select('id')
+    .select('id, receipt_number')
     .eq('tenant_id', tenantId)
     .eq('offline_client_id', offlineClientId)
     .maybeSingle();
-  return data && (data as { id: string }).id ? (data as { id: string }).id : null;
+  const row = data as { id?: string; receipt_number?: string | null } | null;
+  return row && row.id ? { id: row.id, receiptNumber: row.receipt_number ?? null } : null;
+}
+
+/** Attribue le prochain numéro de ticket « YYYY-MM-NNN » (séquence atomique par
+ *  mois, en heure locale du salon) via la fonction SQL `assign_receipt_seq`.
+ *  Dégrade à `null` si l'attribution échoue — une vente vaut mieux qu'un numéro
+ *  et l'encaissement ne doit jamais être bloqué pour si peu (le numéro pourra
+ *  être complété plus tard). */
+async function nextReceiptNumber(
+  db: AnySupabase,
+  tenantId: string,
+  tz: string,
+): Promise<string | null> {
+  try {
+    const { date } = utcIsoToZonedParts(new Date().toISOString(), tz);
+    const period = date.slice(0, 7); // 'YYYY-MM'
+    if (period.length !== 7) return null;
+    const { data, error } = await db.rpc('assign_receipt_seq', {
+      p_tenant_id: tenantId,
+      p_period: period,
+    });
+    if (error || data == null) return null;
+    const seq = typeof data === 'number' ? data : Number.parseInt(String(data), 10);
+    if (!Number.isFinite(seq) || seq <= 0) return null;
+    return `${period}-${String(seq).padStart(3, '0')}`;
+  } catch {
+    return null;
+  }
 }
 
 /** Codes d'erreur émis par les actions booking — résolus côté client via
@@ -81,7 +109,7 @@ export type BookingErrorCode =
 export type BookingErrorValues = Record<string, string | number>;
 
 export type MutationResult =
-  | { ok: true; id?: string }
+  | { ok: true; id?: string; receiptNumber?: string | null }
   | { ok: false; errorKey: BookingErrorCode; errorValues?: BookingErrorValues };
 
 // =============================================================================
@@ -268,12 +296,13 @@ export async function payBooking(input: PayBookingInput): Promise<MutationResult
   if (input.offlineClientId) {
     const { data: existing } = await db
       .from('sales')
-      .select('id')
+      .select('id, receipt_number')
       .eq('tenant_id', ctx.tenant.id)
       .eq('offline_client_id', input.offlineClientId)
       .maybeSingle();
     if (existing && (existing as { id: string }).id) {
-      return { ok: true, id: (existing as { id: string }).id };
+      const ex = existing as { id: string; receipt_number: string | null };
+      return { ok: true, id: ex.id, receiptNumber: ex.receipt_number ?? null };
     }
   }
 
@@ -351,6 +380,12 @@ export async function payBooking(input: PayBookingInput): Promise<MutationResult
   // 4. Insérer la vente. `subtotal_cents` = BRUT (avant cashback), `total_cents`
   //    = NET cash réellement encaissé (= subtotal − cashback). `tip_cents`
   //    à part, jamais inclus dans subtotal ni total.
+  // Numéro de ticket « YYYY-MM-NNN » — attribué atomiquement (séquence mensuelle).
+  const receiptNumber = await nextReceiptNumber(
+    db,
+    ctx.tenant.id,
+    ctx.tenant.timezone || 'Africa/Cairo',
+  );
   const { data: sale, error: saleErr } = await db
     .from('sales')
     .insert({
@@ -370,6 +405,7 @@ export async function payBooking(input: PayBookingInput): Promise<MutationResult
       tax_cents: taxCents,
       cashback_redeemed_cents: cashbackApplied,
       offline_client_id: input.offlineClientId ?? null,
+      receipt_number: receiptNumber,
       completed_at: new Date().toISOString(),
     })
     .select('id')
@@ -378,13 +414,13 @@ export async function payBooking(input: PayBookingInput): Promise<MutationResult
   if (saleErr || !sale) {
     // Course concurrente sur la même clé d'idempotence → relire la vente du
     // gagnant et renvoyer un succès (jamais de doublon, jamais de faux échec).
-    const dupId = await resolveOfflineDuplicate(
+    const dup = await resolveOfflineDuplicate(
       db,
       ctx.tenant.id,
       input.offlineClientId,
       saleErr as { code?: string } | null,
     );
-    if (dupId) return { ok: true, id: dupId };
+    if (dup) return { ok: true, id: dup.id, receiptNumber: dup.receiptNumber };
     return {
       ok: false,
       errorKey: 'saleCreateFailed',
@@ -462,7 +498,7 @@ export async function payBooking(input: PayBookingInput): Promise<MutationResult
 
   revalidatePath('/cashier');
   revalidatePath('/manager');
-  return { ok: true, id: saleRow.id };
+  return { ok: true, id: saleRow.id, receiptNumber };
 }
 
 // =============================================================================
@@ -513,12 +549,13 @@ export async function createDirectSale(input: CreateDirectSaleInput): Promise<Mu
   if (input.offlineClientId) {
     const { data: existing } = await db
       .from('sales')
-      .select('id')
+      .select('id, receipt_number')
       .eq('tenant_id', ctx.tenant.id)
       .eq('offline_client_id', input.offlineClientId)
       .maybeSingle();
     if (existing && (existing as { id: string }).id) {
-      return { ok: true, id: (existing as { id: string }).id };
+      const ex = existing as { id: string; receipt_number: string | null };
+      return { ok: true, id: ex.id, receiptNumber: ex.receipt_number ?? null };
     }
   }
 
@@ -538,6 +575,12 @@ export async function createDirectSale(input: CreateDirectSaleInput): Promise<Mu
   const taxRateBp = Math.max(0, ctx.settings.tax_rate_bp ?? 0);
   const taxCents = taxRateBp > 0 ? Math.round((subtotal * taxRateBp) / (10_000 + taxRateBp)) : 0;
 
+  // Numéro de ticket « YYYY-MM-NNN » — attribué atomiquement (séquence mensuelle).
+  const receiptNumber = await nextReceiptNumber(
+    db,
+    ctx.tenant.id,
+    ctx.tenant.timezone || 'Africa/Cairo',
+  );
   const { data: sale, error: saleErr } = await db
     .from('sales')
     .insert({
@@ -553,6 +596,7 @@ export async function createDirectSale(input: CreateDirectSaleInput): Promise<Mu
       tax_cents: taxCents,
       cashback_redeemed_cents: cashbackApplied,
       offline_client_id: input.offlineClientId ?? null,
+      receipt_number: receiptNumber,
       completed_at: new Date().toISOString(),
     })
     .select('id')
@@ -561,13 +605,13 @@ export async function createDirectSale(input: CreateDirectSaleInput): Promise<Mu
   if (saleErr || !sale) {
     // Course concurrente sur la même clé d'idempotence → relire la vente du
     // gagnant et renvoyer un succès (jamais de doublon, jamais de faux échec).
-    const dupId = await resolveOfflineDuplicate(
+    const dup = await resolveOfflineDuplicate(
       db,
       ctx.tenant.id,
       input.offlineClientId,
       saleErr as { code?: string } | null,
     );
-    if (dupId) return { ok: true, id: dupId };
+    if (dup) return { ok: true, id: dup.id, receiptNumber: dup.receiptNumber };
     return {
       ok: false,
       errorKey: 'saleCreateFailed',
@@ -639,7 +683,7 @@ export async function createDirectSale(input: CreateDirectSaleInput): Promise<Mu
 
   revalidatePath('/cashier');
   revalidatePath('/manager');
-  return { ok: true, id: saleRow.id };
+  return { ok: true, id: saleRow.id, receiptNumber };
 }
 
 // =============================================================================

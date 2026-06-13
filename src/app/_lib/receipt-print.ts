@@ -148,7 +148,7 @@ export function buildReceiptHtml(
     <div class="c xl">${esc(salon.name)}</div>
     <div class="c">${headLines}</div>
     <hr class="hr" />
-    <div class="row"><span>${esc(L.saleNumber)} ${esc(data.saleId.slice(0, 8).toUpperCase())}</span></div>
+    <div class="row"><span>${esc(L.saleNumber)} ${esc(data.receiptNumber || data.saleId.slice(0, 8).toUpperCase())}</span></div>
     <div class="row"><span>${esc(fmtDateLong(data.dateIso, L.bcp47))} · ${esc(data.time)}</span></div>
     ${data.clientName ? `<div class="row"><span>${esc(L.client)} : ${esc(data.clientName)}</span></div>` : ''}
     <div class="row"><span>${esc(L.method)} : ${esc(data.methodLabel)}</span></div>

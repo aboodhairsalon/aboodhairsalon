@@ -39,6 +39,10 @@ export interface SalonInfo {
 
 export interface ReceiptData {
   saleId: string;
+  /** Numéro de ticket lisible « YYYY-MM-NNN ». `null` tant qu'il n'est pas
+   *  attribué (vente encaissée hors-ligne, en attente de synchro) → le rendu
+   *  retombe sur un identifiant technique provisoire. */
+  receiptNumber?: string | null;
   /** Date + heure ISO de la vente (affichée localisée). */
   dateIso: string;
   /** Horaire affiché (déjà formaté HH:mm) — évite de re-calculer côté util. */
@@ -205,7 +209,11 @@ export function buildReceiptPdf(data: ReceiptData, salon: SalonInfo, labels: Rec
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   const dateLabel = fmtDateLong(data.dateIso, labels.bcp47);
-  doc.text(`${labels.saleNumber} ${data.saleId.slice(0, 8).toUpperCase()}`, MARGIN, y);
+  doc.text(
+    `${labels.saleNumber} ${data.receiptNumber || data.saleId.slice(0, 8).toUpperCase()}`,
+    MARGIN,
+    y,
+  );
   doc.text(`${dateLabel} · ${data.time}`, W - MARGIN, y, { align: 'right' });
   y += 12;
 

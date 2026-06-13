@@ -1135,6 +1135,7 @@ function CashierPOS({
     itemsLabel: string;
     items: { name: string; qty: number; priceCents: number }[];
     saleId: string;
+    receiptNumber: string | null;
     method: 'card' | 'cash' | 'mobile';
     tipCents?: number;
   } | null>(null);
@@ -1451,6 +1452,10 @@ function CashierPOS({
         .join(' + '),
       items: receiptItems,
       saleId: localId,
+      // Numéro de ticket inconnu tant que le serveur n'a pas répondu (hors-ligne
+      // il reste null → le reçu affiche un identifiant provisoire). Renseigné
+      // juste après par la propagation de result.receiptNumber.
+      receiptNumber: null,
       method,
       tipCents: surplus.tipCents,
     };
@@ -1603,9 +1608,16 @@ function CashierPOS({
       //      fonctionne dans CashierLog (refund-actions.ts exige un UUID).
       //   2. Le snapshot Reçu (lastSale) — pour débloquer l'envoi email
       //      et le PDF avec un identifiant stable côté serveur.
+      // On propage aussi le numéro de ticket « YYYY-MM-NNN » attribué côté
+      // serveur → le reçu (déjà ouvert) affiche le vrai numéro dès le retour.
       const dbId = result.id;
-      setSales((prev) => prev.map((s) => (s.id === localId ? { ...s, id: dbId } : s)));
-      setLastSale((prev) => (prev ? { ...prev, saleId: dbId } : prev));
+      const dbReceiptNumber = result.receiptNumber ?? null;
+      setSales((prev) =>
+        prev.map((s) => (s.id === localId ? { ...s, id: dbId, receiptNumber: dbReceiptNumber } : s)),
+      );
+      setLastSale((prev) =>
+        prev ? { ...prev, saleId: dbId, receiptNumber: dbReceiptNumber } : prev,
+      );
     }
   };
 
@@ -2167,6 +2179,7 @@ function CashierPOS({
         itemsLabel={lastSale?.itemsLabel ?? ''}
         items={lastSale?.items ?? []}
         saleId={lastSale?.saleId ?? ''}
+        receiptNumber={lastSale?.receiptNumber ?? null}
         method={lastSale?.method ?? 'card'}
         tipCents={lastSale?.tipCents}
         slug={slug}
@@ -2548,7 +2561,14 @@ function CashierLog({ sales, setSales, barbers }: LogProps) {
                     refunded ? 'opacity-60' : ''
                   }`}
                 >
-                  <div className="mono text-brand-primary">{s.time}</div>
+                  <div className="mono text-brand-primary">
+                    {s.time}
+                    {s.receiptNumber && (
+                      <span className="text-ink-soft mt-0.5 block text-[9px] tracking-tight">
+                        {s.receiptNumber}
+                      </span>
+                    )}
+                  </div>
                   <div className="text-ink-mute flex items-center gap-2 truncate">
                     <span className={refunded ? 'line-through' : ''}>
                       {s.items.map((i) => i.name).join(' + ')}
