@@ -1,25 +1,19 @@
 'use server';
 /**
- * Server actions — utilisation du cashback à la Caisse.
+ * Server actions — LECTURE du solde cashback à la Caisse.
  *
- * Workflow :
- *  1. La Caisse a une vente en cours avec un client attaché (par téléphone)
- *  2. Le caissier voit le solde cashback disponible du client
- *  3. Il clique « Appliquer cashback » → cette action :
- *     a. Recalcule le solde disponible côté serveur (defense-in-depth)
- *     b. Vérifie que `amountCents <= disponible`
- *     c. UPDATE atomique `cashback_redeemed_cents = redeemed + amountCents`
- *        avec garde `WHERE redeemed = current_redeemed` (TOCTOU-safe)
- *     d. Renvoie le nouveau solde disponible pour l'UI
+ * Ce module calcule et lit le solde disponible d'un client pour l'afficher en
+ * caisse AVANT l'encaissement (`getCashbackBalance`). Le DÉBIT réel a été
+ * déplacé CÔTÉ VENTE : il a lieu dans `debitClientCashback`
+ * (`manager/booking-actions.ts`), atomique avec la création de la vente. Ainsi
+ * une vente annulée ou échouée ne débite RIEN → plus de cashback perdu sur
+ * abandon de l'encaissement.
  *
- * Idempotence : pas d'idempotence built-in — un double-click envoie 2
- * débits. À côté UI on disable le bouton pendant le pending. Si pour une
- * raison un débit en trop passe, le manager peut faire un crédit manuel
- * (futur : table `cashback_ledger` pour traçabilité audit).
+ * Solde = cashback gagné (somme `subtotal − refunded` des ventes `completed` du
+ * client × taux du tenant) − cashback déjà utilisé
+ * (`client_profiles.cashback_redeemed_cents`). Source de vérité : la table `sales`.
  *
- * Note : ce module est dans /cashier/ parce qu'il sert le flow vente.
- * L'action prend `tenantId` explicite ET vérifie `app_metadata.tenant_id`
- * du user authentifié — protège contre une vente cross-tenant.
+ * `redeemCashbackForSale` plus bas est conservée mais @deprecated (plus appelée).
  */
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
@@ -108,8 +102,13 @@ async function computeEarnedCashbackCents(
 }
 
 /**
- * Débite le cashback du client d'un montant donné. Retourne le nouveau
- * solde disponible.
+ * @deprecated Plus appelée. Le débit du cashback a été déplacé CÔTÉ VENTE
+ * (`debitClientCashback` dans `manager/booking-actions.ts`), atomique avec la
+ * vente → une vente annulée/échouée ne débite rien. Conservée pour un éventuel
+ * ajustement manuel futur côté Direction ; NE PAS rebrancher au clic
+ * « Appliquer » en caisse (c'était la cause du cashback perdu sur abandon).
+ *
+ * Débite le cashback du client d'un montant donné. Retourne le nouveau solde.
  */
 export async function redeemCashbackForSale(
   input: RedeemCashbackInput,

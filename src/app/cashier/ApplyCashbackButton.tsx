@@ -15,12 +15,12 @@
  */
 import { Wallet } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useEffect, useState, useTransition } from 'react';
+import { useEffect, useState } from 'react';
 
 import { useFmtMoney } from '../_data/local-state';
 import { useOnlineStatus } from '../_lib/use-online-status';
 import { useToast } from '../_components/Toast';
-import { getCashbackBalance, redeemCashbackForSale } from './cashback-actions';
+import { getCashbackBalance } from './cashback-actions';
 
 /**
  * CashbackHint — indicateur LECTURE SEULE du solde cashback d'un client,
@@ -85,13 +85,11 @@ export function ApplyCashbackButton({
   onRedeemed,
 }: ApplyCashbackButtonProps) {
   const t = useTranslations('cashier.cashback');
-  const tErrors = useTranslations('cashier.errors');
   const fmt = useFmtMoney();
   const toast = useToast();
   const online = useOnlineStatus();
   const [availableCents, setAvailableCents] = useState<number | null>(null);
   const [redeemed, setRedeemed] = useState(false);
-  const [pending, startTransition] = useTransition();
 
   // Charge le solde au mount + à chaque changement de client. Désactivé
   // hors-ligne : le solde cashback n'est pas vérifiable sans réseau (choix
@@ -135,25 +133,22 @@ export function ApplyCashbackButton({
   }
 
   const handleApply = () => {
-    if (pending || applyCents <= 0) return;
-    startTransition(async () => {
-      const res = await redeemCashbackForSale({ tenantId, phone, amountCents: applyCents });
-      if (res.ok) {
-        setAvailableCents(res.remainingAvailableCents);
-        setRedeemed(true);
-        onRedeemed(applyCents);
-        toast.success(t('appliedToast', { amount: fmt(applyCents) }));
-      } else {
-        toast.error(tErrors(res.errorKey as 'unknownError', res.errorValues));
-      }
-    });
+    if (redeemed || applyCents <= 0) return;
+    // Plus de débit ici : le cashback est débité CÔTÉ SERVEUR au moment de la
+    // vente (createDirectSale / payBooking), atomique avec elle. Donc si
+    // l'encaissement est annulé ou échoue, RIEN n'est débité → plus de cashback
+    // perdu sur abandon. Ici on ne fait que confirmer le montant appliqué à l'UI
+    // (le solde réel est relu du serveur au prochain affichage).
+    setAvailableCents((prev) => (prev !== null ? Math.max(0, prev - applyCents) : prev));
+    setRedeemed(true);
+    onRedeemed(applyCents);
+    toast.success(t('appliedToast', { amount: fmt(applyCents) }));
   };
 
   return (
     <button
       type="button"
       onClick={handleApply}
-      disabled={pending}
       className="border-line bg-surface-elev btn-press flex w-full items-center justify-between gap-2 rounded-sm border px-3 py-2.5 text-xs transition-colors hover:bg-white disabled:opacity-50"
     >
       <div className="flex items-center gap-2">
@@ -164,7 +159,7 @@ export function ApplyCashbackButton({
         </div>
       </div>
       <span className="mono text-ink rounded-sm bg-white px-2 py-1 text-[10px] font-bold">
-        {pending ? '…' : t('applyBtn', { amount: fmt(applyCents) })}
+        {t('applyBtn', { amount: fmt(applyCents) })}
       </span>
     </button>
   );

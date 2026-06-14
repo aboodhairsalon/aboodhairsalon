@@ -91,6 +91,46 @@ async function nextReceiptNumber(
   }
 }
 
+/** Débite le portefeuille cashback du client (`client_profiles.cashback_redeemed_cents
+ *  += amount`), APRÈS qu'une vente est confirmée en DB. Conséquence clé : une
+ *  vente annulée ou échouée ne débite RIEN → plus de cashback perdu sur abandon
+ *  (le débit n'a plus lieu au clic « Appliquer » côté caisse, seulement ici).
+ *  Best-effort : ne jette jamais → ne fait jamais échouer une vente déjà
+ *  enregistrée (une vente vaut plus qu'un petit ajustement cashback). Garde
+ *  TOCTOU + 1 retry contre les débits concurrents. N'a lieu qu'à la 1re création
+ *  réussie (le pré-check d'idempotence et le chemin doublon renvoient avant pour
+ *  un rejeu) → jamais de double-débit. Débite exactement le montant porté sur la
+ *  vente (`sales.cashback_redeemed_cents`) → cohérent avec le re-crédit au refund. */
+async function debitClientCashback(
+  db: AnySupabase,
+  phone: string | null | undefined,
+  amountCents: number,
+): Promise<void> {
+  const normalized = phone?.trim();
+  if (!normalized || amountCents <= 0) return;
+  try {
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const { data: cp } = await db
+        .from('client_profiles')
+        .select('cashback_redeemed_cents')
+        .eq('phone', normalized)
+        .maybeSingle();
+      if (!cp) return; // pas de profil → rien à débiter
+      const cur = (cp as { cashback_redeemed_cents?: number }).cashback_redeemed_cents ?? 0;
+      const { data: upd } = await db
+        .from('client_profiles')
+        .update({ cashback_redeemed_cents: cur + amountCents })
+        .eq('phone', normalized)
+        .eq('cashback_redeemed_cents', cur) // garde TOCTOU
+        .select('cashback_redeemed_cents');
+      if (upd && upd.length > 0) return; // débit appliqué
+      // sinon : course concurrente → on relit et on retente une fois
+    }
+  } catch {
+    /* best-effort — ne jamais propager (la vente est déjà enregistrée) */
+  }
+}
+
 /** Codes d'erreur émis par les actions booking — résolus côté client via
  *  `useTranslations('cashier.errors.*')` pour rester i18n-friendly. */
 export type BookingErrorCode =
@@ -496,6 +536,11 @@ export async function payBooking(input: PayBookingInput): Promise<MutationResult
   // (migration 0005) à l'INSERT de chaque sale_item kind='product'. Les
   // inserts manuels qui vivaient ici DOUBLAIENT le décrément — retirés (audit).
 
+  // Cashback : débité APRÈS que la vente est sûre en DB (best-effort, non
+  // bloquant). Une vente échouée plus haut n'a donc rien débité → plus de
+  // cashback perdu. Téléphone = celui du RDV.
+  await debitClientCashback(db, bookingRow.client_phone, cashbackApplied);
+
   revalidatePath('/cashier');
   revalidatePath('/manager');
   return { ok: true, id: saleRow.id, receiptNumber };
@@ -680,6 +725,11 @@ export async function createDirectSale(input: CreateDirectSaleInput): Promise<Mu
         { onConflict: 'tenant_id,phone', ignoreDuplicates: true },
       );
   }
+
+  // Cashback : débité APRÈS que la vente est sûre en DB (best-effort, non
+  // bloquant). Une vente échouée plus haut n'a donc rien débité → plus de
+  // cashback perdu sur abandon de l'encaissement.
+  await debitClientCashback(db, phone, cashbackApplied);
 
   revalidatePath('/cashier');
   revalidatePath('/manager');
