@@ -213,7 +213,7 @@ export function AppHeader({
               {t.label}
               {t.preview && (
                 <span className="mono bg-brand-primary/15 text-brand-glow rounded-sm px-1 py-px text-[8px] uppercase tracking-wider">
-                  Bêta
+                  Beta
                 </span>
               )}
             </button>

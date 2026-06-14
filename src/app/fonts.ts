@@ -14,7 +14,14 @@
  * Toutes chargées via next/font/google : les fichiers .woff2 sont auto-hostés
  * dans le bundle Next, pas de FOUT ni de requête vers Google Fonts en prod.
  */
-import { Fraunces, Manrope, JetBrains_Mono, Inter_Tight, Instrument_Serif } from 'next/font/google';
+import {
+  Fraunces,
+  Manrope,
+  JetBrains_Mono,
+  Inter_Tight,
+  Instrument_Serif,
+  Cairo,
+} from 'next/font/google';
 
 export const fraunces = Fraunces({
   subsets: ['latin', 'latin-ext'],
@@ -53,6 +60,20 @@ export const instrumentSerif = Instrument_Serif({
   style: ['italic'],
 });
 
+/**
+ * Cairo → police arabe (Google Fonts). Bien meilleur rendu RTL que les polices
+ * latines (Manrope/Fraunces), qui retombent sur la police arabe système.
+ * Appliquée uniquement quand `lang="ar"` via `html[lang='ar']` dans globals.css
+ * (redéfinit `--font-sans` + `--font-display`). Sous-ensemble `latin` inclus
+ * pour les chiffres/mots latins mêlés au texte arabe.
+ */
+export const cairo = Cairo({
+  subsets: ['arabic', 'latin'],
+  variable: '--font-cairo',
+  display: 'swap',
+  weight: ['400', '500', '600', '700'],
+});
+
 /** Toutes les variables à appliquer sur `<html>` en root layout. */
 export const fontVariables = [
   fraunces.variable,
@@ -60,4 +81,5 @@ export const fontVariables = [
   jetbrainsMono.variable,
   interTight.variable,
   instrumentSerif.variable,
+  cairo.variable,
 ].join(' ');

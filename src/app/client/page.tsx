@@ -81,8 +81,6 @@ import { downloadReceiptPdfServer } from './receipt-pdf-action';
 import { SALON } from '@/config/salon';
 import { utcIsoToZonedParts } from '../_lib/timezone';
 
-const DOW = ['DIM', 'LUN', 'MAR', 'MER', 'JEU', 'VEN', 'SAM'] as const;
-
 // Palette light — partagée avec tous les composants client
 const LC = {
   bg: '#F4F3F0',
@@ -1478,6 +1476,18 @@ function ClientBookingFlow({
   })();
   const barber = barbers.find((b) => b.id === barberId);
 
+  // Abréviations de jour LOCALISÉES (Intl) au lieu d'un tableau français figé —
+  // « DIM/LUN/… » s'affichait même en EN/AR sur le calendrier de réservation.
+  // 1 jan. 2023 = dimanche → index 0..6 = dim..sam (aligné sur Date.getDay()).
+  // Recalculé au changement de langue.
+  const calLocale = useLocale();
+  const dowLabels = useMemo(() => {
+    const fmt = new Intl.DateTimeFormat(calLocale, { weekday: 'short' });
+    return Array.from({ length: 7 }, (_, i) =>
+      fmt.format(new Date(2023, 0, 1 + i)).replace(/\./g, '').toUpperCase(),
+    );
+  }, [calLocale]);
+
   const days = useMemo(
     () =>
       Array.from({ length: 14 }).map((_, i) => {
@@ -1485,11 +1495,11 @@ function ClientBookingFlow({
         d.setDate(d.getDate() + i);
         return {
           iso: d.toISOString().split('T')[0]!,
-          dow: DOW[d.getDay()]!,
+          dow: dowLabels[d.getDay()]!,
           dom: d.getDate(),
         };
       }),
-    [],
+    [dowLabels],
   );
 
   // ─── allSlots dérivé des HORAIRES RÉELS du salon (audit pre-launch) ─────

@@ -55,6 +55,18 @@
   --ease-soft: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
+/* ── Arabe : police Cairo ──────────────────────────────────────────────────
+ * Quand la langue active est l'arabe, on redéfinit les variables de police
+ * sans/display pour utiliser Cairo (Google Fonts) — rendu RTL nettement plus
+ * net et lisible que les polices latines (qui retombent sur la police arabe
+ * système). La cascade propage le changement à tout l'arbre (body + titres)
+ * sans toucher chaque composant. Le mono garde JetBrains (chiffres latins
+ * prix/heures), correct en contexte arabe. */
+html[lang='ar'] {
+  --font-sans: var(--font-cairo), 'Segoe UI', Tahoma, ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-cairo), 'Segoe UI', Tahoma, ui-sans-serif, system-ui, sans-serif;
+}
+
 /* ════════════════════════════════════════════════════════════════════════
  * BASE LAYER
  * ════════════════════════════════════════════════════════════════════════ */

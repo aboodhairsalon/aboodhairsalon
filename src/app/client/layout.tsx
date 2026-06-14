@@ -87,9 +87,9 @@ export default async function ClientLayout({ children }: { children: React.React
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#0A0A0A] p-6 text-center">
         <div>
-          <p className="text-[15px] text-[#A1A1AA]">Aucun établissement trouvé.</p>
+          <p className="text-[15px] text-[#A1A1AA]">Salon not found.</p>
           <p className="mt-2 text-[13px] text-[#52525B]">
-            Utilisez le lien fourni par votre salon pour accéder à l&apos;espace de réservation.
+            Use the link provided by your salon to access the booking area.
           </p>
         </div>
       </div>
