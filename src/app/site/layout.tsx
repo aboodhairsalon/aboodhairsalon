@@ -24,7 +24,9 @@ export async function generateMetadata(): Promise<Metadata> {
   const description = t('description', { name: tenantName });
 
   return {
-    title,
+    // `absolute` : le titre porte déjà le nom du salon → on court-circuite le
+    // template du root layout (sinon « … · Aboodhairsalon » en double).
+    title: { absolute: title },
     description,
     alternates: { canonical: canonicalUrl },
     robots: { index: true, follow: true },
