@@ -421,10 +421,12 @@ export function ManagerReport({ isRealTenant }: { isRealTenant: boolean }) {
             );
           })()}
 
-          {report.salesCount === 0 && report.bookings.total === 0 ? (
-            <Card className="p-8 text-center text-sm text-ink-mute">{t('empty')}</Card>
-          ) : (
-            <>
+          {/* Toutes les sections sont TOUJOURS affichées — Jour, Semaine ou Mois,
+              même sans activité — pour une vue identique quelle que soit la
+              période. Chaque carte gère son propre état vide (0, « aucune
+              vente »…). Avant, un jour sans vente NI rendez-vous masquait tout
+              ce bloc, d'où la différence visible avec semaine/mois. */}
+          <>
               {/* Moyens de paiement */}
               <Card className="p-5">
                 <SectionHeader icon={CreditCard} title={t('payments.title')} />
@@ -618,7 +620,6 @@ export function ManagerReport({ isRealTenant }: { isRealTenant: boolean }) {
                 )}
               </Card>
             </>
-          )}
         </div>
       )}
     </div>
