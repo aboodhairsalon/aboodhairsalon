@@ -8,19 +8,23 @@
  * Single-tenant : nom + URL canonique + OG image viennent de @/config/salon.
  */
 import type { Metadata } from 'next';
+import { getTranslations } from 'next-intl/server';
 import { SALON } from '@/config/salon';
 
 export const dynamic = 'force-dynamic';
 
-export function generateMetadata(): Metadata {
+export async function generateMetadata(): Promise<Metadata> {
   const tenantName = SALON.name;
   const canonicalUrl = SALON.url;
   const ogImageUrl = `${SALON.url}/client/og-image`;
 
-  const description = `Premium men's grooming at ${tenantName}. Bespoke haircuts, beard care and treatments delivered with precision and discretion.`;
+  // Métadonnées localisées (titre + description) selon la langue active.
+  const t = await getTranslations('site.meta');
+  const title = t('title', { name: tenantName });
+  const description = t('description', { name: tenantName });
 
   return {
-    title: `${tenantName} — Men's salon`,
+    title,
     description,
     alternates: { canonical: canonicalUrl },
     robots: { index: true, follow: true },

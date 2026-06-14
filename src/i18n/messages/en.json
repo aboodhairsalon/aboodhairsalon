@@ -1581,7 +1581,8 @@
       "location": "Location",
       "bookNow": "Book now",
       "openMenu": "Open menu",
-      "closeMenu": "Close menu"
+      "closeMenu": "Close menu",
+      "mobileNav": "Mobile navigation"
     },
     "hero": {
       "badge": "Est. 2004 · Alexandria",
@@ -1638,6 +1639,10 @@
     "hours": {
       "everyDay": "Every day",
       "defaultLabel": "Tue — Sat · 10am — 10pm"
+    },
+    "meta": {
+      "title": "{name} — Men's salon",
+      "description": "Premium men's grooming at {name}. Bespoke haircuts, beard care and treatments delivered with precision and discretion."
     }
   }
 }

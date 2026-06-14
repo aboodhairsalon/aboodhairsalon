@@ -1581,7 +1581,8 @@
       "location": "Adresse",
       "bookNow": "Réserver",
       "openMenu": "Ouvrir le menu",
-      "closeMenu": "Fermer le menu"
+      "closeMenu": "Fermer le menu",
+      "mobileNav": "Navigation mobile"
     },
     "hero": {
       "badge": "Depuis 2004 · Alexandrie",
@@ -1638,6 +1639,10 @@
     "hours": {
       "everyDay": "Tous les jours",
       "defaultLabel": "Mar — Sam · 10h — 22h"
+    },
+    "meta": {
+      "title": "{name} — Salon de coiffure homme",
+      "description": "Coiffure et soins haut de gamme pour homme chez {name}. Coupes sur mesure, soin de la barbe et prestations exécutées avec précision et discrétion."
     }
   }
 }

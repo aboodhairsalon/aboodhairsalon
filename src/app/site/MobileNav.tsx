@@ -12,6 +12,7 @@
  * locked quand ouvert.
  */
 import { Menu, X } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import { LocaleSwitcher } from '../_components/LocaleSwitcher';
 
@@ -30,6 +31,7 @@ interface Props {
 
 export function MobileNav({ links, bookUrl, bookLabel, tenantName, logoUrl }: Props) {
   const [open, setOpen] = useState(false);
+  const t = useTranslations('site.nav');
 
   // Bloque le scroll body quand le drawer est ouvert
   useEffect(() => {
@@ -49,7 +51,7 @@ export function MobileNav({ links, bookUrl, bookLabel, tenantName, logoUrl }: Pr
       <button
         type="button"
         onClick={() => setOpen(true)}
-        aria-label="Open menu"
+        aria-label={t('openMenu')}
         className="inline-flex h-10 w-10 items-center justify-center rounded-full transition-colors hover:bg-black/5 md:hidden"
         style={{ color: '#18160F' }}
       >
@@ -62,7 +64,7 @@ export function MobileNav({ links, bookUrl, bookLabel, tenantName, logoUrl }: Pr
           className="fixed inset-0 z-[100] flex flex-col md:hidden"
           role="dialog"
           aria-modal="true"
-          aria-label="Mobile navigation"
+          aria-label={t('mobileNav')}
           style={{ background: '#F4F3F0' }}
         >
           {/* Header drawer : logo gauche + close droite (même structure que Nav) */}
@@ -86,7 +88,7 @@ export function MobileNav({ links, bookUrl, bookLabel, tenantName, logoUrl }: Pr
             <button
               type="button"
               onClick={() => setOpen(false)}
-              aria-label="Close menu"
+              aria-label={t('closeMenu')}
               className="inline-flex h-10 w-10 items-center justify-center rounded-full transition-colors hover:bg-black/5"
               style={{ color: '#18160F' }}
             >
