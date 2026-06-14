@@ -10,8 +10,10 @@ import 'server-only';
  * Plus de guard `x-tenant-id` (le middleware ne pose plus ces headers) — le
  * salon est unique et la page marketing est toujours servie pour Aboodhairsalon.
  */
+import { getLocale } from 'next-intl/server';
 import { createAdminClient } from '@/db';
 import { SALON } from '@/config/salon';
+import { pickLocale, shortLocale, type I18nText } from '@/lib/pick-locale';
 
 export interface SiteTenantData {
   tenant: {
@@ -76,7 +78,7 @@ export async function getSiteTenantData(): Promise<SiteTenantData | null> {
       admin.from('tenant_settings').select('*').maybeSingle(),
       admin
         .from('services')
-        .select('id, name, duration_min, price_cents, icon, sort_order')
+        .select('id, name, name_i18n, duration_min, price_cents, icon, sort_order')
         .eq('is_active', true)
         .order('sort_order', { ascending: true }),
       admin
@@ -96,6 +98,9 @@ export async function getSiteTenantData(): Promise<SiteTenantData | null> {
   const t = tenantRes.data as Record<string, unknown> | null;
   const b = brandingRes.data as Record<string, unknown> | null;
   const s = settingsRes.data as Record<string, unknown> | null;
+
+  // Langue active — pour résoudre les noms de prestations multilingues.
+  const locale = shortLocale(await getLocale());
 
   return {
     tenant: {
@@ -126,8 +131,14 @@ export async function getSiteTenantData(): Promise<SiteTenantData | null> {
       maps_url:
         (s?.['maps_url'] as string | null | undefined) ?? SALON.contact.googleMapsUrl ?? null,
     },
+    // Nom de prestation résolu dans la langue active (name_i18n) — sinon /site
+    // affichait toujours le nom brut de la DB (souvent en arabe) quelle que
+    // soit la langue choisie par le visiteur. Repli sur le nom brut si manquant.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    services: (servicesRes.data ?? []) as any,
+    services: ((servicesRes.data ?? []) as any[]).map((sv) => ({
+      ...sv,
+      name: pickLocale(sv.name_i18n as I18nText, locale, sv.name as string),
+    })),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     staff: (staffRes.data ?? []) as any,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
