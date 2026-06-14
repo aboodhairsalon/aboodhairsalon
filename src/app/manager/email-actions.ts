@@ -316,12 +316,9 @@ export async function sendReceiptEmail(input: SendReceiptEmailInput): Promise<Se
   }).format(dateObj);
   const time = utcIsoToZonedParts(sale.created_at as string, SALON.timezone).time;
 
+  // Libellés de marque (Visa / Cash / InstaPay) — identiques dans toutes les langues.
   const methodLabel =
-    sale.method === 'card'
-      ? labels.methodCard
-      : sale.method === 'cash'
-        ? labels.methodCash
-        : labels.methodMobile;
+    sale.method === 'card' ? 'Visa' : sale.method === 'cash' ? 'Cash' : 'InstaPay';
 
   // URL espace client : signée serveur-side via token HMAC pour ne pas
   // envoyer le téléphone client en clair dans le body email (loggué chez

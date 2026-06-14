@@ -53,14 +53,15 @@ export function buildSalesCsv(
   //  - Total facturé (gross)
   //  - Remboursé (cumulé sur la vente : 0, partiel, ou total)
   //  - Net = Total − Remboursé (ce qui est resté en caisse)
+  // Libellés de marque (Visa / Cash / InstaPay) — identiques dans toutes les langues.
   const methodLabel = (m: Sale['method']): string => {
     switch (m) {
       case 'card':
-        return labels.methodCard;
+        return 'Visa';
       case 'cash':
-        return labels.methodCash;
+        return 'Cash';
       case 'mobile':
-        return labels.methodMobile;
+        return 'InstaPay';
     }
   };
   const header = [

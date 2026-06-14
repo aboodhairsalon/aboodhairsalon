@@ -244,12 +244,10 @@ export async function downloadReceiptPdfServer(
     dateObj.getUTCMinutes(),
   ).padStart(2, '0')}`;
 
+  // Libellés de marque (Visa / Cash / InstaPay) — identiques dans toutes les
+  // langues, et compatibles jsPDF (latin), contrairement à un libellé arabe.
   const methodLabel =
-    sale.method === 'card'
-      ? labels.methodCard
-      : sale.method === 'cash'
-        ? labels.methodCash
-        : labels.methodMobile;
+    sale.method === 'card' ? 'Visa' : sale.method === 'cash' ? 'Cash' : 'InstaPay';
 
   const items = sale.sale_items ?? [];
   const itemsSubtotal = items.reduce((s, i) => s + (i.unit_price_cents ?? 0) * (i.qty ?? 1), 0);
